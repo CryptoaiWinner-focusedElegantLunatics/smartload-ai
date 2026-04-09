@@ -36,7 +36,7 @@ Mając włączonego Docker Desktop, wpisz w terminalu:
 docker-compose up --build
 ```
 
-###Krok 4: Wgraj dane testowe (Seed)
+### Krok 4: Wgraj dane testowe (Seed)
 Skoro masz czystą bazę, musimy wrzucić do niej jakieś ładunki do testów. Zostaw włączonego Dockera w pierwszej karcie, otwórz nową kartę terminala i wpisz:
 
 ```Bash
