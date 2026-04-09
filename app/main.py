@@ -18,6 +18,10 @@ def on_startup():
 def read_root():
     return {"status": "SmartLoad AI is running", "mordeczko": "Logistyka przejęta!"}
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "message": "AI Spedition backend działa!"}
+
 @app.get("/db-check")
 def check_db(session: Session = Depends(get_session)):
     loads = session.exec(select(Load)).all()
