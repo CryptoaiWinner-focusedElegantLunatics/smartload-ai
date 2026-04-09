@@ -15,7 +15,7 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Deploy to Railway
-        run: railway up --service aplikacja-spedycyjna-ai
+      - name: Deploy
+        run: railway up --project 41daf065-3299-49b2-a3c1-6d4356dae706
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
