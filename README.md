@@ -27,7 +27,6 @@ W systemach Linux/Mac możesz to zrobić komendą:
 
 ```Bash
 cp .env.example .env
-(Windows: po prostu skopiuj plik env.example ręcznie i zmień mu nazwę na .env. W środku na razie nic nie musisz zmieniać, żeby odpalić projekt).
 ```
 
 ### Krok 3: Odpal maszynownię (Docker)
@@ -35,7 +34,6 @@ Mając włączonego Docker Desktop, wpisz w terminalu:
 
 ```Bash
 docker-compose up --build
-To polecenie pobierze Pythona, zbuduje naszą aplikację i stworzy lokalną bazę PostgreSQL (z rozszerzeniem pgvector pod AI). Przy pierwszym uruchomieniu może to potrwać 2-3 minuty.
 ```
 
 ###Krok 4: Wgraj dane testowe (Seed)
