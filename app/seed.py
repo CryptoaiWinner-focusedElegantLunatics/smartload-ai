@@ -11,7 +11,6 @@ mock_loads = [
 
 def seed_db():
     with Session(engine) as session:
-        # Sprawdzamy czy baza jest pusta
         existing = session.query(Load).first()
         if existing:
             print("Baza ma już dane, pomijam seedowanie.")

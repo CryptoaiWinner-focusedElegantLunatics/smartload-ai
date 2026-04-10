@@ -23,3 +23,7 @@ python-multipart==0.0.9
 
 # AI Vector Support
 pgvector==0.2.5
+
+celery==5.3.6
+redis==5.0.3
+beautifulsoup4==4.12.3
