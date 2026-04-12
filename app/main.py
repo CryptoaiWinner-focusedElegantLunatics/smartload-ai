@@ -9,6 +9,7 @@ from app.models.load import Load
 from app.services.tasks import process_emails_task
 from app.scraper.runner import run_all_scrapers  # nie manager!
 from app.api import loads  # ← BRAKUJĄCY IMPORT
+from app.api.documents import router as documents_router
 
 
 scheduler = AsyncIOScheduler()
@@ -34,6 +35,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SmartLoad AI API", lifespan=lifespan)
 
 app.include_router(loads.router, prefix="/api", tags=["loads"])  # ← poprawione
+app.include_router(documents_router)
+
 
 
 @app.get("/")
