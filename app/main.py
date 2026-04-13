@@ -14,6 +14,7 @@ from app.api.contractors import router as contractors_router
 from app.api.offers import router as offers_router
 from app.api.orders import router as orders_router
 from app.api.departments import router as departments_router
+from app.api.exchange import router as exchange_router
 
 scheduler = AsyncIOScheduler()
 
@@ -47,6 +48,9 @@ app.include_router(contractors_router, prefix="/api", tags=["contractors"])
 app.include_router(offers_router, prefix="/api", tags=["offers"])
 app.include_router(orders_router, prefix="/api", tags=["orders"])
 app.include_router(departments_router, prefix="/api", tags=["departments"])
+
+# --- Task 2.2: integracja giełdowa ---
+app.include_router(exchange_router, prefix="/api", tags=["exchange"])
 
 
 @app.get("/")
