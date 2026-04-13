@@ -1,0 +1,1 @@
+Organizacja stanowiska do pracy nad projektem, oraz instalacja potrzebnych programów. Wstepne wdrożenie API i bazy danych
