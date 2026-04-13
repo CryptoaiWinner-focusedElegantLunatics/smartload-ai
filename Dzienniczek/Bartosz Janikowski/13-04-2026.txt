@@ -1,0 +1,1 @@
+Utworzenie i uporządzkowanie dziennika codzienniej aktywności. Dodanie ich z poprzednich dni. Wybranie potrzebnych endpointów z fireTMS.
