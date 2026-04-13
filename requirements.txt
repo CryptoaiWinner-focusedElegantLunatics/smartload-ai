@@ -30,3 +30,10 @@ beautifulsoup4==4.12.3
 
 lxml
 apscheduler
+
+# OCR
+PyMuPDF==1.24.2
+pytesseract==0.3.10
+Pillow==10.3.0
+pdf2image==1.17.0
+groq
