@@ -7,10 +7,13 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.database import engine, get_session
 from app.models.load import Load
 from app.services.tasks import process_emails_task
-from app.scraper.runner import run_all_scrapers  # nie manager!
-from app.api import loads  # ← BRAKUJĄCY IMPORT
+from app.scraper.runner import run_all_scrapers
+from app.api import loads
 from app.api.documents import router as documents_router
-
+from app.api.contractors import router as contractors_router
+from app.api.offers import router as offers_router
+from app.api.orders import router as orders_router
+from app.api.departments import router as departments_router
 
 scheduler = AsyncIOScheduler()
 
@@ -21,22 +24,29 @@ async def lifespan(app: FastAPI):
         session.exec(text("CREATE EXTENSION IF NOT EXISTS vector"))
         session.commit()
     SQLModel.metadata.create_all(engine)
-
     await run_all_scrapers()
-
     scheduler.add_job(run_all_scrapers, "interval", minutes=15)
     scheduler.start()
-
     yield
-
     scheduler.shutdown()
 
 
-app = FastAPI(title="SmartLoad AI API", lifespan=lifespan)
+app = FastAPI(
+    title="SmartLoad AI API",
+    description="SmartLoad AI – mock API wzorowane na fireTMS",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
-app.include_router(loads.router, prefix="/api", tags=["loads"])  # ← poprawione
+# --- Istniejące routery ---
+app.include_router(loads.router, prefix="/api", tags=["loads"])
 app.include_router(documents_router)
 
+# --- Nowe routery fireTMS mock ---
+app.include_router(contractors_router, prefix="/api", tags=["contractors"])
+app.include_router(offers_router, prefix="/api", tags=["offers"])
+app.include_router(orders_router, prefix="/api", tags=["orders"])
+app.include_router(departments_router, prefix="/api", tags=["departments"])
 
 
 @app.get("/")
@@ -61,7 +71,7 @@ def trigger_background_sync(limit: Optional[int] = 50):
     return {
         "status": "processing",
         "task_id": task.id,
-        "message": f"Zlecono pobranie {limit} maili w tle."
+        "message": f"Zlecono pobranie {limit} maili w tle.",
     }
 
 
