@@ -1,0 +1,1 @@
+Dzis odbyło sie spotkanie w szkole, potem przegadalismy z chłopakami nasz pomysł na projekt, stworzona została organizacja na github, repo oraz board na jirze z opisam wszystkich sprintów, i dokładniejszymi taskami 1 sprintu.
