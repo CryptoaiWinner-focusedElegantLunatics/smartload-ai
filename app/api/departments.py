@@ -20,6 +20,12 @@ router = APIRouter()
 _departments: dict[str, DepartmentResponse] = {}
 _payments: dict[str, MarkPaymentResponseDto] = {}
 
+# Patchowalne przez seed_firetms.py
+_currency_tables_data: list = []
+_purchase_service_types: list = []
+_purchase_tax_rates: list = []
+_units_of_measure: list = []
+
 
 def _seed():
     deps = [
@@ -77,20 +83,45 @@ def update_department(department_id: str, body: UpdateDepartmentRequest):
 
 @router.get("/currency-tables", response_model=CurrencyTableResponseList)
 def get_currency_tables():
+    if _currency_tables_data:
+        return CurrencyTableResponseList(
+            items=_currency_tables_data,
+            totalItems=len(_currency_tables_data),
+        )
+    # Fallback z prawdziwymi kursami NBP z 2026-04-13
     today = date.today().isoformat()
     table = CurrencyTableResponse(
         id="cur-table-001",
-        name="NBP Table A",
+        name="NBP 070/A/NBP/2026",
         date=today,
         rates=[
-            CurrencyRate(currencyCode="EUR", rate=4.28, baseCode="PLN"),
-            CurrencyRate(currencyCode="USD", rate=3.95, baseCode="PLN"),
-            CurrencyRate(currencyCode="GBP", rate=5.02, baseCode="PLN"),
-            CurrencyRate(currencyCode="CHF", rate=4.41, baseCode="PLN"),
-            CurrencyRate(currencyCode="CZK", rate=0.17, baseCode="PLN"),
+            CurrencyRate(currencyCode="EUR", rate=4.2507, baseCode="PLN"),
+            CurrencyRate(currencyCode="USD", rate=3.6374, baseCode="PLN"),
+            CurrencyRate(currencyCode="GBP", rate=4.8845, baseCode="PLN"),
+            CurrencyRate(currencyCode="CHF", rate=4.6021, baseCode="PLN"),
+            CurrencyRate(currencyCode="CZK", rate=0.1744, baseCode="PLN"),
+            CurrencyRate(currencyCode="NOK", rate=0.3836, baseCode="PLN"),
+            CurrencyRate(currencyCode="SEK", rate=0.3907, baseCode="PLN"),
         ],
     )
     return CurrencyTableResponseList(items=[table], totalItems=1)
+
+
+# --- Słowniki ---
+
+@router.get("/purchase-service-type")
+def get_purchase_service_types():
+    return {"items": _purchase_service_types, "totalItems": len(_purchase_service_types)}
+
+
+@router.get("/purchase-tax-rates")
+def get_purchase_tax_rates():
+    return {"items": _purchase_tax_rates, "totalItems": len(_purchase_tax_rates)}
+
+
+@router.get("/unit-of-measure")
+def get_units_of_measure():
+    return {"items": _units_of_measure, "totalItems": len(_units_of_measure)}
 
 
 # --- Payments ---
