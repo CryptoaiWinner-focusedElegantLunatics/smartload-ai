@@ -1,0 +1,1 @@
+Dziś szukałem sposobu na wykorzystanie API trans.eu/fireTMS, jako iż nie ma dostępu do nich publicznie będzie potrzebne stworzenie własnego API.

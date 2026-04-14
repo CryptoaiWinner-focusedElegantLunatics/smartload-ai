@@ -1,0 +1,3 @@
+Przeniesienie poprzednich wpisów z dzienniczka na repo.
+Wybranie endpointów z fireTMS, z jakich potrzebujemy dane.
+Zrobienie części integracji naszego mock API fireTMS, narazie zpushowane na osobnym branchu, do skończenia.

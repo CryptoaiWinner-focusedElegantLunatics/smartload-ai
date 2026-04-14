@@ -1,0 +1,1 @@
+Dzisiaj dodałem 2 funkcje: przerabianie pdfa na tekst oraz analiza pdf-a przez Ai które wypisuje najwazniejsze rzeczy w formacie JSON

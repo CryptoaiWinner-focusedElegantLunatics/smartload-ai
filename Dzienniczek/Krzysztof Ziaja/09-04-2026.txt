@@ -1,0 +1,1 @@
+Dziś wykonałem zadanie 1.3, czyli konfiguracje CI/CD za pomocą Railway

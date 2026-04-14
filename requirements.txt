@@ -29,3 +29,16 @@ redis==5.0.3
 beautifulsoup4==4.12.3
 requests==2.31.0
 jinja2
+
+lxml
+apscheduler
+
+# OCR
+PyMuPDF==1.24.2
+pytesseract==0.3.10
+Pillow==10.3.0
+pdf2image==1.17.0
+groq
+# Testing
+pytest==8.1.1
+pytest-asyncio==0.23.6
