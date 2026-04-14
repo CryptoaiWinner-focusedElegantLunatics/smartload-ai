@@ -1,0 +1,171 @@
+{
+    "items": [
+        {
+            "id": "11b032ea-85d5-42b3-9ea4-3607d4531a8a",
+            "defaultName": "Big-Bag",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "2a7b09e6-3520-49bd-8863-a8d685724751",
+            "defaultName": "Box",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "78fc1813-8cb2-472e-b2fb-053aaa7a419c",
+            "defaultName": "Samochód osobowy",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "8e009cb2-4a73-4107-beac-5d8c07d2c349",
+            "defaultName": "Kontener CC",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "2545ea29-480d-4711-b9aa-ccbe46e35ac0",
+            "defaultName": "Colli",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "0fc55dfd-0cab-4963-b2b2-2dfda7a1ecf3",
+            "defaultName": "Kontener",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "d2d67e44-48aa-4ef6-90e2-71d27ebde75b",
+            "defaultName": "Kontener ECC",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "4bc47d12-8a53-41f3-a1c7-02ae44a30100",
+            "defaultName": "EURO2(120cm x 100cm)",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "6ed37d4b-5fa1-40a2-b923-14e4a1e0a01d",
+            "defaultName": "Europaleta",
+            "type": "EURO_PALLET",
+            "capacity": "",
+            "defaultUnit": true,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "0ba57169-a7c2-4fee-8e9d-dcc014bcd383",
+            "defaultName": "Gitterbox",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "ce7bbb29-791d-445f-8150-37526258ea4b",
+            "defaultName": "Paletopojemnik",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "3365caeb-c5ea-4829-8362-f37248c85397",
+            "defaultName": "km",
+            "type": "DISTANCE",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "c744904a-8b34-4ec5-902a-27f2488ecf9d",
+            "defaultName": "Litr",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "29e47a9c-5e12-4a98-8c6c-74305f053d10",
+            "defaultName": "Bez opakowania",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "741d0a94-2b75-4383-a05e-c5141062512e",
+            "defaultName": "Paleta",
+            "type": "PALLET",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "bd58f286-334b-4edc-b05b-ce2d212580c2",
+            "defaultName": "Miejsce paletowe",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "8c52ed27-a806-4318-851c-b422564110e3",
+            "defaultName": "Sztuka",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "eb53f690-df8e-47f1-807d-95bbfa09b938",
+            "defaultName": "Sztuki",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "ff661304-dc3b-4e92-9271-8a07efccdb6b",
+            "defaultName": "Cysterna",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        },
+        {
+            "id": "915ee870-6951-415c-b01c-5417e10d21f2",
+            "defaultName": "Wywrotka",
+            "type": "OTHER",
+            "capacity": "",
+            "defaultUnit": false,
+            "palletExchangePossible": true
+        }
+    ],
+    "paging": {
+        "pageNumber": 1,
+        "pageSize": 20,
+        "firstItemIndex": 0
+    },
+    "totalItems": 24,
+    "maxPageNumber": 2
+}

@@ -1,0 +1,2399 @@
+{
+    "items": [
+        {
+            "id": "c58524f1-ff22-488e-968c-521db946121c",
+            "tableDate": "2026-04-13",
+            "tableNumber": "070\/A\/NBP\/2026",
+            "authority": "NBP",
+            "currencyRates": [
+                {
+                    "currency": "THB",
+                    "rate": 0.1129
+                },
+                {
+                    "currency": "USD",
+                    "rate": 3.6374
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 2.5652
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 0.4645
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 2.6279
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 2.1207
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 2.8514
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 4.2507
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.011602
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 4.6021
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 4.8845
+                },
+                {
+                    "currency": "UAH",
+                    "rate": 0.0837
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.022775
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.1744
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 0.5688
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 0.029684
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 0.3836
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 0.3907
+                },
+                {
+                    "currency": "RON",
+                    "rate": 0.8346
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.0813
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 1.1884
+                },
+                {
+                    "currency": "CLP",
+                    "rate": 0.004051
+                },
+                {
+                    "currency": "PHP",
+                    "rate": 0.0605
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 0.2093
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 0.22
+                },
+                {
+                    "currency": "BRL",
+                    "rate": 0.7265
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 0.9151
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.000213
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.038951
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.002447
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 0.5323
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 4.9731
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "bd2fadfc-5eb2-44b2-b6f2-2908ca37e660",
+            "tableDate": "2026-04-13",
+            "tableNumber": "13\/04\/2026",
+            "authority": "HCB",
+            "currencyRates": [
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 221.1
+                },
+                {
+                    "currency": "BRL",
+                    "rate": 62.61
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 226.45
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 396.56
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 45.87
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 15.03
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 49.02
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 366.33
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 420.94
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 40.03
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.0183
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 102.42
+                },
+                {
+                    "currency": "INR",
+                    "rate": 3.36
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 2.56
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 1.9628
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.2109
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 18.04
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 78.86
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 33.06
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 182.79
+                },
+                {
+                    "currency": "PHP",
+                    "rate": 5.21
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 86.18
+                },
+                {
+                    "currency": "RON",
+                    "rate": 71.93
+                },
+                {
+                    "currency": "RUB",
+                    "rate": 4.12
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 33.67
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 245.73
+                },
+                {
+                    "currency": "THB",
+                    "rate": 9.73
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 7.01
+                },
+                {
+                    "currency": "UAH",
+                    "rate": 7.22
+                },
+                {
+                    "currency": "USD",
+                    "rate": 313.48
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "c546ba91-6f9f-43f9-89a6-6ccd088b0a43",
+            "tableDate": "2026-04-13",
+            "tableNumber": "070\/C\/NBP\/2026 - Kurs sprzedaży",
+            "authority": "NBP",
+            "currencyRates": [
+                {
+                    "currency": "USD",
+                    "rate": 3.6551
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 2.5869
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 2.6454
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 4.2865
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.011392
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 4.6444
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 4.9205
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.022962
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.1759
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 0.5737
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 0.385
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 0.3956
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 5.0188
+                }
+            ],
+            "default": false
+        },
+        {
+            "id": "8387254e-cd38-4885-86fb-646b4e3d1ab4",
+            "tableDate": "2026-04-13",
+            "tableNumber": "070\/C\/NBP\/2026 - Kurs zakupu",
+            "authority": "NBP",
+            "currencyRates": [
+                {
+                    "currency": "USD",
+                    "rate": 3.5827
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 2.5357
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 2.593
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 4.2017
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.011166
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 4.5524
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 4.8231
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.022508
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.1725
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 0.5623
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 0.3774
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 0.3878
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 4.9194
+                }
+            ],
+            "default": false
+        },
+        {
+            "id": "55043691-52c9-4243-809b-63add3f6956e",
+            "tableDate": "2026-04-13",
+            "tableNumber": "13.04.2026",
+            "authority": "BNM",
+            "currencyRates": [
+                {
+                    "currency": "EUR",
+                    "rate": 20.1231
+                },
+                {
+                    "currency": "USD",
+                    "rate": 17.2375
+                },
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "RON",
+                    "rate": 3.9513
+                },
+                {
+                    "currency": "UAH",
+                    "rate": 0.3966
+                },
+                {
+                    "currency": "AED",
+                    "rate": 4.6929
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 12.1197
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 12.4439
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 21.7754
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 2.5198
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.8246
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 2.6928
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 23.1
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 2.2001
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.053276
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 5.584
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.18595
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 0.13994
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.108363
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.011639
+                },
+                {
+                    "currency": "KZT",
+                    "rate": 0.03612
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 4.3269
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 1.8094
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 10.0512
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 4.7251
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 1.8479
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.3858
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 23.5824
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "df8c9256-e0a8-4d13-a214-2cd2624eace8",
+            "tableDate": "2026-04-13",
+            "tableNumber": "2026-04-13",
+            "authority": "NBU",
+            "currencyRates": [
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 30.7296
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 31.4326
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 6.3643
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 2.0894
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 6.8126
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 5.5486
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.134969
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.46869
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.002541
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 14.2586
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.27303
+                },
+                {
+                    "currency": "KZT",
+                    "rate": 0.091747
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.029301
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 10.96
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 2.5048
+                },
+                {
+                    "currency": "MDL",
+                    "rate": 2.5226
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 25.406
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 4.5786
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 34.1147
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 2.6455
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 4.6947
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 55.0877
+                },
+                {
+                    "currency": "THB",
+                    "rate": 1.35381
+                },
+                {
+                    "currency": "AED",
+                    "rate": 11.8316
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 58.4302
+                },
+                {
+                    "currency": "USD",
+                    "rate": 43.4587
+                },
+                {
+                    "currency": "RON",
+                    "rate": 10.0006
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.9727
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 59.5479
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 50.9075
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 11.9956
+                },
+                {
+                    "currency": "XAU",
+                    "rate": 207105.48
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "44f96914-73f2-41ee-be93-6edf8193d7b5",
+            "tableDate": "2026-04-12",
+            "tableNumber": "12.04.2026",
+            "authority": "BNM",
+            "currencyRates": [
+                {
+                    "currency": "EUR",
+                    "rate": 20.1231
+                },
+                {
+                    "currency": "USD",
+                    "rate": 17.2375
+                },
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "RON",
+                    "rate": 3.9513
+                },
+                {
+                    "currency": "UAH",
+                    "rate": 0.3966
+                },
+                {
+                    "currency": "AED",
+                    "rate": 4.6929
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 12.1197
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 12.4439
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 21.7754
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 2.5198
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.8246
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 2.6928
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 23.1
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 2.2001
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.053276
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 5.584
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.18595
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 0.13994
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.108363
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.011639
+                },
+                {
+                    "currency": "KZT",
+                    "rate": 0.03612
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 4.3269
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 1.8094
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 10.0512
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 4.7251
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 1.8479
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.3858
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 23.5824
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "19dc7722-8b6c-4b15-84ef-87d06cc9ac69",
+            "tableDate": "2026-04-12",
+            "tableNumber": "2026-04-12",
+            "authority": "NBU",
+            "currencyRates": [
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 30.6191
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 31.4146
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 6.3581
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 2.0817
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 6.7975
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 5.5475
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.134847
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.46889
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.002543
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 14.0847
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.27354
+                },
+                {
+                    "currency": "KZT",
+                    "rate": 0.091256
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.029368
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 10.9102
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 2.4935
+                },
+                {
+                    "currency": "MDL",
+                    "rate": 2.5168
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 25.3794
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 4.5692
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 34.1118
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 2.6461
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 4.6751
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 54.9776
+                },
+                {
+                    "currency": "THB",
+                    "rate": 1.35511
+                },
+                {
+                    "currency": "AED",
+                    "rate": 11.8334
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 58.3587
+                },
+                {
+                    "currency": "USD",
+                    "rate": 43.4653
+                },
+                {
+                    "currency": "RON",
+                    "rate": 9.9748
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.9747
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 59.5049
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 50.7979
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 11.9371
+                },
+                {
+                    "currency": "XAU",
+                    "rate": 206738.35
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "b57366e0-3e60-4aa8-b014-a0597f72acb7",
+            "tableDate": "2026-04-11",
+            "tableNumber": "11.04.2026",
+            "authority": "BNM",
+            "currencyRates": [
+                {
+                    "currency": "EUR",
+                    "rate": 20.1231
+                },
+                {
+                    "currency": "USD",
+                    "rate": 17.2375
+                },
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "RON",
+                    "rate": 3.9513
+                },
+                {
+                    "currency": "UAH",
+                    "rate": 0.3966
+                },
+                {
+                    "currency": "AED",
+                    "rate": 4.6929
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 12.1197
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 12.4439
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 21.7754
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 2.5198
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.8246
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 2.6928
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 23.1
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 2.2001
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.053276
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 5.584
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.18595
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 0.13994
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.108363
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.011639
+                },
+                {
+                    "currency": "KZT",
+                    "rate": 0.03612
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 4.3269
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 1.8094
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 10.0512
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 4.7251
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 1.8479
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.3858
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 23.5824
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "dc9e3145-9368-4f94-9c25-89d34b59b9ce",
+            "tableDate": "2026-04-11",
+            "tableNumber": "2026-04-11",
+            "authority": "NBU",
+            "currencyRates": [
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 30.6191
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 31.4146
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 6.3581
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 2.0817
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 6.7975
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 5.5475
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.134847
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.46889
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.002543
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 14.0847
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.27354
+                },
+                {
+                    "currency": "KZT",
+                    "rate": 0.091256
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.029368
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 10.9102
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 2.4935
+                },
+                {
+                    "currency": "MDL",
+                    "rate": 2.5168
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 25.3794
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 4.5692
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 34.1118
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 2.6461
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 4.6751
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 54.9776
+                },
+                {
+                    "currency": "THB",
+                    "rate": 1.35511
+                },
+                {
+                    "currency": "AED",
+                    "rate": 11.8334
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 58.3587
+                },
+                {
+                    "currency": "USD",
+                    "rate": 43.4653
+                },
+                {
+                    "currency": "RON",
+                    "rate": 9.9748
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.9747
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 59.5049
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 50.7979
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 11.9371
+                },
+                {
+                    "currency": "XAU",
+                    "rate": 206738.35
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "7b0f9423-6dd6-46b6-bc7a-9a9c71732aba",
+            "tableDate": "2026-04-10",
+            "tableNumber": "2026-04-10",
+            "authority": "ECB",
+            "currencyRates": [
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "USD",
+                    "rate": 1.1711
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 186.43
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 24.365
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 7.4727
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 0.87105
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 377.2
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 4.2435
+                },
+                {
+                    "currency": "RON",
+                    "rate": 5.0915
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 10.836
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 0.9241
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 143.29
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 11.1165
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 52.3147
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 1.6561
+                },
+                {
+                    "currency": "BRL",
+                    "rate": 5.9191
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 1.6187
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 7.9967
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 9.1729
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 20020.25
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 3.5709
+                },
+                {
+                    "currency": "INR",
+                    "rate": 108.7795
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 1737.06
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 20.3184
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 4.6434
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 2.0034
+                },
+                {
+                    "currency": "PHP",
+                    "rate": 70.088
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 1.4919
+                },
+                {
+                    "currency": "THB",
+                    "rate": 37.592
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 19.2389
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "349e0111-4045-4f88-bfc8-afdc0156cde0",
+            "tableDate": "2026-04-10",
+            "tableNumber": "69\/10\/04\/2026",
+            "authority": "CNB",
+            "currencyRates": [
+                {
+                    "currency": "AUD",
+                    "rate": 14.713
+                },
+                {
+                    "currency": "BRL",
+                    "rate": 4.117
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 3.046
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 3.261
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 24.365
+                },
+                {
+                    "currency": "PHP",
+                    "rate": 0.34746
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 2.655
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.22383
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.001217
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 0.16991
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 6.822
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.1307
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 1.267
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 15.053
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.01403
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.0646
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 5.246
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 1.199
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 28.456
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 2.191
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 12.163
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 5.741
+                },
+                {
+                    "currency": "RON",
+                    "rate": 4.785
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 16.33
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 2.248
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 26.383
+                },
+                {
+                    "currency": "THB",
+                    "rate": 0.64828
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.46558
+                },
+                {
+                    "currency": "USD",
+                    "rate": 20.799
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 27.974
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "7ea2085b-ef0a-43ed-bdfc-d79bb885dff4",
+            "tableDate": "2026-04-10",
+            "tableNumber": "069\/A\/NBP\/2026",
+            "authority": "NBP",
+            "currencyRates": [
+                {
+                    "currency": "THB",
+                    "rate": 0.1131
+                },
+                {
+                    "currency": "USD",
+                    "rate": 3.6396
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 2.5689
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 0.4646
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 2.6304
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 2.1239
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 2.8544
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 4.2534
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.011287
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 4.6062
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 4.8848
+                },
+                {
+                    "currency": "UAH",
+                    "rate": 0.0838
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.022845
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.1745
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 0.5692
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 0.029661
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 0.3833
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 0.3911
+                },
+                {
+                    "currency": "RON",
+                    "rate": 0.8354
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.0814
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 1.1932
+                },
+                {
+                    "currency": "CLP",
+                    "rate": 0.004085
+                },
+                {
+                    "currency": "PHP",
+                    "rate": 0.0607
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 0.2092
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 0.221
+                },
+                {
+                    "currency": "BRL",
+                    "rate": 0.7196
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 0.9169
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.000213
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.039257
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.00245
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 0.5327
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 4.98
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "45031fbf-233e-4e88-a162-01906f21a45a",
+            "tableDate": "2026-04-10",
+            "tableNumber": "10\/04\/2026",
+            "authority": "HCB",
+            "currencyRates": [
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 227.59
+                },
+                {
+                    "currency": "BRL",
+                    "rate": 63.76
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 233.02
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 408.06
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 47.2
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 15.46
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 50.43
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 376.81
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 432.76
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 41.16
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.0189
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 105.71
+                },
+                {
+                    "currency": "INR",
+                    "rate": 3.48
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 2.63
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 2.0239
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.2171
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 18.53
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 81.23
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 33.96
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 188.15
+                },
+                {
+                    "currency": "PHP",
+                    "rate": 5.38
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 88.59
+                },
+                {
+                    "currency": "RON",
+                    "rate": 74.01
+                },
+                {
+                    "currency": "RUB",
+                    "rate": 4.2
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 34.65
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 252.86
+                },
+                {
+                    "currency": "THB",
+                    "rate": 10.02
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 7.22
+                },
+                {
+                    "currency": "UAH",
+                    "rate": 7.42
+                },
+                {
+                    "currency": "USD",
+                    "rate": 322.45
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "d872c2bf-44a5-432f-be53-4356464bffa9",
+            "tableDate": "2026-04-10",
+            "tableNumber": "069\/C\/NBP\/2026 - Kurs sprzedaży",
+            "authority": "NBP",
+            "currencyRates": [
+                {
+                    "currency": "USD",
+                    "rate": 3.6766
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 2.5923
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 2.6588
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 4.2948
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.011391
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 4.6569
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 4.9344
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.02311
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.1761
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 0.5747
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 0.3865
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 0.3948
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 5.0255
+                }
+            ],
+            "default": false
+        },
+        {
+            "id": "a44af9c6-ff5f-4e8d-84e8-91d78d1e2903",
+            "tableDate": "2026-04-10",
+            "tableNumber": "069\/C\/NBP\/2026 - Kurs zakupu",
+            "authority": "NBP",
+            "currencyRates": [
+                {
+                    "currency": "USD",
+                    "rate": 3.6038
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 2.5409
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 2.6062
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 4.2098
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.011165
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 4.5647
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 4.8366
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.022652
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.1727
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 0.5633
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 0.3789
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 0.387
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 4.9259
+                }
+            ],
+            "default": false
+        },
+        {
+            "id": "44ce015a-dfb8-418b-aad0-5cf9d3db4a58",
+            "tableDate": "2026-04-10",
+            "tableNumber": "10.04.2026",
+            "authority": "BNM",
+            "currencyRates": [
+                {
+                    "currency": "EUR",
+                    "rate": 20.1231
+                },
+                {
+                    "currency": "USD",
+                    "rate": 17.2375
+                },
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "RON",
+                    "rate": 3.9513
+                },
+                {
+                    "currency": "UAH",
+                    "rate": 0.3966
+                },
+                {
+                    "currency": "AED",
+                    "rate": 4.6929
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 12.1197
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 12.4439
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 21.7754
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 2.5198
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 0.8246
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 2.6928
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 23.1
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 2.2001
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.053276
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 5.584
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.18595
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 0.13994
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.108363
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.011639
+                },
+                {
+                    "currency": "KZT",
+                    "rate": 0.03612
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 4.3269
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 1.8094
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 10.0512
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 4.7251
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 1.8479
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.3858
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 23.5824
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "7c65c7f6-36d7-4b6b-a874-2c9516a7dc88",
+            "tableDate": "2026-04-10",
+            "tableNumber": "2026-04-10",
+            "authority": "NBU",
+            "currencyRates": [
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 30.6191
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 31.4146
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 6.3581
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 2.0817
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 6.7975
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 5.5475
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.134847
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.46889
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.002543
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 14.0847
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.27354
+                },
+                {
+                    "currency": "KZT",
+                    "rate": 0.091256
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.029368
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 10.9102
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 2.4935
+                },
+                {
+                    "currency": "MDL",
+                    "rate": 2.5168
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 25.3794
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 4.5692
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 34.1118
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 2.6461
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 4.6751
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 54.9776
+                },
+                {
+                    "currency": "THB",
+                    "rate": 1.35511
+                },
+                {
+                    "currency": "AED",
+                    "rate": 11.8334
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 58.3587
+                },
+                {
+                    "currency": "USD",
+                    "rate": 43.4653
+                },
+                {
+                    "currency": "RON",
+                    "rate": 9.9748
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.9747
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 59.5049
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 50.7979
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 11.9371
+                },
+                {
+                    "currency": "XAU",
+                    "rate": 206738.35
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "eebba39c-bf6d-4e99-af5c-cf22328819dc",
+            "tableDate": "2026-04-09",
+            "tableNumber": "2026-04-09",
+            "authority": "ECB",
+            "currencyRates": [
+                {
+                    "currency": "RUB",
+                    "rate": 1
+                },
+                {
+                    "currency": "BYN",
+                    "rate": 1
+                },
+                {
+                    "currency": "USD",
+                    "rate": 1.1685
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 185.7
+                },
+                {
+                    "currency": "CZK",
+                    "rate": 24.401
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 7.4728
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 0.87053
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 377.08
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 4.2558
+                },
+                {
+                    "currency": "RON",
+                    "rate": 5.0932
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 10.8765
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 0.924
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 143.6
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 11.1265
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 52.1047
+                },
+                {
+                    "currency": "AUD",
+                    "rate": 1.6593
+                },
+                {
+                    "currency": "BRL",
+                    "rate": 5.9584
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 1.6175
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 7.9863
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 9.1551
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 19978.14
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 3.6029
+                },
+                {
+                    "currency": "INR",
+                    "rate": 108.2738
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 1728.78
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 20.3739
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 4.6541
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 2.0019
+                },
+                {
+                    "currency": "PHP",
+                    "rate": 69.883
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 1.4891
+                },
+                {
+                    "currency": "THB",
+                    "rate": 37.503
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 19.2009
+                }
+            ],
+            "default": true
+        },
+        {
+            "id": "cd00e618-7d55-4e1e-8c1f-155e2a6de025",
+            "tableDate": "2026-04-09",
+            "tableNumber": "68\/09\/04\/2026",
+            "authority": "CNB",
+            "currencyRates": [
+                {
+                    "currency": "AUD",
+                    "rate": 14.708
+                },
+                {
+                    "currency": "BRL",
+                    "rate": 4.094
+                },
+                {
+                    "currency": "CNY",
+                    "rate": 3.056
+                },
+                {
+                    "currency": "DKK",
+                    "rate": 3.266
+                },
+                {
+                    "currency": "EUR",
+                    "rate": 24.405
+                },
+                {
+                    "currency": "PHP",
+                    "rate": 0.349
+                },
+                {
+                    "currency": "HKD",
+                    "rate": 2.666
+                },
+                {
+                    "currency": "INR",
+                    "rate": 0.2254
+                },
+                {
+                    "currency": "IDR",
+                    "rate": 0.001222
+                },
+                {
+                    "currency": "ISK",
+                    "rate": 0.16995
+                },
+                {
+                    "currency": "ILS",
+                    "rate": 6.779
+                },
+                {
+                    "currency": "JPY",
+                    "rate": 0.13137
+                },
+                {
+                    "currency": "ZAR",
+                    "rate": 1.271
+                },
+                {
+                    "currency": "CAD",
+                    "rate": 15.09
+                },
+                {
+                    "currency": "KRW",
+                    "rate": 0.01411
+                },
+                {
+                    "currency": "HUF",
+                    "rate": 0.0647
+                },
+                {
+                    "currency": "MYR",
+                    "rate": 5.244
+                },
+                {
+                    "currency": "MXN",
+                    "rate": 1.198
+                },
+                {
+                    "currency": "XDR",
+                    "rate": 28.608
+                },
+                {
+                    "currency": "NOK",
+                    "rate": 2.195
+                },
+                {
+                    "currency": "NZD",
+                    "rate": 12.191
+                },
+                {
+                    "currency": "PLN",
+                    "rate": 5.732
+                },
+                {
+                    "currency": "RON",
+                    "rate": 4.791
+                },
+                {
+                    "currency": "SGD",
+                    "rate": 16.387
+                },
+                {
+                    "currency": "SEK",
+                    "rate": 2.244
+                },
+                {
+                    "currency": "CHF",
+                    "rate": 26.414
+                },
+                {
+                    "currency": "THB",
+                    "rate": 0.65065
+                },
+                {
+                    "currency": "TRY",
+                    "rate": 0.46838
+                },
+                {
+                    "currency": "USD",
+                    "rate": 20.886
+                },
+                {
+                    "currency": "GBP",
+                    "rate": 28.028
+                }
+            ],
+            "default": true
+        }
+    ],
+    "paging": {
+        "pageNumber": 1,
+        "pageSize": 20,
+        "firstItemIndex": 0
+    },
+    "totalItems": 21722,
+    "maxPageNumber": 1087
+}

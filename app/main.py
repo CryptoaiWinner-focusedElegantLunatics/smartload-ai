@@ -25,6 +25,7 @@ async def lifespan(app: FastAPI):
         session.exec(text("CREATE EXTENSION IF NOT EXISTS vector"))
         session.commit()
     SQLModel.metadata.create_all(engine)
+    seed_all()
     await run_all_scrapers()
     scheduler.add_job(run_all_scrapers, "interval", minutes=15)
     scheduler.start()
