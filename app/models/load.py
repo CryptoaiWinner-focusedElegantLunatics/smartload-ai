@@ -8,5 +8,4 @@ class Load(SQLModel, table=True):
     origin: str
     destination: str
     price: float
-    
     embedding: Optional[list[float]] = Field(default=None, sa_column=Column(Vector(1536)))

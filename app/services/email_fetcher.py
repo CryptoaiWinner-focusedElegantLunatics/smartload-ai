@@ -28,7 +28,7 @@ def fetch_latest_offers(limit: Optional[int] = 50):
                     soup = BeautifulSoup(msg.html, "html.parser")
                     raw_text = soup.get_text(separator=" ", strip=True)                
                 clean_text = " ".join(raw_text.split())
-                body_preview = clean_text[:300] + "..." if clean_text else "Brak treści"
+                body_preview = clean_text if clean_text else "Brak treści"
                 
                 offer = {
                     "uid": msg.uid,

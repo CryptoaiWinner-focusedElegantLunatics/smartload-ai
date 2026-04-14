@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
 
     OPENAI_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
     EMAIL_USER: str = ""
     EMAIL_PASSWORD: str = ""
     EMAIL_IMAP_SERVER: str = ""
