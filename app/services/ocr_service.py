@@ -1,19 +1,27 @@
 # app/services/ocr_service.py
-import fitz  # PyMuPDF
+
+import re
+import fitz
 import pytesseract
 from pdf2image import convert_from_bytes
-from PIL import Image
-import io
 
 TESSERACT_LANG = "pol+eng"
-MIN_TEXT_LENGTH = 50  # próg — mniej znaków = strona prawdopodobnie skanowana
+MIN_TEXT_LENGTH = 50
+
+
+def normalize_text(text: str) -> str:
+    # Wielokrotne spacje → jedna
+    text = re.sub(r' {2,}', ' ', text)
+    # Więcej niż 2 newliny → dwa
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    # Usuń znaki kontrolne (oprócz \n)
+    text = re.sub(r'[^\S\n]+', ' ', text)
+    # Trim każdej linii
+    text = '\n'.join(line.strip() for line in text.splitlines())
+    return text.strip()
 
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
-    """
-    Główna funkcja: przyjmuje surowe bajty PDF,
-    zwraca pełny tekst jako string.
-    """
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     pages_text = []
 
@@ -21,19 +29,17 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
         native_text = page.get_text("text").strip()
 
         if len(native_text) >= MIN_TEXT_LENGTH:
-            # PDF z warstwą tekstową — szybka ścieżka
             pages_text.append(native_text)
         else:
-            # Strona skanowana — konwertuj do obrazu i odpal OCR
             ocr_text = _ocr_page(pdf_bytes, page_num)
             pages_text.append(ocr_text)
 
     doc.close()
-    return "\n\n".join(pages_text)
+    raw = "\n\n".join(pages_text)
+    return normalize_text(raw)  # ← normalizacja tutaj
 
 
 def _ocr_page(pdf_bytes: bytes, page_num: int) -> str:
-    """Konwertuje jedną stronę PDF → obraz → OCR."""
     images = convert_from_bytes(
         pdf_bytes,
         dpi=300,
@@ -42,6 +48,4 @@ def _ocr_page(pdf_bytes: bytes, page_num: int) -> str:
     )
     if not images:
         return ""
-    
-    text = pytesseract.image_to_string(images[0], lang=TESSERACT_LANG)
-    return text.strip()
+    return pytesseract.image_to_string(images[0], lang=TESSERACT_LANG).strip()
