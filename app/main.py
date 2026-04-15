@@ -16,6 +16,7 @@ from app.services.tasks import process_emails_task
 from app.scraper.runner import run_all_scrapers  # nie manager!
 from app.api import loads  # ← BRAKUJĄCY IMPORT
 from app.api.documents import router as documents_router
+from pydantic import BaseModel
 
 
 scheduler = AsyncIOScheduler()
@@ -23,16 +24,6 @@ scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-from app.models.email_log import EmailLog
-from pydantic import BaseModel
-
-app = FastAPI(title="SmartLoad AI API")
-templates = Jinja2Templates(directory="app/templates")
-class CategoryUpdate(BaseModel):
-    category: str
-
-@app.on_event("startup")
-def on_startup():
     with Session(engine) as session:
         session.exec(text("CREATE EXTENSION IF NOT EXISTS vector"))
         session.commit()
@@ -48,12 +39,12 @@ def on_startup():
     scheduler.shutdown()
 
 
-app = FastAPI(title="SmartLoad AI API", lifespan=lifespan)
-
+app = FastAPI(title="SmartLoad AI API")
 app.include_router(loads.router, prefix="/api", tags=["loads"])  # ← poprawione
 app.include_router(documents_router)
-
-
+templates = Jinja2Templates(directory="app/templates")
+class CategoryUpdate(BaseModel):
+    category: str
 
 @app.get("/")
 def read_root():
