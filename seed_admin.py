@@ -1,6 +1,6 @@
 import os
 from sqlmodel import Session, select
-from app.database import engine
+from app.core.database import engine
 from app.models.user import User
 from app.core.security import get_password_hash
 
