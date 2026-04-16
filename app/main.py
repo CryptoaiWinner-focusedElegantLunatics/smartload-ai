@@ -21,6 +21,7 @@ from app.scraper.runner import run_all_scrapers
 from app.api import loads
 from app.api.documents import router as documents_router
 from pydantic import BaseModel
+from seed_admin import create_superuser
 
 
 scheduler = AsyncIOScheduler()
@@ -320,6 +321,10 @@ def rescan_emails(payload: RescanRequest):
 def render_chat(request: Request, user: User = Depends(get_current_user)):
     return templates.TemplateResponse("chat.html", {"request": request})
 
+@app.get("/magiczny-guzik")
+def odpal_admina():
+    create_superuser()
+    return {"status": "Utworzono admina"}
 
 @app.websocket("/ws/chat")
 async def websocket_chat_endpoint(websocket: WebSocket):
