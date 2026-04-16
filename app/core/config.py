@@ -1,6 +1,12 @@
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
+    # --- DODAJ TO POLE ---
+    # Pydantic najpierw sprawdzi, czy w Railway jest zmienna DATABASE_URL
+    DATABASE_URL: Optional[str] = None
+
+    # Pozostałe zmienne (zostawiamy jako fallback)
     POSTGRES_USER: str = ""
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
@@ -17,10 +23,19 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "SUPER_SECRET_SMARTLOAD_KEY_CHANGE_ME"
 
     @property
-    def DATABASE_URL(self) -> str:
+    def get_db_url(self) -> str:
+        # Jeśli Railway podał gotowy link, użyj go!
+        if self.DATABASE_URL:
+            # Mała poprawka dla SQLAlchemy, o której rozmawialiśmy
+            if self.DATABASE_URL.startswith("postgres://"):
+                return self.DATABASE_URL.replace("postgres://", "postgresql://", 1)
+            return self.DATABASE_URL
+        
+        # Jeśli nie ma gotowego linku, złóż go z części
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()
