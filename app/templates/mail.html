@@ -1,0 +1,583 @@
+{% extends "base.html" %}
+
+{% block title %}Poczta AI – SmartLoad{% endblock %}
+
+{% block page_title %}Poczta AI{% endblock %}
+{% block page_subtitle %}Klasyfikacja i zarządzanie mailami spedycyjnymi{% endblock %}
+
+{% block header_actions %}
+<button onclick="rescanEmails()"
+    class="text-xs bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/60 font-semibold px-3 py-1.5 rounded-lg transition-colors">
+    ⚡ Skanuj INNE
+</button>
+{% endblock %}
+
+{% block extra_styles %}
+/* Mail page scrollbar */
+#tableBody tr { transition: background-color 0.1s ease; }
+{% endblock %}
+
+{% block content %}
+<div class="p-6 space-y-4">
+
+    <!-- ── Pasek filtrów ───────────────────────────────────────────────── -->
+    <div class="bg-white dark:bg-xercik-surface rounded-xl shadow-sm border border-slate-200 dark:border-xercik-border p-4 flex flex-wrap gap-3 items-end transition-colors">
+
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-[11px] text-slate-500 dark:text-xercik-muted uppercase font-bold tracking-wide mb-1.5">
+                Szukaj w temacie / nadawcy
+            </label>
+            <input type="text" id="searchInput" placeholder="np. Trans.eu, DE-PL..."
+                class="w-full border border-slate-300 dark:border-xercik-border dark:bg-xercik-card dark:text-xercik-text rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-400 dark:placeholder-xercik-muted">
+        </div>
+
+        <div class="w-56">
+            <div class="flex justify-between items-center mb-1.5">
+                <label class="block text-[11px] text-slate-500 dark:text-xercik-muted uppercase font-bold tracking-wide">
+                    Kategoria AI
+                </label>
+                <button onclick="addCustomFilter()"
+                    class="text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition p-0.5 rounded"
+                    title="Dodaj własny filtr">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </button>
+            </div>
+            <select id="categoryFilter"
+                class="w-full border border-slate-300 dark:border-xercik-border dark:bg-xercik-card dark:text-xercik-text rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer">
+            </select>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="fetchData()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-all shadow shadow-blue-500/20 text-sm">
+                Filtruj
+            </button>
+            <button onclick="toggleBulkDeleteMode()" id="bulkDeleteModeBtn"
+                class="bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/60 font-semibold py-2.5 px-4 rounded-lg transition-all text-sm">
+                Usuń wiele
+            </button>
+            <button onclick="executeBulkDelete()" id="bulkDeleteActionBtn"
+                class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all shadow shadow-red-500/20 text-sm">
+                Usuń zaznaczone
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Tabela maili ────────────────────────────────────────────────── -->
+    <div class="bg-white dark:bg-xercik-surface rounded-xl shadow-sm border border-slate-200 dark:border-xercik-border overflow-hidden transition-colors">
+        <table class="w-full text-left border-collapse table-fixed">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-xercik-card text-slate-500 dark:text-xercik-muted text-xs border-b border-slate-200 dark:border-xercik-border uppercase tracking-wide transition-colors">
+                    <th class="p-4 font-semibold w-[17%]">Nadawca</th>
+                    <th class="p-4 font-semibold w-[20%]">Temat</th>
+                    <th class="p-4 font-semibold w-[18%]">📍 Trasa</th>
+                    <th class="p-4 font-semibold w-[9%]">⚖️ Waga</th>
+                    <th class="p-4 font-semibold w-[11%]">💰 Stawka</th>
+                    <th class="p-4 font-semibold w-[13%]">Kategoria AI</th>
+                    <th class="p-4 font-semibold w-[12%] text-right">Akcje</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"
+                class="divide-y divide-slate-100 dark:divide-xercik-border text-sm transition-colors">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL — Treść Maila
+═══════════════════════════════════════════════ -->
+<div id="emailModal"
+    class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-md">
+    <div class="bg-white dark:bg-xercik-surface rounded-2xl shadow-2xl w-[95vw] max-w-[90vw] h-[85vh] flex flex-col border border-slate-200 dark:border-xercik-border">
+        <div class="p-6 border-b border-slate-100 dark:border-xercik-border flex justify-between items-start">
+            <div class="pr-8">
+                <h2 id="modalSubject" class="text-xl font-bold text-slate-800 dark:text-xercik-text leading-tight">Temat maila</h2>
+                <p class="text-sm text-slate-500 dark:text-xercik-muted mt-2">Od:
+                    <span id="modalSender" class="font-semibold text-slate-700 dark:text-slate-300"></span>
+                </p>
+            </div>
+            <button onclick="closeModal()"
+                class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition text-2xl font-bold leading-none">&times;</button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 flex flex-col bg-slate-50 dark:bg-xercik-bg">
+            <div class="mb-4">
+                <span id="modalCategory" class="px-3 py-1 rounded-full text-xs font-bold shadow-sm">KATEGORIA</span>
+            </div>
+            <div id="modalExtractedData" class="hidden mb-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 rounded-xl p-4"></div>
+            <div class="bg-white dark:bg-xercik-surface p-2 sm:p-5 rounded-xl border border-slate-200 dark:border-xercik-border shadow-inner flex-1 flex flex-col">
+                <div id="modalBodyText" class="flex-1 w-full text-sm text-slate-700 dark:text-xercik-text font-mono whitespace-pre-wrap break-words"></div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-100 dark:border-xercik-border bg-white dark:bg-xercik-surface flex justify-end rounded-b-2xl">
+            <button onclick="closeModal()"
+                class="bg-slate-100 dark:bg-xercik-card hover:bg-slate-200 dark:hover:bg-[#222] text-slate-700 dark:text-xercik-text font-semibold px-6 py-2 rounded-lg transition-colors text-sm">
+                Zamknij
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL — Własny Filtr
+═══════════════════════════════════════════════ -->
+<div id="filterModal"
+    class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-md">
+    <div class="bg-white dark:bg-xercik-surface rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-xercik-border">
+        <div class="p-5 border-b border-slate-100 dark:border-xercik-border flex justify-between items-center bg-slate-50 dark:bg-xercik-card rounded-t-2xl">
+            <h2 class="text-base font-bold text-slate-800 dark:text-xercik-text">Dodaj własny filtr AI</h2>
+            <button onclick="closeFilterModal()" class="text-slate-400 hover:text-red-500 transition text-2xl font-bold leading-none">&times;</button>
+        </div>
+        <div class="p-6">
+            <label class="block text-[11px] text-slate-500 dark:text-xercik-muted uppercase font-bold tracking-wide mb-2">Nazwa kategorii (np. OPONY, REKLAMA)</label>
+            <input type="text" id="newFilterInput" placeholder="Wpisz nazwę..."
+                class="w-full border border-slate-300 dark:border-xercik-border dark:bg-xercik-card dark:text-xercik-text rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
+                onkeydown="if(event.key === 'Enter') saveCustomFilter()">
+        </div>
+        <div class="p-4 border-t border-slate-100 dark:border-xercik-border flex justify-end gap-3 rounded-b-2xl">
+            <button onclick="closeFilterModal()" class="text-slate-600 dark:text-xercik-text font-semibold px-4 py-2 hover:bg-slate-100 dark:hover:bg-xercik-card rounded-lg transition text-sm">Anuluj</button>
+            <button onclick="saveCustomFilter()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg transition shadow text-sm">Dodaj</button>
+        </div>
+    </div>
+</div>
+
+{% include "components/popup.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ──────────────────────────────────────────────
+    // State
+    // ──────────────────────────────────────────────
+    let loadedEmails = [];
+    let isBulkDeleteMode = false;
+    let selectedEmails = new Set();
+    let singleDeleteId = null;
+
+    let defaultCategories = [
+        { value: 'WSZYSTKIE',    label: 'Wszystkie kategorie' },
+        { value: 'OFERTA',       label: 'Tylko OFERTY' },
+        { value: 'ZAMOWIENIE',   label: 'Tylko ZAMÓWIENIA' },
+        { value: 'FAKTURA',      label: 'Tylko FAKTURY' },
+        { value: 'DOKUMENT_CMR', label: 'Tylko CMR' },
+        { value: 'INNE',         label: 'Inne (Spam)' }
+    ];
+    let customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+
+    function getCategories() { return [...defaultCategories, ...customCategories]; }
+
+    // ──────────────────────────────────────────────
+    // Category badge colors
+    // ──────────────────────────────────────────────
+    const colors = {
+        'OFERTA':       'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/60 dark:text-blue-200 dark:border-blue-700/60',
+        'ZAMOWIENIE':   'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/60 dark:text-emerald-200 dark:border-emerald-700/60',
+        'FAKTURA':      'bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/60 dark:text-violet-200 dark:border-violet-700/60',
+        'DOKUMENT_CMR': 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/60 dark:text-amber-200 dark:border-amber-700/60',
+        'INNE':         'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-600/60'
+    };
+
+    const hashColors = [
+        'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/60 dark:text-pink-200 dark:border-pink-700/60',
+        'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/60 dark:text-cyan-200 dark:border-cyan-700/60',
+        'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/60 dark:text-indigo-200 dark:border-indigo-700/60',
+        'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/60 dark:text-rose-200 dark:border-rose-700/60',
+        'bg-lime-100 text-lime-800 border-lime-200 dark:bg-lime-900/60 dark:text-lime-200 dark:border-lime-700/60',
+        'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/60 dark:text-teal-200 dark:border-teal-700/60',
+        'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/60 dark:text-fuchsia-200 dark:border-fuchsia-700/60',
+        'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/60 dark:text-orange-200 dark:border-orange-700/60',
+    ];
+
+    function getColorClass(category) {
+        if (colors[category]) return colors[category];
+        let hash = 0;
+        for (let i = 0; i < category.length; i++) hash = category.charCodeAt(i) + ((hash << 5) - hash);
+        const cls = hashColors[Math.abs(hash) % hashColors.length];
+        colors[category] = cls;
+        return cls;
+    }
+
+    // ──────────────────────────────────────────────
+    // Category filter
+    // ──────────────────────────────────────────────
+    function renderCategoryFilter() {
+        const filter = document.getElementById('categoryFilter');
+        const currentValue = filter.value || 'WSZYSTKIE';
+        filter.innerHTML = '';
+        getCategories().forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat.value;
+            opt.innerText = cat.label;
+            filter.appendChild(opt);
+        });
+        filter.value = getCategories().some(c => c.value === currentValue) ? currentValue : 'WSZYSTKIE';
+    }
+
+    function addCustomFilter() {
+        document.getElementById('newFilterInput').value = '';
+        document.getElementById('filterModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('newFilterInput').focus(), 100);
+    }
+
+    function closeFilterModal() { document.getElementById('filterModal').classList.add('hidden'); }
+
+    function saveCustomFilter() {
+        const input = document.getElementById('newFilterInput');
+        const name = input.value.trim();
+        if (!name) return;
+        const value = name.toUpperCase().replace(/\s+/g, '_');
+        if (getCategories().some(c => c.value === value)) {
+            showPopup({ type: 'warning', title: 'Ups!', message: 'Taki filtr już istnieje!', hideCancel: true });
+            return;
+        }
+        customCategories.push({ value, label: `Tylko ${value}` });
+        localStorage.setItem('customCategories', JSON.stringify(customCategories));
+        renderCategoryFilter();
+        document.getElementById('categoryFilter').value = value;
+        closeFilterModal();
+        fetchData();
+    }
+
+    // ──────────────────────────────────────────────
+    // Bulk delete
+    // ──────────────────────────────────────────────
+    function toggleBulkDeleteMode() {
+        isBulkDeleteMode = !isBulkDeleteMode;
+        selectedEmails.clear();
+        const btn = document.getElementById('bulkDeleteModeBtn');
+        const actionBtn = document.getElementById('bulkDeleteActionBtn');
+        const tbody = document.getElementById('tableBody');
+        if (isBulkDeleteMode) {
+            btn.classList.add('!bg-red-600', '!text-white', '!border-red-600');
+            btn.classList.remove('bg-red-50', 'dark:bg-red-950/30', 'text-red-600', 'dark:text-red-400');
+            btn.innerText = 'Wyjdź';
+            actionBtn.classList.remove('hidden');
+            tbody.classList.add('select-none');
+        } else {
+            btn.classList.remove('!bg-red-600', '!text-white', '!border-red-600');
+            btn.classList.add('bg-red-50', 'dark:bg-red-950/30', 'text-red-600', 'dark:text-red-400');
+            btn.innerText = 'Usuń wiele';
+            actionBtn.classList.add('hidden');
+            tbody.classList.remove('select-none');
+        }
+        renderTable();
+    }
+
+    function executeBulkDelete() {
+        if (selectedEmails.size === 0) {
+            showPopup({ type: 'warning', title: 'Brak zaznaczenia', message: 'Nie zaznaczono żadnych maili!', hideCancel: true });
+            return;
+        }
+        singleDeleteId = null;
+        showPopup({
+            type: 'delete',
+            title: 'Usuwanie maili',
+            message: 'Czy na pewno chcesz usunąć zaznaczone maile? Akcja jest nieodwracalna.',
+            confirmText: 'Tak, usuń',
+            onConfirm: confirmDeleteAction
+        });
+    }
+
+    async function confirmDeleteAction() {
+        try {
+            if (singleDeleteId !== null) {
+                const r = await fetch(`/api/emails/${singleDeleteId}`, { method: 'DELETE' });
+                singleDeleteId = null;
+                if (r.ok) fetchData();
+                else showPopup({ type: 'error', title: 'Błąd', message: 'Błąd podczas usuwania.', hideCancel: true });
+            } else {
+                const r = await fetch('/api/emails/bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email_ids: Array.from(selectedEmails) })
+                });
+                if (r.ok) { toggleBulkDeleteMode(); fetchData(); }
+                else showPopup({ type: 'error', title: 'Błąd', message: 'Błąd podczas usuwania.', hideCancel: true });
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    // ──────────────────────────────────────────────
+    // Fetch & render table
+    // ──────────────────────────────────────────────
+    async function fetchData() {
+        const search = document.getElementById('searchInput').value;
+        const category = document.getElementById('categoryFilter').value;
+        const url = `/api/emails?szukaj=${encodeURIComponent(search)}&kategoria=${encodeURIComponent(category)}`;
+        const response = await fetch(url);
+        loadedEmails = await response.json();
+        renderTable();
+    }
+
+    function handleRowClick(emailId, event) {
+        if (isBulkDeleteMode) {
+            const tr = event.currentTarget;
+            const cb = tr.querySelector('input[type="checkbox"]');
+            if (selectedEmails.has(emailId)) {
+                selectedEmails.delete(emailId);
+                if (cb) cb.checked = false;
+                tr.classList.remove('!bg-red-50', 'dark:!bg-red-900/30');
+            } else {
+                selectedEmails.add(emailId);
+                if (cb) cb.checked = true;
+                tr.classList.add('!bg-red-50', 'dark:!bg-red-900/30');
+            }
+            document.getElementById('bulkDeleteActionBtn').innerText = `Usuń zaznaczone (${selectedEmails.size})`;
+        } else {
+            openModal(emailId);
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        if (loadedEmails.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="p-10 text-center text-slate-400 dark:text-xercik-muted text-sm">Brak wiadomości spełniających kryteria.</td></tr>';
+            return;
+        }
+
+        let html = '';
+        loadedEmails.forEach(email => {
+            const badge = getColorClass(email.ai_category);
+            let opts = '<option value="" disabled selected>Popraw AI</option>';
+            getCategories().filter(c => c.value !== 'WSZYSTKIE').forEach(c => {
+                opts += `<option value="${c.value}">${c.value}</option>`;
+            });
+            const isSelected = isBulkDeleteMode && selectedEmails.has(email.id);
+            const rowBase = isSelected
+                ? 'bg-red-50 dark:bg-red-900/30'
+                : 'hover:bg-slate-50 dark:hover:bg-xercik-card';
+
+            html += `
+            <tr onclick="handleRowClick(${email.id}, event)"
+                class="${rowBase} transition-colors cursor-pointer">
+                <td class="p-4 font-medium text-slate-700 dark:text-slate-300 truncate" title="${email.sender}">
+                    ${isBulkDeleteMode ? `<input type="checkbox" onclick="event.stopPropagation(); handleRowClick(${email.id}, {currentTarget: this.closest('tr')})" class="mr-2 pointer-events-none" ${isSelected ? 'checked' : ''}>` : ''}
+                    ${email.sender}
+                </td>
+                <td class="p-4 text-slate-600 dark:text-xercik-text truncate" title="${email.subject}">${email.subject}</td>
+                <td class="p-4 text-sm">
+                    ${(email.loading_city || email.unloading_city)
+                        ? `<span class="text-slate-700 dark:text-slate-300 font-medium">${email.loading_city || '?'}</span>
+                           <span class="text-slate-400 mx-1">→</span>
+                           <span class="text-slate-700 dark:text-slate-300 font-medium">${email.unloading_city || '?'}</span>`
+                        : `<span class="text-slate-300 dark:text-slate-600">—</span>`
+                    }
+                </td>
+                <td class="p-4 text-sm text-slate-600 dark:text-slate-400">
+                    ${email.weight_kg ? `<span class="font-medium">${email.weight_kg} kg</span>` : '<span class="text-slate-300 dark:text-slate-600">—</span>'}
+                </td>
+                <td class="p-4 text-sm">
+                    ${email.price
+                        ? `<span class="text-emerald-600 dark:text-emerald-400 font-bold">${email.price} ${email.currency || ''}</span>`
+                        : '<span class="text-slate-300 dark:text-slate-600">—</span>'
+                    }
+                </td>
+                <td class="p-4">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${badge}">
+                        ${email.ai_category}
+                    </span>
+                </td>
+                <td class="p-4">
+                    <div class="flex items-center justify-end gap-1.5">
+                        <select onclick="event.stopPropagation()" onchange="updateCategory(${email.id}, this.value)"
+                            class="text-xs border border-slate-200 dark:border-xercik-border rounded-lg p-1.5 text-slate-600 dark:text-xercik-text bg-white dark:bg-xercik-card hover:bg-slate-50 dark:hover:bg-[#222] cursor-pointer outline-none focus:ring-1 focus:ring-blue-500 transition-colors max-w-[90px]"
+                            ${isBulkDeleteMode ? 'disabled' : ''}>
+                            ${opts}
+                        </select>
+                        <button onclick="deleteSingleEmail(event, ${email.id})"
+                            class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                            title="Trwale usuń" ${isBulkDeleteMode ? 'disabled' : ''}>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        if (isBulkDeleteMode) {
+            document.getElementById('bulkDeleteActionBtn').innerText = `Usuń zaznaczone (${selectedEmails.size})`;
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Modal
+    // ──────────────────────────────────────────────
+    function openModal(emailId) {
+        const email = loadedEmails.find(e => e.id === emailId);
+        if (!email) return;
+
+        document.getElementById('modalSubject').innerText = email.subject;
+        document.getElementById('modalSender').innerText = email.sender;
+
+        const bodyEl = document.getElementById('modalBodyText');
+        const isHTML = /<\s*(html|body|table|div|p|span|img|h[1-6]|br|ul|li|!DOCTYPE)\b/i.test(email.body);
+        if (isHTML) {
+            bodyEl.className = 'w-full flex-1 flex col h-full';
+            bodyEl.innerHTML = `<iframe id="emailIframe" class="w-full h-full min-h-[60vh] bg-white border-0 rounded" scrolling="auto"></iframe>`;
+            const iframe = document.getElementById('emailIframe');
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write('<base target="_blank">');
+            doc.write(email.body);
+            doc.close();
+        } else {
+            bodyEl.className = 'flex-1 text-sm text-slate-700 dark:text-xercik-text font-mono whitespace-pre-wrap break-words';
+            bodyEl.innerText = email.body;
+        }
+
+        const badge = document.getElementById('modalCategory');
+        badge.innerText = email.ai_category;
+        badge.className = `px-3 py-1 rounded-full text-xs font-bold border ${getColorClass(email.ai_category)}`;
+
+        const hasExtracted = email.loading_city || email.unloading_city || email.weight_kg || email.price;
+        const panel = document.getElementById('modalExtractedData');
+        if (hasExtracted) {
+            const val = (v, suffix = '') => v ? `<span class="font-semibold text-slate-800 dark:text-white">${v}${suffix}</span>` : `<span class="text-slate-400">—</span>`;
+            panel.innerHTML = `
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div class="bg-white dark:bg-xercik-card rounded-lg p-3 border border-blue-100 dark:border-blue-900/50">
+                    <div class="text-blue-500 font-bold uppercase tracking-wide mb-1">📍 Załadunek</div>
+                    ${val(email.loading_city)}
+                    ${email.loading_zip ? `<div class="text-slate-400 mt-0.5">${email.loading_zip}</div>` : ''}
+                </div>
+                <div class="bg-white dark:bg-xercik-card rounded-lg p-3 border border-violet-100 dark:border-violet-900/50">
+                    <div class="text-violet-500 font-bold uppercase tracking-wide mb-1">🏁 Rozładunek</div>
+                    ${val(email.unloading_city)}
+                    ${email.unloading_zip ? `<div class="text-slate-400 mt-0.5">${email.unloading_zip}</div>` : ''}
+                </div>
+                <div class="bg-white dark:bg-xercik-card rounded-lg p-3 border border-amber-100 dark:border-amber-900/50">
+                    <div class="text-amber-500 font-bold uppercase tracking-wide mb-1">⚖️ Waga</div>
+                    ${val(email.weight_kg, ' kg')}
+                </div>
+                <div class="bg-white dark:bg-xercik-card rounded-lg p-3 border border-emerald-100 dark:border-emerald-900/50">
+                    <div class="text-emerald-600 font-bold uppercase tracking-wide mb-1">💰 Stawka</div>
+                    ${email.price ? `<span class="font-bold text-emerald-600 dark:text-emerald-400">${email.price} ${email.currency || ''}</span>` : '<span class="text-slate-400">—</span>'}
+                </div>
+            </div>`;
+            panel.classList.remove('hidden');
+        } else {
+            panel.innerHTML = '';
+            panel.classList.add('hidden');
+        }
+
+        document.getElementById('emailModal').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('emailModal').classList.add('hidden'); }
+
+    // ──────────────────────────────────────────────
+    // API actions
+    // ──────────────────────────────────────────────
+    async function updateCategory(emailId, newCategory) {
+        if (!newCategory) return;
+        try {
+            const r = await fetch(`/api/emails/${emailId}/category`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category: newCategory })
+            });
+            if (r.ok) {
+                const email = loadedEmails.find(e => e.id === emailId);
+                if (email) email.ai_category = newCategory;
+                const filter = document.getElementById('categoryFilter');
+                if (filter.value !== 'WSZYSTKIE') filter.value = 'WSZYSTKIE';
+                renderTable();
+            } else {
+                showPopup({ type: 'error', title: 'Błąd API', message: 'Nie udało się zmienić kategorii.', hideCancel: true });
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function deleteSingleEmail(event, emailId) {
+        event.stopPropagation();
+        if (isBulkDeleteMode) return;
+        singleDeleteId = emailId;
+        showPopup({
+            type: 'delete',
+            title: 'Usuwanie maila',
+            message: 'Czy na pewno chcesz trwale usunąć ten e-mail? Akcja jest nieodwracalna.',
+            confirmText: 'Tak, usuń',
+            onConfirm: confirmDeleteAction
+        });
+    }
+
+    function rescanEmails() {
+        showPopup({
+            type: 'info',
+            title: 'Skanowanie INNE',
+            message: "Czy chcesz ponownie przeskanować maile z kategorią 'INNE' z użyciem własnych kategorii?",
+            confirmText: 'Skanuj',
+            onConfirm: async () => {
+                const btn = document.querySelector('button[onclick="rescanEmails()"]');
+                const orig = btn ? btn.innerText : '';
+                if (btn) { btn.innerText = 'Skanowanie...'; btn.disabled = true; }
+                try {
+                    const customCatNames = customCategories.map(c => c.value);
+                    const r = await fetch('/api/emails/rescan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ custom_categories: customCatNames })
+                    });
+                    const result = await r.json();
+                    if (result.status === 'success') {
+                        showPopup({ type: 'success', title: 'Gotowe!', message: `Przeskanowano: ${result.scanned}, zaktualizowano: ${result.updated}`, hideCancel: true });
+                        if (result.usage) trackUsageAndLog(result.usage);
+                        fetchData();
+                    } else {
+                        showPopup({ type: 'error', title: 'Błąd', message: 'Nie udało się przeskanować.', hideCancel: true });
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showPopup({ type: 'error', title: 'Błąd', message: 'Błąd połączenia.', hideCancel: true });
+                } finally {
+                    if (btn) { btn.innerText = orig; btn.disabled = false; }
+                }
+            }
+        });
+    }
+
+    function trackUsageAndLog(usage) {
+        if (!usage) return;
+        let stored = JSON.parse(localStorage.getItem('aiUsageTotal') || '{"prompt_tokens":0,"completion_tokens":0}');
+        stored.prompt_tokens += usage.prompt_tokens || 0;
+        stored.completion_tokens += usage.completion_tokens || 0;
+        localStorage.setItem('aiUsageTotal', JSON.stringify(stored));
+        const cost = ((stored.prompt_tokens / 1e6) * 0.08) + ((stored.completion_tokens / 1e6) * 0.35);
+        console.log(`%c🚀 AI TOKENS`, 'background:#6366f1;color:white;padding:4px;border-radius:4px;font-weight:bold');
+        console.log(`💸 Szacowany koszt: $${cost.toFixed(5)}`);
+    }
+
+    // ──────────────────────────────────────────────
+    // Event listeners & init
+    // ──────────────────────────────────────────────
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    document.getElementById('categoryFilter').addEventListener('change', fetchData);
+
+    let searchTimeout = null;
+    document.getElementById('searchInput').addEventListener('keyup', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(fetchData, 400);
+    });
+
+    window.onload = () => { 
+        renderCategoryFilter();
+        const urlParams = new URLSearchParams(window.location.search);
+        const filterParam = urlParams.get('filter');
+        if (filterParam) {
+            const filterDropdown = document.getElementById('categoryFilter');
+            // Check if option exists in dropdown, else set to WSZYSTKIE
+            if (Array.from(filterDropdown.options).some(opt => opt.value === filterParam)) {
+                filterDropdown.value = filterParam;
+            }
+        }
+        fetchData(); 
+    };
+</script>
+{% endblock %}

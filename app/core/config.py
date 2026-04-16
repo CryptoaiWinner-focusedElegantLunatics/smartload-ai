@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     EMAIL_PASSWORD: str = ""
     EMAIL_IMAP_SERVER: str = ""
     DEBUG: bool = True
+    SECRET_KEY: str = "SUPER_SECRET_SMARTLOAD_KEY_CHANGE_ME"
 
     @property
     def DATABASE_URL(self) -> str:

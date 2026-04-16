@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard – SmartLoad AI{% endblock %}
+
+{% block page_title %}Dashboard Główny{% endblock %}
+{% block page_subtitle %}Przegląd operacji i statystyki systemu{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block extra_styles %}
+/* Card hover lift */
+.module-card {
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.module-card:hover {
+transform: translateY(-4px);
+}
+.module-card:active {
+transform: translateY(-1px);
+}
+
+/* Gradient shimmer on card hover */
+.module-card .card-icon {
+transition: transform 0.25s ease;
+}
+.module-card:hover .card-icon {
+transform: scale(1.08) rotate(-3deg);
+}
+
+/* Stat number counter animation */
+@keyframes countUp {
+from { opacity: 0; transform: translateY(6px); }
+to { opacity: 1; transform: translateY(0); }
+}
+.stat-num { animation: countUp 0.4s ease forwards; }
+
+/* Gradient cards */
+.grad-mail { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); }
+.grad-chat { background: linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #06b6d4 100%); }
+{% endblock %}
+
+{% block content %}
+<div class="p-6 space-y-6">
+
+    <!-- ═══════════════════════════════════════════════
+         SEKCJA 1: Kafelki Modułów
+    ═══════════════════════════════════════════════ -->
+    <div>
+        <h2 class="text-xs font-semibold text-slate-500 dark:text-xercik-muted uppercase tracking-widest mb-3">Moduły
+            Systemu</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <!-- Kafelek: Poczta AI -->
+            <a href="/mail"
+                class="module-card group relative overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-purple-600 rounded-2xl p-6 shadow-xl shadow-violet-500/20 dark:shadow-violet-900/30 cursor-pointer block no-underline">
+                <!-- Decorative circles -->
+                <div class="absolute -top-8 -right-8 w-36 h-36 bg-white/10 rounded-full"></div>
+                <div class="absolute -bottom-10 -right-4 w-24 h-24 bg-white/5 rounded-full"></div>
+
+                <div class="relative z-10 flex items-start justify-between mb-6">
+                    <!-- Icon -->
+                    <div
+                        class="card-icon w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <!-- Badge -->
+                    <span id="badge-mail-total"
+                        class="text-xs bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full font-semibold">
+                        Ładowanie…
+                    </span>
+                </div>
+
+                <div class="relative z-10">
+                    <div class="text-white font-bold text-xl mb-1">Poczta AI</div>
+                    <div class="text-white/70 text-sm mb-4">Klasyfikacja i zarządzanie mailami spedycyjnymi</div>
+                    <div
+                        class="flex items-center gap-1.5 text-white font-semibold text-sm group-hover:gap-2.5 transition-all">
+                        <span>Otwórz moduł</span>
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Kafelek: Komunikator -->
+            <a href="/chat"
+                class="module-card group relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl p-6 shadow-xl shadow-emerald-500/20 dark:shadow-emerald-900/30 cursor-pointer block no-underline">
+                <!-- Decorative circles -->
+                <div class="absolute -top-8 -right-8 w-36 h-36 bg-white/10 rounded-full"></div>
+                <div class="absolute -bottom-10 -right-4 w-24 h-24 bg-white/5 rounded-full"></div>
+
+                <div class="relative z-10 flex items-start justify-between mb-6">
+                    <div
+                        class="card-icon w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                    </div>
+                    <span
+                        class="flex items-center gap-1.5 text-xs bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full font-semibold">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                        Online
+                    </span>
+                </div>
+
+                <div class="relative z-10">
+                    <div class="text-white font-bold text-xl mb-1">Komunikator Kierowców</div>
+                    <div class="text-white/70 text-sm mb-4">Asystent AI do wyszukiwania ładunków w czasie rzeczywistym
+                    </div>
+                    <div
+                        class="flex items-center gap-1.5 text-white font-semibold text-sm group-hover:gap-2.5 transition-all">
+                        <span>Otwórz czat</span>
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SEKCJA 2: Statystyki + Wykres
+    ═══════════════════════════════════════════════ -->
+    <div>
+        <h2 class="text-xs font-semibold text-slate-500 dark:text-xercik-muted uppercase tracking-widest mb-3">
+            Statystyki Maili</h2>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+
+            <!-- Stat Cards (col 1-3) -->
+            <div class="lg:col-span-3 grid grid-cols-2 sm:grid-cols-2 gap-3 content-start">
+
+                <!-- OFERTA -->
+                <div
+                    class="bg-white dark:bg-xercik-surface rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm transition-colors">
+                    <div class="flex items-center justify-between mb-3">
+                        <div
+                            class="text-xs font-semibold text-slate-500 dark:text-xercik-muted uppercase tracking-wide">
+                            Oferty</div>
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
+                            <span class="text-base">📨</span>
+                        </div>
+                    </div>
+                    <div id="stat-oferta" class="stat-num text-3xl font-extrabold text-slate-800 dark:text-xercik-text">
+                        —</div>
+                    <div class="mt-1 h-1 rounded-full bg-slate-100 dark:bg-xercik-border">
+                        <div id="bar-oferta" class="h-1 rounded-full bg-blue-500 transition-all duration-700"
+                            style="width:0%"></div>
+                    </div>
+                </div>
+
+                <!-- ZAMOWIENIE -->
+                <div
+                    class="bg-white dark:bg-xercik-surface rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm transition-colors">
+                    <div class="flex items-center justify-between mb-3">
+                        <div
+                            class="text-xs font-semibold text-slate-500 dark:text-xercik-muted uppercase tracking-wide">
+                            Zamówienia</div>
+                        <div
+                            class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+                            <span class="text-base">📋</span>
+                        </div>
+                    </div>
+                    <div id="stat-zamowienie"
+                        class="stat-num text-3xl font-extrabold text-slate-800 dark:text-xercik-text">—</div>
+                    <div class="mt-1 h-1 rounded-full bg-slate-100 dark:bg-xercik-border">
+                        <div id="bar-zamowienie" class="h-1 rounded-full bg-emerald-500 transition-all duration-700"
+                            style="width:0%"></div>
+                    </div>
+                </div>
+
+                <!-- FAKTURA -->
+                <div
+                    class="bg-white dark:bg-xercik-surface rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm transition-colors">
+                    <div class="flex items-center justify-between mb-3">
+                        <div
+                            class="text-xs font-semibold text-slate-500 dark:text-xercik-muted uppercase tracking-wide">
+                            Faktury</div>
+                        <div
+                            class="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-950/40 flex items-center justify-center">
+                            <span class="text-base">🧾</span>
+                        </div>
+                    </div>
+                    <div id="stat-faktura"
+                        class="stat-num text-3xl font-extrabold text-slate-800 dark:text-xercik-text">—</div>
+                    <div class="mt-1 h-1 rounded-full bg-slate-100 dark:bg-xercik-border">
+                        <div id="bar-faktura" class="h-1 rounded-full bg-violet-500 transition-all duration-700"
+                            style="width:0%"></div>
+                    </div>
+                </div>
+
+                <!-- INNE -->
+                <div
+                    class="bg-white dark:bg-xercik-surface rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm transition-colors">
+                    <div class="flex items-center justify-between mb-3">
+                        <div
+                            class="text-xs font-semibold text-slate-500 dark:text-xercik-muted uppercase tracking-wide">
+                            Inne</div>
+                        <div
+                            class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-xercik-card flex items-center justify-center">
+                            <span class="text-base">📁</span>
+                        </div>
+                    </div>
+                    <div id="stat-inne" class="stat-num text-3xl font-extrabold text-slate-800 dark:text-xercik-text">—
+                    </div>
+                    <div class="mt-1 h-1 rounded-full bg-slate-100 dark:bg-xercik-border">
+                        <div id="bar-inne" class="h-1 rounded-full bg-slate-400 transition-all duration-700"
+                            style="width:0%"></div>
+                    </div>
+                </div>
+
+                <!-- Łącznie (full width) -->
+                <div
+                    class="col-span-2 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-900 dark:to-black rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm flex items-center justify-between">
+                    <div>
+                        <div
+                            class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                            Łącznie w bazie
+                        </div>
+                        <div id="stat-total" class="text-3xl font-extrabold text-slate-800 dark:text-white">—</div>
+                    </div>
+                    <div class="text-4xl">📊</div>
+                </div>
+            </div>
+
+            <!-- Chart (col 4-5) -->
+            <div
+                class="lg:col-span-2 bg-white dark:bg-xercik-surface rounded-xl border border-slate-200 dark:border-xercik-border shadow-sm p-5 transition-colors flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <div class="text-sm font-semibold text-slate-700 dark:text-xercik-text">Podział kategorii</div>
+                        <div class="text-xs text-slate-400 dark:text-xercik-muted">Proporcje maili AI</div>
+                    </div>
+                    <button onclick="loadStats()" title="Odśwież dane"
+                        class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-xercik-card hover:bg-slate-200 dark:hover:bg-[#222] flex items-center justify-center text-slate-500 dark:text-xercik-muted transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Chart container -->
+                <div class="flex-1 flex items-center justify-center relative min-h-[200px]">
+                    <div id="chartLoadingState"
+                        class="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                        <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin">
+                        </div>
+                        <div class="text-xs text-slate-400 dark:text-xercik-muted">Ładowanie danych…</div>
+                    </div>
+                    <div id="chartEmptyState"
+                        class="hidden absolute inset-0 flex flex-col items-center justify-center gap-2">
+                        <div class="text-3xl">📭</div>
+                        <div class="text-xs text-slate-400 dark:text-xercik-muted text-center">Brak danych do
+                            wyświetlenia</div>
+                    </div>
+                    <canvas id="categoryPieChart" class="hidden" style="max-height: 340px;"></canvas>
+                </div>
+
+                <!-- Legend -->
+                <div id="chartLegend" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SEKCJA 3: Quick Actions
+    ═══════════════════════════════════════════════ -->
+    <div>
+        <h2 class="text-xs font-semibold text-slate-500 dark:text-xercik-muted uppercase tracking-widest mb-3">Szybkie
+            Akcje</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <a href="/mail?filter=OFERTA"
+                class="bg-white dark:bg-xercik-surface rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800 transition-all group flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-xl shrink-0">
+                    📨</div>
+                <span
+                    class="text-sm font-semibold text-slate-700 dark:text-xercik-text group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Oferty</span>
+            </a>
+            <a href="/mail?filter=ZAMOWIENIE"
+                class="bg-white dark:bg-xercik-surface rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-800 transition-all group flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-xl shrink-0">
+                    📋</div>
+                <span
+                    class="text-sm font-semibold text-slate-700 dark:text-xercik-text group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Zamówienia</span>
+            </a>
+            <a href="/mail?filter=FAKTURA"
+                class="bg-white dark:bg-xercik-surface rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm hover:shadow-md hover:border-violet-300 dark:hover:border-violet-800 transition-all group flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/40 flex items-center justify-center text-xl shrink-0">
+                    🧾</div>
+                <span
+                    class="text-sm font-semibold text-slate-700 dark:text-xercik-text group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">Faktury</span>
+            </a>
+            <a href="/docs" target="_blank"
+                class="bg-white dark:bg-xercik-surface rounded-xl p-4 border border-slate-200 dark:border-xercik-border shadow-sm hover:shadow-md hover:border-slate-400 dark:hover:border-slate-600 transition-all group flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-xercik-card flex items-center justify-center text-xl shrink-0">
+                    ⚙️</div>
+                <span
+                    class="text-sm font-semibold text-slate-700 dark:text-xercik-text group-hover:text-slate-900 dark:group-hover:text-white transition-colors">API
+                    Docs</span>
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ──────────────────────────────────────────────
+    // Palette
+    // ──────────────────────────────────────────────
+    const PALETTE = {
+        OFERTA: { bg: '#6366f1', light: 'rgba(99,102,241,0.15)' },
+        ZAMOWIENIE: { bg: '#10b981', light: 'rgba(16,185,129,0.15)' },
+        FAKTURA: { bg: '#8b5cf6', light: 'rgba(139,92,246,0.15)' },
+        DOKUMENT_CMR: { bg: '#f59e0b', light: 'rgba(245,158,11,0.15)' },
+        INNE: { bg: '#64748b', light: 'rgba(100,116,139,0.15)' },
+    };
+
+    function colorFor(cat) {
+        return PALETTE[cat]?.bg || ('#' + ((Math.abs(hashStr(cat)) & 0xFFFFFF) | 0x404040).toString(16).slice(-6));
+    }
+    function hashStr(s) {
+        let h = 0;
+        for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
+        return h;
+    }
+
+    // ──────────────────────────────────────────────
+    // Chart instance
+    // ──────────────────────────────────────────────
+    let pieChart = null;
+
+    function isDark() { return document.documentElement.classList.contains('dark'); }
+
+    function buildChart(labels, values, colors) {
+        const ctx = document.getElementById('categoryPieChart').getContext('2d');
+
+        if (pieChart) { pieChart.destroy(); }
+
+        pieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: isDark() ? '#111111' : '#ffffff',
+                    borderWidth: 2,
+                    hoverBorderWidth: 1,
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: isDark() ? '#1a1a1a' : '#1e293b',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#94a3b8',
+                        borderColor: isDark() ? '#2a2a2a' : '#334155',
+                        borderWidth: 1,
+                        padding: 10,
+                        callbacks: {
+                            label: ctx => ` ${ctx.formattedValue} maili (${Math.round(ctx.parsed / values.reduce((a, b) => a + b, 0) * 100)}%)`
+                        }
+                    }
+                },
+                animation: { animateRotate: true, duration: 700, easing: 'easeInOutQuart' }
+            }
+        });
+    }
+
+    function buildLegend(labels, values, colors) {
+        const total = values.reduce((a, b) => a + b, 0);
+        const el = document.getElementById('chartLegend');
+        el.innerHTML = '';
+        labels.forEach((label, i) => {
+            const pct = total > 0 ? Math.round(values[i] / total * 100) : 0;
+            el.innerHTML += `
+            <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full shrink-0" style="background:${colors[i]}"></span>
+                <span class="text-xs text-slate-600 dark:text-xercik-text flex-1 truncate font-medium">${label}</span>
+                <span class="text-xs text-slate-400 dark:text-xercik-muted font-mono">${values[i]}</span>
+                <span class="text-[10px] text-slate-300 dark:text-xercik-muted">${pct}%</span>
+            </div>`;
+        });
+        el.classList.remove('hidden');
+    }
+
+    function updateStatCards(data) {
+        const total = Object.values(data).reduce((a, b) => a + b, 0);
+
+        const map = {
+            OFERTA: { statEl: 'stat-oferta', bar: 'bar-oferta', color: 'bg-blue-500' },
+            ZAMOWIENIE: { statEl: 'stat-zamowienie', bar: 'bar-zamowienie', color: 'bg-emerald-500' },
+            FAKTURA: { statEl: 'stat-faktura', bar: 'bar-faktura', color: 'bg-violet-500' },
+            INNE: { statEl: 'stat-inne', bar: 'bar-inne', color: 'bg-slate-400' },
+        };
+
+        for (const [key, cfg] of Object.entries(map)) {
+            const val = data[key] || 0;
+            const el = document.getElementById(cfg.statEl);
+            const barEl = document.getElementById(cfg.bar);
+            if (el) el.textContent = val;
+            if (barEl && total > 0) {
+                setTimeout(() => { barEl.style.width = `${Math.round(val / total * 100)}%`; }, 100);
+            }
+        }
+
+        const totalEl = document.getElementById('stat-total');
+        if (totalEl) totalEl.textContent = total;
+
+        const badgeMail = document.getElementById('badge-mail-total');
+        if (badgeMail) badgeMail.textContent = `${total} maili`;
+    }
+
+    // ──────────────────────────────────────────────
+    // Load stats from API
+    // ──────────────────────────────────────────────
+    async function loadStats() {
+        const loading = document.getElementById('chartLoadingState');
+        const empty = document.getElementById('chartEmptyState');
+        const canvas = document.getElementById('categoryPieChart');
+
+        loading.classList.remove('hidden');
+        empty.classList.add('hidden');
+        canvas.classList.add('hidden');
+        document.getElementById('chartLegend').classList.add('hidden');
+
+        try {
+            const resp = await fetch('/api/stats');
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+
+            const entries = Object.entries(data).filter(([, v]) => v > 0);
+
+            if (entries.length === 0) {
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+                updateStatCards({});
+                return;
+            }
+
+            updateStatCards(data);
+
+            const labels = entries.map(([k]) => k);
+            const values = entries.map(([, v]) => v);
+            const colors = labels.map(colorFor);
+
+            loading.classList.add('hidden');
+            canvas.classList.remove('hidden');
+
+            buildChart(labels, values, colors);
+            buildLegend(labels, values, colors);
+
+        } catch (err) {
+            console.error('Stats fetch error:', err);
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+            empty.querySelector('div:last-child').textContent = 'Błąd ładowania danych';
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Rebuild chart on theme change (colors)
+    // ──────────────────────────────────────────────
+    const _orig = window.toggleTheme;
+    window.toggleTheme = function () {
+        _orig?.();
+        if (pieChart) {
+            const ds = pieChart.data.datasets[0];
+            ds.borderColor = isDark() ? '#111111' : '#ffffff';
+            pieChart.update();
+        }
+    };
+
+    // ──────────────────────────────────────────────
+    // Init
+    // ──────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', loadStats);
+</script>
+{% endblock %}

@@ -1,0 +1,99 @@
+<div id="universalPopup"
+    class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-md transition-opacity">
+    <div class="bg-white dark:bg-xercik-surface rounded-2xl shadow-2xl w-full max-w-sm flex flex-col transform transition-all text-center border border-transparent dark:border-xercik-border">
+        <div class="p-6">
+            <div id="popupIconContainer" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg id="popupIconSvg" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <!-- Path changes dynamically -->
+                </svg>
+            </div>
+            <h2 id="popupTitle" class="text-xl font-bold text-slate-800 dark:text-xercik-text mb-2">Tytuł</h2>
+            <p id="popupMessage" class="text-slate-500 dark:text-xercik-muted text-sm mb-6">Wiadomość</p>
+            <div class="flex gap-3 justify-center">
+                <button id="popupCancelBtn" onclick="closePopup()"
+                    class="flex-1 bg-slate-100 dark:bg-[#2a2a2a] hover:bg-slate-200 dark:hover:bg-[#333] text-slate-800 dark:text-xercik-text font-semibold py-2.5 rounded transition">
+                    Anuluj
+                </button>
+                <button id="popupConfirmBtn" class="flex-1 font-bold py-2.5 rounded transition shadow text-white">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let popupConfirmCallback = null;
+    let popupCancelCallback = null;
+
+    const popupIcons = {
+        delete: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />',
+        error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
+        info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
+        success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />'
+    };
+
+    const popupStyles = {
+        delete: {
+            container: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+            button: 'bg-red-600 hover:bg-red-700 dark:bg-red-600/80 dark:hover:bg-red-700/80'
+        },
+        error: {
+            container: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+            button: 'bg-red-600 hover:bg-red-700 dark:bg-red-600/80 dark:hover:bg-red-700/80'
+        },
+        info: {
+            container: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+            button: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-600/80 dark:hover:bg-blue-700/80'
+        },
+        success: {
+            container: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+            button: 'bg-green-600 hover:bg-green-700 dark:bg-green-600/80 dark:hover:bg-green-700/80'
+        }
+    };
+
+    function showPopup({ type = 'info', title, message, confirmText = 'OK', cancelText = 'Anuluj', onConfirm = null, onCancel = null, hideCancel = false }) {
+        document.getElementById('popupTitle').innerText = title;
+        document.getElementById('popupMessage').innerText = message;
+        document.getElementById('popupConfirmBtn').innerText = confirmText;
+        document.getElementById('popupCancelBtn').innerText = cancelText;
+
+        const iconContainer = document.getElementById('popupIconContainer');
+        const confirmBtn = document.getElementById('popupConfirmBtn');
+        const cancelBtn = document.getElementById('popupCancelBtn');
+        const iconSvg = document.getElementById('popupIconSvg');
+
+        // Reset classes
+        iconContainer.className = 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ' + (popupStyles[type]?.container || popupStyles['info'].container);
+        iconSvg.innerHTML = popupIcons[type] || popupIcons['info'];
+        confirmBtn.className = 'flex-1 font-bold py-2.5 rounded transition shadow text-white ' + (popupStyles[type]?.button || popupStyles['info'].button);
+
+        if (hideCancel || !onCancel && !cancelText) {
+            cancelBtn.classList.add('hidden');
+        } else {
+            cancelBtn.classList.remove('hidden');
+        }
+
+        popupConfirmCallback = onConfirm;
+        popupCancelCallback = onCancel;
+
+        document.getElementById('universalPopup').classList.remove('hidden');
+    }
+
+    function closePopup() {
+        document.getElementById('universalPopup').classList.add('hidden');
+        if (typeof popupCancelCallback === 'function') {
+            popupCancelCallback();
+        }
+        popupConfirmCallback = null;
+        popupCancelCallback = null;
+    }
+
+    document.getElementById('popupConfirmBtn').addEventListener('click', function () {
+        document.getElementById('universalPopup').classList.add('hidden');
+        if (typeof popupConfirmCallback === 'function') {
+            popupConfirmCallback();
+        }
+    });
+</script>
