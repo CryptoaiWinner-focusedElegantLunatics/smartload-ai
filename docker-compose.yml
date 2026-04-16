@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -46,5 +46,18 @@ services:
       - redis
       - backend
 
+  # --- TUTAJ DODAJEMY FRONTEND ---
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: smartload_frontend
+    ports:
+      - "80:80"
+    volumes:
+      # Mapujemy nowy folder app/web do kontenera
+      - ./app/web:/usr/share/nginx/html
+    depends_on:
+      - backend
 volumes:
   postgres_data:

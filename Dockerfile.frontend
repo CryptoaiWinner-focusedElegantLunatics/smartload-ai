@@ -1,0 +1,4 @@
+FROM nginx:alpine
+# Zmieniamy ścieżkę źródłową na app/web/
+COPY app/web/ /usr/share/nginx/html/
+EXPOSE 80
