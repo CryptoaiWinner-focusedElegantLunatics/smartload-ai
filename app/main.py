@@ -21,6 +21,7 @@ from app.scraper.runner import run_all_scrapers
 from app.api import loads
 from app.api.documents import router as documents_router
 from pydantic import BaseModel
+from seed_admin import create_superuser
 
 
 scheduler = AsyncIOScheduler()
@@ -58,6 +59,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SmartLoad AI API")
+create_superuser()
 app.include_router(loads.router, prefix="/api", tags=["loads"])
 app.include_router(documents_router)
 templates = Jinja2Templates(directory="app/templates")
