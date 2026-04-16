@@ -1,42 +1,26 @@
-"""
-Skrypt do generowania domyślnego konta administratora.
-uruchom przez: docker compose exec backend python seed_admin.py
-"""
-import sys
 import os
-
-sys.path.insert(0, os.path.dirname(__file__))
-
-from sqlmodel import SQLModel, Session, select, create_engine
-from app.core.config import settings
-from app.core.security import get_password_hash
+from sqlmodel import Session, select
+from app.database import engine
 from app.models.user import User
-from app.models.email_log import EmailLog
-from app.models.load import Load
+from app.core.security import get_password_hash
 
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"
-
-def seed():
-    engine = create_engine(settings.DATABASE_URL, echo=False)
-    SQLModel.metadata.create_all(engine)
+def create_superuser():
+    # Pobieramy dane z panelu Railway, z fallbackiem na standardowe wartości
+    admin_user = os.getenv("ADMIN_USERNAME", "admin")
+    admin_pass = os.getenv("ADMIN_PASSWORD", "admin123")
 
     with Session(engine) as session:
-        existing = session.exec(
-            select(User).where(User.username == ADMIN_USERNAME)
-        ).first()
-
-        if existing:
-            print(f"✅ Użytkownik '{ADMIN_USERNAME}' już istnieje.")
-            return
-
-        admin = User(
-            username=ADMIN_USERNAME,
-            hashed_password=get_password_hash(ADMIN_PASSWORD),
-        )
-        session.add(admin)
-        session.commit()
-        print(f"🚀 Utworzono administratora: login='{ADMIN_USERNAME}', hasło='{ADMIN_PASSWORD}'")
+        # Sprawdzamy, czy użytkownik o takim loginie już istnieje
+        user = session.exec(select(User).where(User.username == admin_user)).first()
+        
+        if not user:
+            hashed_password = get_password_hash(admin_pass)
+            new_admin = User(username=admin_user, hashed_password=hashed_password)
+            session.add(new_admin)
+            session.commit()
+            print(f"✅ Utworzono admina z loginem: {admin_user} (hasło z Variables)")
+        else:
+            print(f"⚠️ Użytkownik {admin_user} już istnieje w bazie.")
 
 if __name__ == "__main__":
-    seed()
+    create_superuser()
