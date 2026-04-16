@@ -23,6 +23,7 @@ from app.api import loads
 from app.api.documents import router as documents_router
 from pydantic import BaseModel
 from seed_admin import create_superuser
+from seed_db import seed_test_emails
 
 
 scheduler = AsyncIOScheduler()
@@ -101,6 +102,10 @@ ws_manager = ConnectionManager()
 def render_main_dashboard(request: Request, user: User = Depends(get_current_user)):
     return templates.TemplateResponse("dashboard_main.html", {"request": request})
 
+@app.get("/seed-danych")
+def zasiej_dane():
+    seed_test_emails()
+    return {"status": "Dane załadowane na produkcję!"}
 
 @app.get("/mail")
 def render_mail(request: Request, user: User = Depends(get_current_user)):
