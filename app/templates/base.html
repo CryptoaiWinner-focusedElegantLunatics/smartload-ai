@@ -150,10 +150,10 @@
          SIDEBAR
     ═══════════════════════════════════════════════ -->
         <aside id="sidebar"
-            class="w-64 shrink-0 bg-white dark:bg-xercik-surface border-r border-slate-200 dark:border-xercik-border flex flex-col h-full z-30 transition-colors duration-300">
+            class="fixed inset-y-0 left-0 z-50 w-full h-screen bg-white dark:bg-xercik-surface border-r border-slate-200 dark:border-xercik-border flex flex-col transition-transform duration-300 md:relative md:w-64 md:h-full md:z-30 md:translate-x-0 -translate-x-full shrink-0">
 
             <!-- Logo / Branding -->
-            <div class="p-5 border-b border-slate-100 dark:border-xercik-border">
+            <div class="p-5 border-b border-slate-100 dark:border-xercik-border relative">
                 <div class="flex items-center gap-3">
                     <div
                         class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
@@ -170,6 +170,13 @@
                             Transport Suite</div>
                     </div>
                 </div>
+
+                <!-- Przycisk Zamknij dla Mobile -->
+                <button onclick="toggleSidebar()" class="md:hidden absolute top-5 right-5 p-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
 
             <!-- Nawigacja -->
@@ -292,14 +299,33 @@
 
             <!-- Top Bar -->
             <header
-                class="h-14 shrink-0 bg-white dark:bg-xercik-surface border-b border-slate-200 dark:border-xercik-border flex items-center px-6 gap-4 transition-colors">
-                <div class="flex-1">
-                    <h2 class="text-sm font-semibold text-slate-700 dark:text-xercik-text">
+                class="h-14 shrink-0 bg-white dark:bg-xercik-surface border-b border-slate-200 dark:border-xercik-border flex items-center px-4 md:px-6 gap-3 md:gap-4 transition-colors relative z-20">
+                
+                <!-- Hamburger Button for Mobile -->
+                <button onclick="toggleSidebar()" class="md:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-50 dark:text-xercik-muted dark:hover:bg-xercik-card transition-colors cursor-pointer">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+
+                <!-- Mobile Logo AI -->
+                <div class="md:hidden flex items-center shrink-0">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white font-bold text-[10px] shadow-lg shadow-blue-500/20">
+                        AI
+                    </div>
+                </div>
+
+                <div class="flex-1 hidden md:block min-w-0">
+                    <h2 class="text-sm font-semibold text-slate-700 dark:text-xercik-text truncate">
                         {% block page_title %}SmartLoad AI{% endblock %}
                     </h2>
-                    <p class="text-xs text-slate-400 dark:text-xercik-muted">{% block page_subtitle %}Inteligentna
-                        platforma spedycyjna{% endblock %}</p>
+                    <p class="text-xs text-slate-400 dark:text-xercik-muted truncate">
+                        {% block page_subtitle %}Inteligentna platforma spedycyjna{% endblock %}
+                    </p>
                 </div>
+
+                <!-- Spacer for mobile to push actions to right -->
+                <div class="flex-1 md:hidden"></div>
                 <div class="flex items-center gap-3">
                     {% block header_actions %}{% endblock %}
                     <div
@@ -347,7 +373,35 @@
             const id = map[path] || (path.startsWith('/chat') ? 'nav-chat' : path.startsWith('/mail') ? 'nav-mail' : 'nav-dashboard');
             const el = document.getElementById(id);
             if (el) el.classList.add('active');
+
+            // Automatyczne zamykanie panelu po kliknieciu linku ma mobile
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth < 768 && document.getElementById('sidebar').classList.contains('translate-x-0')) {
+                        toggleSidebar();
+                    }
+                });
+            });
         })();
+
+        // ──────────────────────────────────────────────
+        // Mobile Sidebar Toggle
+        // ──────────────────────────────────────────────
+        let isSidebarOpen = false;
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            isSidebarOpen = !isSidebarOpen;
+            
+            if (isSidebarOpen) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.remove('translate-x-0');
+                sidebar.classList.add('-translate-x-full');
+                document.body.style.overflow = '';
+            }
+        }
     </script>
 
     {% block scripts %}{% endblock %}

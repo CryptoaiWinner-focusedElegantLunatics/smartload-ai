@@ -67,7 +67,8 @@
 
     <!-- ── Tabela maili ────────────────────────────────────────────────── -->
     <div class="bg-white dark:bg-xercik-surface rounded-xl shadow-sm border border-slate-200 dark:border-xercik-border overflow-hidden transition-colors">
-        <table class="w-full text-left border-collapse table-fixed">
+        <!-- Desktop Table -->
+        <table class="w-full text-left border-collapse table-fixed hidden md:table">
             <thead>
                 <tr class="bg-slate-50 dark:bg-xercik-card text-slate-500 dark:text-xercik-muted text-xs border-b border-slate-200 dark:border-xercik-border uppercase tracking-wide transition-colors">
                     <th class="p-4 font-semibold w-[17%]">Nadawca</th>
@@ -83,6 +84,9 @@
                 class="divide-y divide-slate-100 dark:divide-xercik-border text-sm transition-colors">
             </tbody>
         </table>
+
+        <!-- Mobile Cards Container -->
+        <div id="cardList" class="md:hidden flex flex-col gap-3 p-4 bg-slate-50 dark:bg-xercik-bg/30"></div>
     </div>
 </div>
 
@@ -334,24 +338,34 @@
 
     function renderTable() {
         const tbody = document.getElementById('tableBody');
+        const cardList = document.getElementById('cardList');
+
         if (loadedEmails.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="p-10 text-center text-slate-400 dark:text-xercik-muted text-sm">Brak wiadomości spełniających kryteria.</td></tr>';
+            const emptyMsg = 'Brak wiadomości spełniających kryteria.';
+            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-400 dark:text-xercik-muted text-sm">${emptyMsg}</td></tr>`;
+            cardList.innerHTML = `<div class="p-10 text-center text-slate-400 dark:text-xercik-muted text-sm">${emptyMsg}</div>`;
             return;
         }
 
-        let html = '';
+        let tableHtml = '';
+        let cardHtml = '';
+
         loadedEmails.forEach(email => {
             const badge = getColorClass(email.ai_category);
+            
+            // Generate options for category select (used in both views)
             let opts = '<option value="" disabled selected>Popraw AI</option>';
             getCategories().filter(c => c.value !== 'WSZYSTKIE').forEach(c => {
                 opts += `<option value="${c.value}">${c.value}</option>`;
             });
+
             const isSelected = isBulkDeleteMode && selectedEmails.has(email.id);
             const rowBase = isSelected
                 ? 'bg-red-50 dark:bg-red-900/30'
                 : 'hover:bg-slate-50 dark:hover:bg-xercik-card';
 
-            html += `
+            // 1. Table Row (Desktop)
+            tableHtml += `
             <tr onclick="handleRowClick(${email.id}, event)"
                 class="${rowBase} transition-colors cursor-pointer">
                 <td class="p-4 font-medium text-slate-700 dark:text-slate-300 truncate" title="${email.sender}">
@@ -398,8 +412,75 @@
                     </div>
                 </td>
             </tr>`;
+
+            // 2. Card (Mobile)
+            cardHtml += `
+            <div onclick="handleRowClick(${email.id}, event)"
+                 class="${isSelected ? 'ring-2 ring-red-500' : ''} bg-white dark:bg-xercik-surface rounded-xl p-4 shadow-sm border border-slate-200 dark:border-xercik-border flex flex-col gap-3 transition-all active:scale-[0.98]">
+                
+                <!-- Card Header: Sender & Category -->
+                <div class="flex justify-between items-start gap-3">
+                    <div class="min-w-0">
+                        <div class="text-[11px] font-bold text-blue-600 dark:text-blue-400 truncate uppercase flex items-center gap-1">
+                            ${isBulkDeleteMode ? `<input type="checkbox" class="pointer-events-none" ${isSelected ? 'checked' : ''}>` : ''}
+                            ${email.sender}
+                        </div>
+                        <div class="text-sm font-semibold text-slate-800 dark:text-xercik-text line-clamp-2 mt-0.5">${email.subject}</div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge} shrink-0 mt-0.5">
+                        ${email.ai_category}
+                    </span>
+                </div>
+
+                <!-- Visual Route -->
+                <div class="flex items-center gap-3 py-2 bg-slate-50 dark:bg-xercik-card/50 rounded-lg px-3">
+                    <div class="flex-1 text-center min-w-0">
+                        <div class="text-[9px] uppercase text-slate-400 font-bold mb-0.5">Start</div>
+                        <div class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">${email.loading_city || '?'}</div>
+                    </div>
+                    <div class="text-slate-300 shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </div>
+                    <div class="flex-1 text-center min-w-0">
+                        <div class="text-[9px] uppercase text-slate-400 font-bold mb-0.5">Koniec</div>
+                        <div class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">${email.unloading_city || '?'}</div>
+                    </div>
+                </div>
+
+                <!-- Bottom Stats & Actions -->
+                <div class="flex items-center justify-between pt-1">
+                    <div class="flex items-center gap-4">
+                        <div class="flex flex-col">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase">Waga</span>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-400">${email.weight_kg ? `${email.weight_kg} kg` : '—'}</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase">Stawka</span>
+                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">${email.price ? `${email.price} ${email.currency}` : '—'}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <select onclick="event.stopPropagation()" onchange="updateCategory(${email.id}, this.value)"
+                            class="text-[10px] border border-slate-200 dark:border-xercik-border rounded-lg p-1.5 font-semibold text-slate-600 dark:text-xercik-text bg-white dark:bg-xercik-card outline-none"
+                            ${isBulkDeleteMode ? 'disabled' : ''}>
+                            ${opts}
+                        </select>
+                        <button onclick="deleteSingleEmail(event, ${email.id})"
+                            class="p-2 text-slate-400 hover:text-red-500 transition hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                            ${isBulkDeleteMode ? 'disabled' : ''}>
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>`;
         });
-        tbody.innerHTML = html;
+
+        tbody.innerHTML = tableHtml;
+        cardList.innerHTML = cardHtml;
+
         if (isBulkDeleteMode) {
             document.getElementById('bulkDeleteActionBtn').innerText = `Usuń zaznaczone (${selectedEmails.size})`;
         }
