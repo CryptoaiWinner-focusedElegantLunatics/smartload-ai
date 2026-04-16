@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import time
+import os
 import asyncio
 from pathlib import Path
 from sqlmodel import SQLModel, Session, select
@@ -323,8 +324,18 @@ def render_chat(request: Request, user: User = Depends(get_current_user)):
 
 @app.get("/magiczny-guzik")
 def odpal_admina():
-    create_superuser()
-    return {"status": "Utworzono admina"}
+    url = os.getenv("DATABASE_URL")
+    print(f"DEBUG: Moja zmienna DATABASE_URL to: {url}") # To zobaczymy w logach
+    
+    if not url:
+        return {"error": "Mordo, serwer w ogóle nie widzi zmiennej DATABASE_URL w systemie!"}
+    
+    try:
+        from seed_admin import create_superuser
+        create_superuser()
+        return {"status": "Sukces! Admin dodany."}
+    except Exception as e:
+        return {"error": f"Błąd bazy: {str(e)}", "url_widziany_przez_app": url}
 
 @app.websocket("/ws/chat")
 async def websocket_chat_endpoint(websocket: WebSocket):
