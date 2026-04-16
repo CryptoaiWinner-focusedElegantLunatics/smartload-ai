@@ -62,43 +62,28 @@ def _call_llm(prompt: str, max_tokens: int = 300) -> str:
 
 # ── Krok A: Wykrycie intencji ─────────────────────────────────────────────────
 
-def _extract_intent(message: str, awaiting_plate: bool) -> dict:
-    """
-    Zwraca dict z polami:
-      intent: SZUKA_LADUNKU | AKCEPTUJE_LADUNEK | PODAJ_REJESTRACJE | INNE
-      city: str | null
-      plate_number: str | null
-    """
-    plate_hint = (
-        'Jeśli wiadomość zawiera numer rejestracyjny pojazdu (np. "WA12345", "KR 1234A", "DW 123AB"), '
-        'ustaw intent="PODAJ_REJESTRACJE" i plate_number=wartość rejestracji.'
-        if awaiting_plate else ""
-    )
+def _extract_intent(message: str, awaiting_plate: bool, last_action: str = None) -> dict:
+    # Dodajemy informację o kontekście - co bot zrobił ostatnio
+    context_hint = ""
+    if awaiting_plate:
+        context_hint = "WAŻNE: Czekasz teraz na numer rejestracyjny (tablice). Każdy ciąg znaków przypominający numer auta to PODAJ_REJESTRACJE."
+    elif last_action == "OFFER_MADE":
+        context_hint = "WAŻNE: Właśnie złożyłeś ofertę ładunku. Odpowiedzi typu 'pasuje', 'biorę', 'ok', 'może być' to AKCEPTUJE_LADUNEK."
 
-    prompt = f"""Jesteś asystentem AI w firmie spedycyjnej. Przeczytaj wiadomość kierowcy.
-Zwróć WYŁĄCZNIE czysty JSON (bez markdown, bez komentarzy) z polami:
-- "intent": jedno z: "SZUKA_LADUNKU", "AKCEPTUJE_LADUNEK", "PODAJ_REJESTRACJE", "INNE"
-- "city": nazwa miasta załadunku lub null
-- "plate_number": numer rejestracyjny pojazdu lub null
+    prompt = f"""Jesteś logistycznym systemem AI. Skalasyfikuj wiadomość kierowcy.
+Zwróć WYŁĄCZNIE JSON: {{"intent": "...", "loading_city": "...", "unloading_city": "...", "plate_number": "..."}}
 
-Definicje intencji:
-- SZUKA_LADUNKU: kierowca podaje lokalizację i szuka ładunku
-- AKCEPTUJE_LADUNEK: kierowca zgadza się na zaproponowaną trasę (ok, biorę, tak, pasuje, dogadane, akceptuję)
-- PODAJ_REJESTRACJE: wiadomość zawiera numer rejestracyjny pojazdu
-- INNE: pozdrowienia, pytania ogólne, inne
+Intencje:
+- SZUKA_LADUNKU: pyta o wolne trasy / podaje lokalizację
+- AKCEPTUJE_LADUNEK: zgadza się na Twoją propozycję (synonimy: pasuje mi, biorę to, git, wchodzę w to, ok)
+- PODAJ_REJESTRACJE: podaje numer rejestracyjny
+- INNE: reszta
 
-{plate_hint}
-
-Przykłady:
-"Jestem w Berlinie, mam wolne 24t" → {{"intent":"SZUKA_LADUNKU","city":"Berlin","plate_number":null}}
-"OK biorę tę trasę!" → {{"intent":"AKCEPTUJE_LADUNEK","city":null,"plate_number":null}}
-"Moja rejestracja to WA 12345" → {{"intent":"PODAJ_REJESTRACJE","city":null,"plate_number":"WA 12345"}}
-"DW 9876C" → {{"intent":"PODAJ_REJESTRACJE","city":null,"plate_number":"DW 9876C"}}
-
-Wiadomość kierowcy: "{message}"
+Kontekst: {context_hint}
+Wiadomość: "{message}"
 JSON:"""
 
-    raw = _call_llm(prompt, max_tokens=80)
+    raw = _call_llm(prompt, max_tokens=100)
     raw = re.sub(r'```json\n?', '', raw)
     raw = re.sub(r'```\n?', '', raw).strip()
 
@@ -109,25 +94,34 @@ JSON:"""
             intent = "INNE"
         return {
             "intent": intent,
-            "city": result.get("city"),
+            "loading_city": result.get("loading_city"),
+            "unloading_city": result.get("unloading_city"),
             "plate_number": result.get("plate_number"),
         }
     except Exception:
         logger.warning(f"⚠️ Nie udało się sparsować intencji: {raw!r}")
-        return {"intent": "INNE", "city": None, "plate_number": None}
+        return {"intent": "INNE", "loading_city": None, "unloading_city": None, "plate_number": None}
 
 
 # ── Krok B: Wyszukiwanie ofert ────────────────────────────────────────────────
 
-def _find_offers(city: str, db_session: Session) -> list[EmailLog]:
-    query = select(EmailLog).where(
+def _find_offers(loading_city: str, unloading_city: str, db_session: Session) -> list[EmailLog]:
+    # Budujemy dynamiczne warunki
+    conditions = [
         EmailLog.is_deleted == False,
-        or_(EmailLog.ai_category == "OFERTA", EmailLog.ai_category == "ZAMOWIENIE"),
-        or_(
-            EmailLog.loading_city.icontains(city),
-            EmailLog.subject.icontains(city),
-        )
-    ).limit(3)
+        or_(EmailLog.ai_category == "OFERTA", EmailLog.ai_category == "ZAMOWIENIE")
+    ]
+    
+    # Dodajemy miasto załadunku (tylko w kolumnie loading_city!)
+    if loading_city:
+        conditions.append(EmailLog.loading_city.icontains(loading_city))
+        
+    # Jeśli kierowca podał dokąd chce jechać, dodajemy też ten warunek
+    if unloading_city:
+        conditions.append(EmailLog.unloading_city.icontains(unloading_city))
+
+    # Rozpakowujemy listę warunków do zapytania
+    query = select(EmailLog).where(*conditions).limit(3)
     return db_session.exec(query).all()
 
 
@@ -212,49 +206,48 @@ def _generate_cmr(offer: EmailLog, plate: str) -> str:
 # ── Główna funkcja ────────────────────────────────────────────────────────────
 
 def process_driver_message(message: str, db_session: Session, session_id: str = "default") -> str:
-    """Przetwarza wiadomość kierowcy i zwraca odpowiedź spedytora AI (może zawierać HTML)."""
-    logger.info(f"💬 [{session_id}] {message[:80]}")
-
     sess = _session(session_id)
-    parsed = _extract_intent(message, awaiting_plate=sess["awaiting_plate"])
+    last_action = "OFFER_MADE" if sess.get("last_offer") else None
+    parsed = _extract_intent(message, sess["awaiting_plate"], last_action)
     intent = parsed["intent"]
-    city = parsed.get("city")
+    loading_city = parsed.get("loading_city")
+    unloading_city = parsed.get("unloading_city")
     plate = parsed.get("plate_number")
 
-    logger.info(f"🎯 intent={intent} | city={city} | plate={plate}")
+    logger.info(f"🎯 intent={intent} | loading={loading_city} | unloading={unloading_city} | plate={plate}")
 
-    # ── PODAJ_REJESTRACJE → generuj CMR ──────────────────────────────
-    if intent == "PODAJ_REJESTRACJE" and plate and sess["last_offer"]:
-        sess["awaiting_plate"] = False
-        offer = sess["last_offer"]
-        return _generate_cmr(offer, plate)
-
-    # ── AKCEPTUJE_LADUNEK → zapytaj o rejestrację ────────────────────
-    if intent == "AKCEPTUJE_LADUNEK":
-        if sess["last_offer"]:
-            sess["awaiting_plate"] = True
-            offer = sess["last_offer"]
-            route = f"{offer.loading_city} → {offer.unloading_city}"
-            return (
-                f"Super! Cieszę się, że się dogadaliśmy na trasę <b>{route}</b>. 😊<br>"
-                f"Podaj mi jeszcze tylko <b>numer rejestracyjny</b> Twojego auta, "
-                f"żebym mógł wystawić CMR-kę. (np. WA 12345)"
-            )
-        return (
-            "Świetnie! 😊 Nie pamiętam jednak której oferty dotyczy Twoja odpowiedź — "
-            "napisz mi jeszcze raz z jakiego miasta szukasz ładunku."
-        )
+    # ... TUTAJ ZOSTAW KOD DLA "PODAJ_REJESTRACJE" I "AKCEPTUJE_LADUNEK" ...
 
     # ── SZUKA_LADUNKU → znajdź i zaproponuj ──────────────────────────
-    if intent == "SZUKA_LADUNKU" and city:
-        offers = _find_offers(city, db_session)
-        logger.info(f"📦 Znaleziono {len(offers)} ofert dla: {city}")
+    if intent == "SZUKA_LADUNKU" and loading_city:
+        offers = _find_offers(loading_city, unloading_city, db_session) # Zaktualizowane
+        
+        info_log = f"{loading_city}"
+        if unloading_city:
+            info_log += f" -> {unloading_city}"
+        logger.info(f"📦 Znaleziono {len(offers)} ofert dla: {info_log}")
+        
         if offers:
             sess["last_offer"] = offers[0]
             sess["awaiting_plate"] = False
-        response = _build_offer_response(message, city, offers)
-        return response or f"Sprawdzam ładunki z {city}... 🚛"
-
+        
+        response = _build_offer_response(message, loading_city, offers)
+        return response or f"Sprawdzam ładunki z {loading_city}... 🚛"
+    # ── TUTA WJEŻDŻA BRAKUJĄCY BLOK: POTWIERDZA ŁADUNEK ──────────────
+    if intent == "AKCEPTUJE_LADUNEK":
+        if sess.get("last_offer"):
+            # Kierowca potwierdził -> włączamy tryb czekania na blachy
+            sess["awaiting_plate"] = True 
+            offer = sess["last_offer"]
+            route = f"{offer.loading_city} → {offer.unloading_city}"
+            return (
+                f"Świetnie! 🤝 Rezerwuję trasę <b>{route}</b>.<br>"
+                f"Podaj mi jeszcze <b>numer rejestracyjny</b> Twojego auta do wystawienia CMR-ki (np. WA 12345)."
+            )
+        else:
+            # Sytuacja awaryjna: kierowca mówi "biorę", ale bot nie pamięta co
+            return "Super, że jesteś chętny! Przypomnij mi tylko, z jakiego miasta szukasz wyjazdu? 🚛"
+    # ─────────────────────────────────────────────────────────────────
     # ── Jeśli czekamy na rejestrację a intencja to INNE ──────────────
     if sess["awaiting_plate"]:
         # Spróbuj wyciągnąć numer rejestracyjny bezpośrednio z tekstu
