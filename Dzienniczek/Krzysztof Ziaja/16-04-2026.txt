@@ -1,0 +1,1 @@
+Naprawienie fałszywych błedów deploy'owania. Usunięcie deploy.yml.
