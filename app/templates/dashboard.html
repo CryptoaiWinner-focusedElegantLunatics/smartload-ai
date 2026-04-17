@@ -1,736 +1,800 @@
-<!DOCTYPE html>
-<html lang="pl">
+{% extends "base.html" %} {% block title %}SmartLoad AI – Dashboard Główny{%
+endblock %} {% block head_extra %}
+<style>
+  /* ── Design Tokens ── */
+  :root {
+    --font-headline: "Space Grotesk", sans-serif;
+    --color-primary: #0035c5;
+    --color-primary-container: #0047ff;
+    --color-tertiary-dim: #00daf3;
+    --color-card-bg: rgba(255, 255, 255, 0.85);
+    --color-card-border: rgba(255, 255, 255, 0.2);
+    --color-outline-variant-alpha: rgba(196, 197, 218, 0.15);
+    --color-text-primary: #0f172a;
+    --color-text-muted: #64748b;
+    --color-text-faint: #94a3b8;
+    --color-progress-bg: #e2e8f0;
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+  .dark {
+    --color-card-bg: rgba(15, 23, 42, 0.7);
+    --color-card-border: rgba(255, 255, 255, 0.05);
+    --color-outline-variant-alpha: rgba(255, 255, 255, 0.08);
+    --color-text-primary: #f1f5f9;
+    --color-text-muted: #94a3b8;
+    --color-text-faint: #475569;
+    --color-progress-bg: #1e293b;
+  }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartLoad AI - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        xercik: {
-                            bg: '#0a0a0a',
-                            surface: '#121212',
-                            border: '#1a1a1a',
-                            text: '#f2f2f2',
-                            muted: '#a0a0a0'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Styl scrollbara dla obu motywów (stała szerokość zapobiega skakaniu strony!) */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
+  .font-headline {
+    font-family: var(--font-headline);
+  }
+  .glass-card {
+    background: var(--color-card-bg);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-card-border);
+  }
+  .gradient-primary {
+    background: linear-gradient(135deg, #0035c5 0%, #0047ff 100%);
+  }
+  .gradient-purple {
+    background: linear-gradient(135deg, #6b21a8 0%, #3b0764 100%);
+  }
+  .gradient-teal {
+    background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%);
+  }
 
-        ::-webkit-scrollbar-track {
-            background: #f8fafc;
-        }
+  /* ── Page Layout ── */
+  .dash-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    padding: 3rem;
+    overflow-y: auto;
+    flex: 1;
+  }
 
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
+  /* ── Header ── */
+  .page-title {
+    font-family: var(--font-headline);
+    font-size: clamp(28px, 3vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+  }
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .pulse-ring {
+    position: relative;
+    width: 8px;
+    height: 8px;
+  }
+  .pulse-ring::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--color-tertiary-dim);
+    opacity: 0.75;
+    animation: ping 1.5s ease-in-out infinite;
+  }
+  .pulse-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--color-tertiary-dim);
+  }
+  @keyframes ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.75;
+    }
+    75%,
+    100% {
+      transform: scale(2.2);
+      opacity: 0;
+    }
+  }
+  .status-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+  }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
+  /* ── Modules Grid ── */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  .module-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    padding: 2rem;
+    color: #fff;
+    cursor: pointer;
+    transition:
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.25s;
+  }
+  .module-card:hover {
+    transform: translateY(-5px);
+  }
+  .module-card.purple {
+    box-shadow: 0 20px 60px rgba(107, 33, 168, 0.3);
+  }
+  .module-card.purple:hover {
+    box-shadow: 0 28px 80px rgba(107, 33, 168, 0.4);
+  }
+  .module-card.teal {
+    box-shadow: 0 20px 60px rgba(15, 118, 110, 0.3);
+  }
+  .module-card.teal:hover {
+    box-shadow: 0 28px 80px rgba(15, 118, 110, 0.4);
+  }
+  .module-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2.5rem;
+  }
+  .module-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .module-badge {
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+  .module-badge-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge-active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-tertiary-dim);
+  }
+  .module-title {
+    font-family: var(--font-headline);
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.75rem;
+  }
+  .module-desc {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 13px;
+    line-height: 1.65;
+    max-width: 340px;
+    margin-bottom: 2.5rem;
+  }
+  .module-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    transition: gap 0.2s;
+  }
+  .module-card:hover .module-cta {
+    gap: 1.25rem;
+  }
 
-        /* Ciemny motyw scrollbara */
-        .dark ::-webkit-scrollbar-track {
-            background: #0a0a0a;
-        }
+  /* ── Insights Grid ── */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 2rem;
+    align-items: stretch;
+  }
+  .stats-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .stats-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    flex: 1;
+  }
+  .stat-card {
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: var(--color-card-bg);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-card-border);
+  }
+  .stat-card:hover {
+    border-color: rgba(0, 53, 197, 0.3);
+  }
+  .stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+  }
+  .stat-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .stat-number {
+    font-family: var(--font-headline);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1;
+  }
+  .stat-trend-pos {
+    font-size: 10px;
+    font-weight: 700;
+    color: #22c55e;
+  }
+  .stat-trend-new {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+  .stat-progress {
+    margin-top: 1rem;
+    width: 100%;
+    height: 3px;
+    background: var(--color-progress-bg);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .stat-bar {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .bar-primary {
+    background: var(--color-primary);
+  }
+  .bar-tertiary {
+    background: var(--color-tertiary-dim);
+  }
+  .total-base-card {
+    border-radius: 8px;
+    padding: 2rem;
+    background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 25%, transparent);
+    position: relative;
+    overflow: hidden;
+  }
+  .total-base-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+  .total-base-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+  .total-base-number {
+    font-family: var(--font-headline);
+    font-size: 64px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .total-base-sublabel {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+  .db-icon-bg {
+    position: absolute;
+    right: -24px;
+    bottom: -24px;
+    opacity: 0.1;
+    transition: transform 0.7s ease;
+  }
+  .total-base-card:hover .db-icon-bg {
+    transform: rotate(-12deg);
+  }
 
-        .dark ::-webkit-scrollbar-thumb {
-            background: #333;
-        }
+  /* ── Chart Card ── */
+  .chart-card {
+    border-radius: 8px;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+  }
+  .chart-title {
+    font-family: var(--font-headline);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 1.5rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .legend-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-text-muted);
+  }
+  .chart-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+  }
+  .donut-wrapper {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    margin: 0 auto;
+  }
+  .donut-svg {
+    transform: rotate(-90deg);
+  }
+  .donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .donut-pct {
+    font-family: var(--font-headline);
+    font-size: 44px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1;
+  }
+  .donut-sublabel {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+  }
+  .chart-stats-row {
+    margin-top: 2rem;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .chart-stat-pill {
+    padding: 1rem;
+    border: 1px solid var(--color-outline-variant-alpha);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chart-stat-key {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+  }
+  .chart-stat-val-primary {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+  .chart-stat-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
 
-        .dark ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-    </style>
-</head>
+  /* ── Quick Footer ── */
+  .quick-footer {
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--color-outline-variant-alpha);
+    margin-top: auto;
+  }
+  .quick-label {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: var(--color-text-faint);
+    margin-bottom: 1.5rem;
+    display: block;
+  }
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+  .quick-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-radius: 8px;
+    background: var(--color-card-bg);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-card-border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-text-primary);
+    transition:
+      background 0.2s,
+      color 0.2s,
+      transform 0.15s,
+      border-color 0.2s;
+  }
+  .quick-card:hover {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+    transform: scale(1.02);
+  }
+  .quick-card:hover i {
+    color: #fff !important;
+  }
+  .quick-card i {
+    color: var(--color-text-faint);
+    transition: color 0.2s;
+  }
 
-<body
-    class="bg-slate-50 dark:bg-xercik-bg text-slate-800 dark:text-xercik-text transition-colors duration-300 font-sans">
-
-    <div class="max-w-7xl mx-auto relative p-8">
-        <header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-blue-600 dark:text-blue-500 transition-colors">SmartLoad AI 🚀</h1>
-                <p class="text-slate-500 dark:text-xercik-muted text-sm mt-1 transition-colors">Inteligentna
-                    klasyfikacja maili spedycyjnych</p>
-            </div>
-            <div class="flex items-center gap-4">
-                <button onclick="toggleTheme()"
-                    class="bg-white dark:bg-xercik-surface dark:text-xercik-text dark:border-xercik-border p-2 rounded shadow border border-slate-200 transition-colors"
-                    title="Zmień motyw">
-                    <span id="themeIcon">🌙</span>
-                </button>
-                <div
-                    class="bg-white dark:bg-xercik-surface px-4 py-2 rounded shadow text-sm font-semibold text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 transition-colors">
-                    🟢 System Online
-                </div>
-            </div>
-        </header>
-
-        <!-- Script z obsługą motywów na wczesnym etapie ładowania by uniknąć flesza -->
-        <script>
-            function applyTheme(isDark) {
-                if (isDark) {
-                    document.documentElement.classList.add('dark');
-                    document.getElementById('themeIcon').innerText = '☀️';
-                } else {
-                    document.documentElement.classList.remove('dark');
-                    document.getElementById('themeIcon').innerText = '🌙';
-                }
-            }
-            // Inicjalizacja
-            const savedTheme = localStorage.getItem('theme');
-            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && systemDark)) applyTheme(true);
-
-            function toggleTheme() {
-                const isDark = document.documentElement.classList.contains('dark');
-                applyTheme(!isDark);
-                localStorage.setItem('theme', !isDark ? 'dark' : 'light');
-            }
-        </script>
-
-        <div
-            class="bg-white dark:bg-xercik-surface p-4 rounded-lg shadow mb-6 flex gap-4 items-end transition-colors w-full overflow-x-auto">
-            <div class="flex-1 min-w-[200px]">
-                <label class="block text-xs text-slate-500 dark:text-xercik-muted uppercase font-bold mb-1">Szukaj w
-                    temacie / nadawcy</label>
-                <input type="text" id="searchInput" placeholder="np. Trans.eu, DE-PL..."
-                    class="w-full border border-slate-300 dark:border-xercik-border dark:bg-[#1a1a1a] dark:text-xercik-text rounded p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-            <div class="w-64">
-                <div class="flex justify-between items-center mb-1">
-                    <label
-                        class="block text-xs text-slate-500 dark:text-xercik-muted uppercase font-bold mb-1">Kategoria
-                        AI</label>
-                    <button onclick="addCustomFilter()" class="text-blue-500 hover:text-blue-700 transition"
-                        title="Dodaj własny filtr">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                    </button>
-                </div>
-                <select id="categoryFilter"
-                    class="w-full border border-slate-300 dark:border-xercik-border dark:bg-[#1a1a1a] dark:text-xercik-text rounded p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition cursor-pointer">
-                    <!-- Zostanie wygenerowane przez JS -->
-                </select>
-            </div>
-            <div class="flex items-center gap-2">
-                <button onclick="fetchData()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded transition shadow">
-                    Filtruj
-                </button>
-                <button onclick="rescanEmails()"
-                    class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded transition shadow">
-                    Skanuj INNE
-                </button>
-                <button onclick="toggleBulkDeleteMode()" id="bulkDeleteModeBtn"
-                    class="bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 font-bold py-2 px-4 rounded transition shadow-sm">
-                    Usuń wiele
-                </button>
-                <button onclick="executeBulkDelete()" id="bulkDeleteActionBtn"
-                    class="hidden bg-red-600 hover:bg-red-700 dark:bg-red-600/80 dark:hover:bg-red-700/80 text-white font-bold py-2 px-4 rounded transition shadow shadow-red-500/50 dark:shadow-red-900/30">
-                    Usuń zaznaczone
-                </button>
-            </div>
+  /* ── Responsive ── */
+  @media (max-width: 1200px) {
+    .insights-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 1024px) {
+    .modules-grid {
+      grid-template-columns: 1fr;
+    }
+    .dash-main {
+      padding: 2rem;
+    }
+    .quick-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 768px) {
+    .quick-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
+{% endblock %} {% block page_title %}Dashboard Główny{% endblock %} {% block
+page_subtitle %}Centrum zarządzania SmartLoad AI{% endblock %} {% block content
+%}
+<div class="dash-main" id="mainContent">
+  <!-- Featured Modules -->
+  <section class="modules-grid" aria-label="Moduły główne">
+    <div
+      class="module-card gradient-purple purple"
+      onclick="location.href = '/mail'"
+    >
+      <div class="module-card-top">
+        <div class="module-icon">
+          <i
+            data-lucide="sparkles"
+            size="28"
+            style="color: rgba(255, 255, 255, 0.9)"
+          ></i>
         </div>
-
-        <div class="bg-white dark:bg-xercik-surface rounded-lg shadow overflow-hidden transition-colors">
-            <table class="w-full text-left border-collapse table-fixed">
-                <thead>
-                    <tr
-                        class="bg-slate-100 dark:bg-xercik-bg text-slate-600 dark:text-xercik-muted text-sm border-b border-slate-200 dark:border-xercik-border transition-colors">
-                        <th class="p-4 font-semibold w-[17%]">Nadawca</th>
-                        <th class="p-4 font-semibold w-[20%]">Temat</th>
-                        <th class="p-4 font-semibold w-[18%]">📍 Trasa</th>
-                        <th class="p-4 font-semibold w-[9%]">⚖️ Waga</th>
-                        <th class="p-4 font-semibold w-[11%]">💰 Stawka</th>
-                        <th class="p-4 font-semibold w-[13%]">Kategoria AI</th>
-                        <th class="p-4 font-semibold w-[12%] text-right">Akcje</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"
-                    class="divide-y divide-slate-100 dark:divide-xercik-border text-sm dark:bg-xercik-surface transition-colors">
-                </tbody>
-            </table>
-        </div>
+        <span class="module-badge" id="dash-mail-badge">— Nowych</span>
+      </div>
+      <h2 class="module-title">Poczta AI</h2>
+      <p class="module-desc">
+        Inteligentne sortowanie i analiza korespondencji transportowej. System
+        automatycznie wyodrębnia parametry ładunków.
+      </p>
+      <a href="/mail" class="module-cta">
+        Otwórz moduł <i data-lucide="arrow-right" size="14"></i>
+      </a>
     </div>
 
-    <div id="emailModal"
-        class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-md transition-opacity">
-        <div
-            class="bg-white dark:bg-xercik-surface rounded-2xl shadow-2xl w-[95vw] max-w-[90vw] h-[85vh] flex flex-col transform transition-all border border-transparent dark:border-xercik-border">
-            <div
-                class="p-6 border-b border-slate-100 dark:border-xercik-border flex justify-between items-start transition-colors">
-                <div class="pr-8">
-                    <h2 id="modalSubject" class="text-xl font-bold text-slate-800 dark:text-xercik-text leading-tight">
-                        Temat maila</h2>
-                    <p class="text-sm text-slate-500 dark:text-xercik-muted mt-2">Od: <span id="modalSender"
-                            class="font-semibold text-slate-700 dark:text-[#d0d0d0]"></span></p>
-                </div>
-                <button onclick="closeModal()"
-                    class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition text-2xl font-bold leading-none">&times;</button>
-            </div>
-
-            <div class="p-6 overflow-y-auto flex-1 flex flex-col bg-slate-50 dark:bg-xercik-bg transition-colors">
-                <div class="mb-4">
-                    <span id="modalCategory" class="px-3 py-1 rounded-full text-xs font-bold shadow-sm">KATEGORIA</span>
-                </div>
-
-                <!-- Panel wyekstrahowanych danych — widoczny tylko gdy AI wyciągnęło dane -->
-                <div id="modalExtractedData"
-                    class="hidden mb-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 rounded-xl p-4 transition-colors">
-                </div>
-
-                <div
-                    class="bg-white dark:bg-xercik-surface p-2 sm:p-5 rounded-xl border border-slate-200 dark:border-xercik-border shadow-inner flex-1 flex flex-col transition-colors">
-                    <div id="modalBodyText"
-                        class="flex-1 w-full text-sm text-slate-700 dark:text-xercik-text font-mono whitespace-pre-wrap break-words">
-                    </div>
-                </div>
-            </div>
-
-            <div
-                class="p-4 border-t border-slate-100 dark:border-xercik-border bg-white dark:bg-xercik-surface flex justify-end rounded-b-2xl transition-colors">
-                <button onclick="closeModal()"
-                    class="bg-slate-200 dark:bg-[#2a2a2a] hover:bg-slate-300 dark:hover:bg-[#333] text-slate-800 dark:text-xercik-text font-semibold px-6 py-2 rounded transition">
-                    Zamknij
-                </button>
-            </div>
+    <div
+      class="module-card gradient-teal teal"
+      onclick="location.href = '/chat'"
+    >
+      <div class="module-card-top">
+        <div class="module-icon">
+          <i
+            data-lucide="message-square"
+            size="28"
+            style="color: rgba(255, 255, 255, 0.9)"
+          ></i>
         </div>
+        <div class="module-badge module-badge-dot">
+          <span class="badge-active-dot"></span>
+          <span>Flota Online</span>
+        </div>
+      </div>
+      <h2 class="module-title">Komunikator</h2>
+      <p class="module-desc">
+        Bezpośrednie połączenie z Twoją flotą. Automatyczne tłumaczenia
+        komunikatów i geolokalizacja w czasie rzeczywistym.
+      </p>
+      <a href="/chat" class="module-cta">
+        Otwórz czat <i data-lucide="arrow-right" size="14"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- Insights & Data -->
+  <section class="insights-grid" aria-label="Statystyki i wykresy">
+    <div class="stats-col">
+      <div class="stats-2col">
+        <div class="stat-card">
+          <p class="stat-label">Oferty</p>
+          <div class="stat-value-row">
+            <span
+              class="stat-number"
+              data-count-to="{{ stats.oferty | default(0) }}"
+              >0</span
+            >
+            <span class="stat-trend-pos">+12%</span>
+          </div>
+          <div class="stat-progress">
+            <div
+              class="stat-bar bar-primary"
+              style="width: 0%"
+              data-width="70%"
+            ></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Zamówienia</p>
+          <div class="stat-value-row">
+            <span
+              class="stat-number"
+              data-count-to="{{ stats.zamowienia | default(0) }}"
+              >0</span
+            >
+            <span class="stat-trend-new">New</span>
+          </div>
+          <div class="stat-progress">
+            <div
+              class="stat-bar bar-tertiary"
+              style="width: 0%"
+              data-width="30%"
+            ></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Faktury</p>
+          <div class="stat-value-row">
+            <span
+              class="stat-number"
+              data-count-to="{{ stats.faktury | default(0) }}"
+              >0</span
+            >
+          </div>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Inne</p>
+          <div class="stat-value-row">
+            <span
+              class="stat-number"
+              data-count-to="{{ stats.inne | default(0) }}"
+              >0</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="total-base-card">
+        <p class="total-base-label">Łącznie w bazie</p>
+        <div class="total-base-row">
+          <span
+            class="total-base-number"
+            data-count-to="{{ stats.total | default(0) }}"
+            >0</span
+          >
+          <span class="total-base-sublabel"
+            >Zasoby zoptymalizowane przez AI</span
+          >
+        </div>
+        <i
+          data-lucide="database"
+          size="120"
+          class="db-icon-bg"
+          style="color: var(--color-primary); transform: rotate(12deg)"
+        ></i>
+      </div>
     </div>
 
-    <!-- Modale Dodawania Filtru -->
-    <div id="filterModal"
-        class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-md transition-opacity">
-        <div
-            class="bg-white dark:bg-xercik-surface rounded-2xl shadow-2xl w-full max-w-sm flex flex-col transform transition-all border border-transparent dark:border-xercik-border">
-            <div
-                class="p-5 border-b border-slate-100 dark:border-xercik-border flex justify-between items-center bg-slate-50 dark:bg-xercik-bg rounded-t-2xl transition-colors">
-                <h2 class="text-lg font-bold text-slate-800 dark:text-xercik-text">Dodaj własny filtr AI</h2>
-                <button onclick="closeFilterModal()"
-                    class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition text-2xl font-bold leading-none">&times;</button>
-            </div>
-            <div class="p-6">
-                <label class="block text-xs text-slate-500 dark:text-xercik-muted uppercase font-bold mb-2">Nazwa
-                    kategorii (np. OPONY, REKLAMA)</label>
-                <input type="text" id="newFilterInput" placeholder="Wpisz nazwę..."
-                    class="w-full border border-slate-300 dark:border-xercik-border dark:bg-[#1a1a1a] dark:text-xercik-text rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
-                    onkeydown="if(event.key === 'Enter') saveCustomFilter()">
-            </div>
-            <div
-                class="p-4 border-t border-slate-100 dark:border-xercik-border bg-white dark:bg-xercik-surface flex justify-end gap-3 rounded-b-2xl transition-colors">
-                <button onclick="closeFilterModal()"
-                    class="text-slate-600 dark:text-xercik-text font-semibold px-4 py-2 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] rounded transition">
-                    Anuluj
-                </button>
-                <button onclick="saveCustomFilter()"
-                    class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600/80 dark:hover:bg-blue-700/80 text-white font-bold px-6 py-2 rounded transition shadow">
-                    Dodaj
-                </button>
-            </div>
+    <div class="chart-card glass-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Podział Kategorii</h3>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <span class="legend-dot" style="background: #6b21a8"></span
+            ><span class="legend-label">Poczta</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background: #0f766e"></span
+            ><span class="legend-label">Komunikator</span>
+          </div>
         </div>
+      </div>
+      <div class="chart-body">
+        <div class="donut-wrapper">
+          <svg class="donut-svg" width="260" height="260" viewBox="0 0 200 200">
+            <circle
+              fill="none"
+              stroke="var(--color-progress-bg)"
+              stroke-width="26"
+              cx="100"
+              cy="100"
+              r="80"
+            />
+            <circle
+              fill="none"
+              stroke="#6b21a8"
+              stroke-width="26"
+              cx="100"
+              cy="100"
+              r="80"
+              stroke-dasharray="376.5 502"
+              stroke-linecap="round"
+            />
+            <circle
+              fill="none"
+              stroke="#0f766e"
+              stroke-width="26"
+              cx="100"
+              cy="100"
+              r="80"
+              stroke-dasharray="125.5 502"
+              stroke-dashoffset="-376.5"
+              stroke-linecap="round"
+            />
+          </svg>
+          <div class="donut-center">
+            <span class="donut-pct">100%</span>
+            <span class="donut-sublabel">Efektywności</span>
+          </div>
+        </div>
+        <div class="chart-stats-row">
+          <div class="chart-stat-pill">
+            <span class="chart-stat-key">Status Optymalizacji</span>
+            <span class="chart-stat-val-primary">EKSTREMALNY</span>
+          </div>
+          <div class="chart-stat-pill">
+            <span class="chart-stat-key">Użycie API</span>
+            <span class="chart-stat-val" id="dash-api-usage">— / 24h</span>
+          </div>
+        </div>
+      </div>
     </div>
+  </section>
 
-    {% include "components/popup.html" %}
+  <!-- Quick Access -->
+  <footer class="quick-footer" aria-label="Panel szybkiego dostępu">
+    <label class="quick-label">Panel Szybkiego Dostępu</label>
+    <div class="quick-grid">
+      <a href="/mail?filter=OFERTA" class="quick-card"
+        >Wykaz Ofert <i data-lucide="tag" size="18"></i
+      ></a>
+      <a href="/mail?filter=ZAMÓWIENIE" class="quick-card"
+        >Zamówienia <i data-lucide="shopping-cart" size="18"></i
+      ></a>
+      <a href="/mail?filter=FAKTURA" class="quick-card"
+        >Rozliczenia <i data-lucide="receipt-text" size="18"></i
+      ></a>
+      <a href="/docs" class="quick-card"
+        >Katalog API <i data-lucide="code-2" size="18"></i
+      ></a>
+    </div>
+  </footer>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  // Re-init Lucide (base.html może go nie ładować)
+  if (typeof lucide !== "undefined") lucide.createIcons();
 
-    <script>
-        // Globalna zmienna do trzymania pobranych maili, żeby modal miał do nich szybki dostęp
-        let loadedEmails = [];
+  // Counter animation
+  function animateCounter(el, target, duration) {
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) {
+        start = target;
+        clearInterval(timer);
+      }
+      el.textContent = Math.floor(start);
+    }, 16);
+  }
 
-        let defaultCategories = [
-            { value: 'WSZYSTKIE', label: 'Wszystkie kategorie' },
-            { value: 'OFERTA', label: 'Tylko OFERTY' },
-            { value: 'ZAMOWIENIE', label: 'Tylko ZAMÓWIENIA' },
-            { value: 'FAKTURA', label: 'Tylko FAKTURY' },
-            { value: 'DOKUMENT_CMR', label: 'Tylko CMR' },
-            { value: 'INNE', label: 'Inne (Spam)' }
-        ];
+  window.addEventListener("load", () => {
+    // Progress bars
+    setTimeout(() => {
+      document.querySelectorAll("[data-width]").forEach((bar) => {
+        bar.style.width = bar.dataset.width;
+      });
+      document.querySelectorAll("[data-count-to]").forEach((el) => {
+        animateCounter(el, parseInt(el.dataset.countTo) || 0, 800);
+      });
+    }, 300);
 
-        let customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+    // Pobierz liczbę nowych maili z API i zaktualizuj badge
+    fetch("/api/emails?limit=1")
+      .then((r) => r.json())
+      .then((data) => {
+        const count = data.total || 0;
+        const badge = document.getElementById("dash-mail-badge");
+        if (badge) badge.textContent = count + " Nowych";
+      })
+      .catch(() => {});
 
-        function getCategories() {
-            return [...defaultCategories, ...customCategories];
-        }
-
-        function renderCategoryFilter() {
-            const filter = document.getElementById('categoryFilter');
-            const currentValue = filter.value || 'WSZYSTKIE';
-            filter.innerHTML = '';
-
-            getCategories().forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.value;
-                option.innerText = cat.label;
-                filter.appendChild(option);
-            });
-
-            if (getCategories().some(c => c.value === currentValue)) {
-                filter.value = currentValue;
-            } else {
-                filter.value = 'WSZYSTKIE';
-            }
-        }
-
-        function addCustomFilter() {
-            document.getElementById('newFilterInput').value = '';
-            document.getElementById('filterModal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('newFilterInput').focus(), 100);
-        }
-
-        function closeFilterModal() {
-            document.getElementById('filterModal').classList.add('hidden');
-        }
-
-        function saveCustomFilter() {
-            const input = document.getElementById('newFilterInput');
-            const newCatName = input.value;
-            if (newCatName && newCatName.trim() !== '') {
-                const value = newCatName.trim().toUpperCase().replace(/\s+/g, '_');
-                if (getCategories().some(c => c.value === value)) {
-                    showPopup({ type: 'warning', title: 'Ups!', message: 'Taki filtr już istnieje!', hideCancel: true });
-                    return;
-                }
-                customCategories.push({ value: value, label: `Tylko ${value}` });
-                localStorage.setItem('customCategories', JSON.stringify(customCategories));
-
-                renderCategoryFilter();
-                document.getElementById('categoryFilter').value = value;
-                closeFilterModal();
-                fetchData();
-            }
-        }
-
-        let isBulkDeleteMode = false;
-        let selectedEmails = new Set();
-
-        function toggleBulkDeleteMode() {
-            isBulkDeleteMode = !isBulkDeleteMode;
-            selectedEmails.clear();
-
-            const btn = document.getElementById('bulkDeleteModeBtn');
-            const actionBtn = document.getElementById('bulkDeleteActionBtn');
-            const tbody = document.getElementById('tableBody');
-
-            if (isBulkDeleteMode) {
-                btn.classList.replace('bg-red-50', 'bg-red-600');
-                btn.classList.replace('text-red-600', 'text-white');
-                btn.innerText = "Wyjdź";
-                actionBtn.classList.remove('hidden');
-                tbody.classList.add('select-none'); // Blokada zaznaczania na podwójny klik
-            } else {
-                btn.classList.replace('bg-red-600', 'bg-red-50');
-                btn.classList.replace('text-white', 'text-red-600');
-                btn.innerText = "Usuń wiele";
-                actionBtn.classList.add('hidden');
-                tbody.classList.remove('select-none');
-            }
-            renderTable();
-        }
-
-        let singleDeleteId = null;
-
-        function executeBulkDelete() {
-            if (selectedEmails.size === 0) {
-                showPopup({ type: 'warning', title: 'Brak zaznaczenia', message: 'Nie zaznaczono żadnych maili do usunięcia!', hideCancel: true });
-                return;
-            }
-            singleDeleteId = null;
-            showPopup({
-                type: 'delete',
-                title: 'Usuwanie maili',
-                message: 'Czy na pewno chcesz usunąć trwale zaznaczone maile z bazy danych? Ta akcja jest nieodwracalna.',
-                confirmText: 'Tak, usuń',
-                onConfirm: confirmDeleteAction
-            });
-        }
-
-        async function confirmDeleteAction() {
-            try {
-                if (singleDeleteId !== null) {
-                    const response = await fetch(`/api/emails/${singleDeleteId}`, { method: 'DELETE' });
-                    singleDeleteId = null;
-                    if (response.ok) {
-                        fetchData();
-                    } else {
-                        showPopup({ type: 'error', title: 'Błąd', message: 'Błąd podczas usuwania. Odśwież stronę.', hideCancel: true });
-                    }
-                } else {
-                    const response = await fetch('/api/emails/bulk-delete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email_ids: Array.from(selectedEmails) })
-                    });
-                    if (response.ok) {
-                        toggleBulkDeleteMode(); // Exit mode
-                        fetchData();
-                    } else {
-                        showPopup({ type: 'error', title: 'Błąd', message: 'Wystąpił błąd podczas usuwania. Odśwież stronę.', hideCancel: true });
-                    }
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        const colors = {
-            'OFERTA': 'bg-blue-200 text-blue-900 border-blue-300 dark:bg-blue-900/80 dark:text-blue-100 dark:border-blue-700',
-            'ZAMOWIENIE': 'bg-emerald-200 text-emerald-900 border-emerald-300 dark:bg-emerald-900/80 dark:text-emerald-100 dark:border-emerald-700',
-            'FAKTURA': 'bg-purple-200 text-purple-900 border-purple-300 dark:bg-purple-900/80 dark:text-purple-100 dark:border-purple-700',
-            'DOKUMENT_CMR': 'bg-amber-200 text-amber-900 border-amber-300 dark:bg-amber-900/80 dark:text-amber-100 dark:border-amber-700',
-            'INNE': 'bg-slate-200 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600'
-        };
-
-        function getColorClass(category) {
-            if (colors[category]) return colors[category];
-
-            let hash = 0;
-            for (let i = 0; i < category.length; i++) {
-                hash = category.charCodeAt(i) + ((hash << 5) - hash);
-            }
-
-            const availableColors = [
-                'bg-pink-200 text-pink-900 border-pink-300 dark:bg-pink-900/80 dark:text-pink-100 dark:border-pink-700',
-                'bg-cyan-200 text-cyan-900 border-cyan-300 dark:bg-cyan-900/80 dark:text-cyan-100 dark:border-cyan-700',
-                'bg-indigo-200 text-indigo-900 border-indigo-300 dark:bg-indigo-900/80 dark:text-indigo-100 dark:border-indigo-700',
-                'bg-rose-200 text-rose-900 border-rose-300 dark:bg-rose-900/80 dark:text-rose-100 dark:border-rose-700',
-                'bg-lime-200 text-lime-900 border-lime-300 dark:bg-lime-900/80 dark:text-lime-100 dark:border-lime-700',
-                'bg-teal-200 text-teal-900 border-teal-300 dark:bg-teal-900/80 dark:text-teal-100 dark:border-teal-700',
-                'bg-fuchsia-200 text-fuchsia-900 border-fuchsia-300 dark:bg-fuchsia-900/80 dark:text-fuchsia-100 dark:border-fuchsia-700',
-                'bg-orange-200 text-orange-900 border-orange-300 dark:bg-orange-900/80 dark:text-orange-100 dark:border-orange-700'
-            ];
-
-            const index = Math.abs(hash) % availableColors.length;
-            colors[category] = availableColors[index];
-            return colors[category];
-        }
-
-        async function fetchData() {
-            const search = document.getElementById('searchInput').value;
-            const category = document.getElementById('categoryFilter').value;
-            let url = `/api/emails?szukaj=${encodeURIComponent(search)}&kategoria=${encodeURIComponent(category)}`;
-            const response = await fetch(url);
-            loadedEmails = await response.json();
-            renderTable();
-        }
-
-        function handleRowClick(emailId, event) {
-            if (isBulkDeleteMode) {
-                const tr = event.currentTarget;
-                const checkbox = tr.querySelector('input[type="checkbox"]');
-                if (selectedEmails.has(emailId)) {
-                    selectedEmails.delete(emailId);
-                    if (checkbox) checkbox.checked = false;
-                    tr.classList.remove('bg-red-50', 'hover:bg-red-100', 'dark:bg-red-900/40', 'dark:hover:bg-red-900/60');
-                    tr.classList.add('hover:bg-blue-50', 'bg-white', 'dark:bg-xercik-surface', 'dark:hover:bg-[#1f1f1f]');
-                } else {
-                    selectedEmails.add(emailId);
-                    if (checkbox) checkbox.checked = true;
-                    tr.classList.add('bg-red-50', 'hover:bg-red-100', 'dark:bg-red-900/40', 'dark:hover:bg-red-900/60');
-                    tr.classList.remove('hover:bg-blue-50', 'bg-white', 'dark:bg-xercik-surface', 'dark:hover:bg-[#1f1f1f]');
-                }
-                document.getElementById('bulkDeleteActionBtn').innerText = `Usuń zaznaczone (${selectedEmails.size})`;
-            } else {
-                openModal(emailId);
-            }
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('tableBody');
-
-            if (loadedEmails.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 dark:text-xercik-muted">Brak wiadomości.</td></tr>';
-                return;
-            }
-
-            let rowsHtml = '';
-
-            loadedEmails.forEach(email => {
-                const badgeClass = getColorClass(email.ai_category);
-                let optionsHtml = '<option value="" disabled selected>Popraw AI</option>';
-                getCategories().filter(c => c.value !== 'WSZYSTKIE').forEach(c => {
-                    optionsHtml += `<option value="${c.value}">${c.value}</option>`;
-                });
-
-                const isSelected = isBulkDeleteMode && selectedEmails.has(email.id);
-                const rowClass = isSelected
-                    ? 'bg-red-50 hover:bg-red-100 dark:bg-red-900/40 dark:hover:bg-red-900/60'
-                    : 'hover:bg-blue-50 bg-white dark:bg-xercik-surface dark:hover:bg-[#1f1f1f]';
-
-                rowsHtml += `
-                    <tr onclick="handleRowClick(${email.id}, event)" class="${rowClass} transition-colors cursor-pointer group">
-                        <td class="p-4 font-medium text-slate-700 dark:text-[#d0d0d0] truncate max-w-[200px]" title="${email.sender}">
-                            ${isBulkDeleteMode ? `<input type="checkbox" onclick="event.stopPropagation(); handleRowClick(${email.id}, {currentTarget: this.closest('tr')})" class="mr-2 pointer-events-none" ${isSelected ? 'checked' : ''}>` : ''}
-                            ${email.sender}
-                        </td>
-                        <td class="p-4 text-slate-600 dark:text-xercik-text truncate max-w-[300px]" title="${email.subject}">${email.subject}</td>
-                        <td class="p-4 text-sm">
-                            ${ (email.loading_city || email.unloading_city)
-                                ? `<span class="text-slate-700 dark:text-slate-300 font-medium">${email.loading_city || '?'}</span>
-                                   <span class="text-slate-400 mx-1">➡️</span>
-                                   <span class="text-slate-700 dark:text-slate-300 font-medium">${email.unloading_city || '?'}</span>`
-                                : `<span class="text-slate-300 dark:text-slate-600">—</span>`
-                            }
-                        </td>
-                        <td class="p-4 text-sm text-slate-600 dark:text-slate-400">
-                            ${ email.weight_kg
-                                ? `<span class="font-medium">${email.weight_kg} kg</span>`
-                                : `<span class="text-slate-300 dark:text-slate-600">—</span>`
-                            }
-                        </td>
-                        <td class="p-4 text-sm">
-                            ${ email.price
-                                ? `<span class="text-green-600 dark:text-green-400 font-bold">${email.price} ${email.currency || ''}</span>`
-                                : `<span class="text-slate-300 dark:text-slate-600">—</span>`
-                            }
-                        </td>
-                        <td class="p-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${badgeClass}">
-                                ${email.ai_category}
-                            </span>
-                        </td>
-                        <td class="p-4">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <select onclick="event.stopPropagation()" onchange="updateCategory(${email.id}, this.value)" 
-                                        class="text-xs border border-slate-300 dark:border-xercik-border rounded p-1 text-slate-600 dark:text-xercik-text bg-white dark:bg-[#1a1a1a] hover:bg-slate-50 dark:hover:bg-[#252525] cursor-pointer outline-none focus:ring-1 focus:ring-blue-500 transition-colors max-w-[90px]"
-                                        ${isBulkDeleteMode ? 'disabled' : ''}>
-                                    ${optionsHtml}
-                                </select>
-                                
-                                <button onclick="deleteSingleEmail(event, ${email.id})" class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30" title="Trwale usuń" ${isBulkDeleteMode ? 'disabled' : ''}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = rowsHtml;
-
-            if (isBulkDeleteMode) {
-                document.getElementById('bulkDeleteActionBtn').innerText = `Usuń zaznaczone (${selectedEmails.size})`;
-            }
-        }
-
-        function openModal(emailId) {
-            const email = loadedEmails.find(e => e.id === emailId);
-            if (!email) return;
-
-            document.getElementById('modalSubject').innerText = email.subject;
-            document.getElementById('modalSender').innerText = email.sender;
-
-            const bodyEl = document.getElementById('modalBodyText');
-            // Zabezpieczony regex - szukamy typowych znaczników strukturalnych, aby nie "połknąć" adresów mailowych typu <jan@kowalski.pl> w zwykłym tekście
-            const isHTML = /<\s*(html|body|table|div|p|span|img|h[1-6]|br|ul|li|!DOCTYPE)\b/i.test(email.body);
-
-            if (isHTML) {
-                // By nie zaburzyć stylów dashboardu, ładujemy maila bezpiecznie do iFrame
-                bodyEl.className = "w-full flex-1 flex col h-full";
-                bodyEl.innerHTML = `<iframe id="emailIframe" class="w-full h-full min-h-[60vh] bg-white border-0 rounded" scrolling="auto"></iframe>`;
-
-                const iframe = document.getElementById('emailIframe');
-                const iframeDoc = iframe.contentWindow.document;
-
-                iframeDoc.open();
-                // Dodajemy <base target="_blank"> żeby wszystkie linki wewnątrz maila otwierały się w nowej karcie
-                iframeDoc.write('<base target="_blank">');
-                iframeDoc.write(email.body);
-                iframeDoc.close();
-            } else {
-                // Jeśli treść bez formatowania to standardowy print
-                bodyEl.className = "text-sm text-slate-700 font-mono whitespace-pre-wrap break-words";
-                bodyEl.innerText = email.body;
-            }
-
-            const badge = document.getElementById('modalCategory');
-            badge.innerText = email.ai_category;
-            badge.className = `px-3 py-1 rounded-full text-xs font-bold border ${getColorClass(email.ai_category)}`;
-
-            // ── Panel wyekstrahowanych danych ──────────────────────────────────
-            const hasExtracted = email.loading_city || email.unloading_city || email.weight_kg || email.price;
-            const extractedPanel = document.getElementById('modalExtractedData');
-            if (hasExtracted) {
-                const val = (v, suffix = '') => v ? `<span class="font-semibold text-slate-800 dark:text-white">${v}${suffix}</span>` : `<span class="text-slate-400 dark:text-slate-600">—</span>`;
-                extractedPanel.innerHTML = `
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        <div class="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 border border-blue-100 dark:border-blue-900/50">
-                            <div class="text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide mb-1">📍 Załadunek</div>
-                            ${val(email.loading_city)}
-                            ${ email.loading_zip ? `<div class="text-slate-400 dark:text-slate-500 mt-0.5">${email.loading_zip}</div>` : '' }
-                        </div>
-                        <div class="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 border border-purple-100 dark:border-purple-900/50">
-                            <div class="text-purple-500 dark:text-purple-400 font-bold uppercase tracking-wide mb-1">🏁 Rozładunek</div>
-                            ${val(email.unloading_city)}
-                            ${ email.unloading_zip ? `<div class="text-slate-400 dark:text-slate-500 mt-0.5">${email.unloading_zip}</div>` : '' }
-                        </div>
-                        <div class="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 border border-amber-100 dark:border-amber-900/50">
-                            <div class="text-amber-500 dark:text-amber-400 font-bold uppercase tracking-wide mb-1">⚖️ Waga</div>
-                            ${val(email.weight_kg, ' kg')}
-                        </div>
-                        <div class="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 border border-green-100 dark:border-green-900/50">
-                            <div class="text-green-600 dark:text-green-400 font-bold uppercase tracking-wide mb-1">💰 Stawka</div>
-                            ${ email.price
-                                ? `<span class="font-bold text-green-600 dark:text-green-400 text-sm">${email.price} ${email.currency || ''}</span>`
-                                : `<span class="text-slate-400 dark:text-slate-600">—</span>`
-                            }
-                        </div>
-                    </div>
-                `;
-                extractedPanel.classList.remove('hidden');
-            } else {
-                extractedPanel.innerHTML = '';
-                extractedPanel.classList.add('hidden');
-            }
-
-            document.getElementById('emailModal').classList.remove('hidden');
-        }
-
-        function rescanEmails() {
-            showPopup({
-                type: 'info',
-                title: 'Skanowanie INNE',
-                message: "Czy chcesz ponownie przeskanować maile z kategorią 'INNE' z użyciem własnych dodanych kategorii? (Maile już zaklasyfikowane poprawnie nie będą skanowane)",
-                confirmText: "Skanuj",
-                onConfirm: async () => {
-                    const btn = document.querySelector('button[onclick="rescanEmails()"]');
-                    const originalText = btn.innerText;
-                    btn.innerText = "Skanowanie...";
-                    btn.disabled = true;
-
-                    try {
-                        const customCatNames = customCategories.map(c => c.value);
-                        const response = await fetch('/api/emails/rescan', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ custom_categories: customCatNames })
-                        });
-
-                        const result = await response.json();
-                        if (result.status === 'success') {
-                            showPopup({ type: 'success', title: 'Skanowanie zakończone', message: `Przeskanowano emaile INNE: ${result.scanned}\nZaktualizowano kategorię dla: ${result.updated}`, hideCancel: true });
-                            trackUsageAndLog(result.usage);
-                            fetchData();
-                        } else {
-                            showPopup({ type: 'error', title: 'Błąd API', message: 'Nie udało się przeskanować maili.', hideCancel: true });
-                        }
-                    } catch (error) {
-                        console.error("Błąd API:", error);
-                        showPopup({ type: 'error', title: 'Błąd usterki', message: 'Szczegóły krytyczne w konsoli.', hideCancel: true });
-                    } finally {
-                        btn.innerText = originalText;
-                        btn.disabled = false;
-                    }
-                }
-            });
-        }
-
-        function closeModal() {
-            document.getElementById('emailModal').classList.add('hidden');
-        }
-        async function updateCategory(emailId, newCategory) {
-            if (!newCategory) return;
-
-            try {
-                const response = await fetch(`/api/emails/${emailId}/category`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category: newCategory })
-                });
-
-                if (response.ok) {
-                    // Natychmiast aktualizujemy lokalny cache bez czekania na refetch
-                    const email = loadedEmails.find(e => e.id === emailId);
-                    if (email) email.ai_category = newCategory;
-                    
-                    // Jeśli filtr jest ustawiony na konkretną kategorię, przełączamy na WSZYSTKIE
-                    // żeby mail był nadal widoczny po zmianie kategorii
-                    const filter = document.getElementById('categoryFilter');
-                    if (filter.value !== 'WSZYSTKIE') {
-                        filter.value = 'WSZYSTKIE';
-                    }
-                    
-                    renderTable();
-                } else {
-                    showPopup({ type: 'error', title: 'Błąd API', message: 'Wystąpił błąd podczas zmiany kategorii.', hideCancel: true });
-                }
-            } catch (error) {
-                console.error("Błąd API:", error);
-            }
-        }
-
-        function deleteSingleEmail(event, emailId) {
-            event.stopPropagation(); // Zatrzymujemy otwarcie modala
-            if (isBulkDeleteMode) return;
-            singleDeleteId = emailId;
-            showPopup({
-                type: 'delete',
-                title: 'Usuwanie maila',
-                message: 'Czy na pewno chcesz trwale usunąć ten e-mail z bazy danych? Akcja jest nieodwracalna.',
-                confirmText: 'Tak, usuń',
-                onConfirm: confirmDeleteAction
-            });
-        }
-
-        function trackUsageAndLog(usage) {
-            if (!usage) return;
-
-            let stored = JSON.parse(localStorage.getItem('aiUsageTotal') || '{"prompt_tokens": 0, "completion_tokens": 0}');
-
-            stored.prompt_tokens += usage.prompt_tokens || 0;
-            stored.completion_tokens += usage.completion_tokens || 0;
-
-            localStorage.setItem('aiUsageTotal', JSON.stringify(stored));
-
-            // Konwersja zgodnie w poleceniem (0.08 za 1M wejściowych, 0.35 za 1M wyjściowych)
-            const promptCost = (stored.prompt_tokens / 1000000) * 0.08;
-            const compCost = (stored.completion_tokens / 1000000) * 0.35;
-            const totalCost = promptCost + compCost;
-
-            console.log(`%c🚀 AI TOKEN TRACKER`, `background: #6366f1; color: white; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 14px`);
-            console.table({
-                "Z użycia tej sesji": { "Input": usage.prompt_tokens, "Output": usage.completion_tokens },
-                "SUMA całkowita": { "Input": stored.prompt_tokens, "Output": stored.completion_tokens }
-            });
-            console.log(`%c💸 Szacowany Całkowity Koszt: $${totalCost.toFixed(5)}`, `color: #10b981; font-weight: bold; font-size: 14px`);
-        }
-
-        document.addEventListener('keydown', function (event) {
-            if (event.key === "Escape") {
-                closeModal();
-            }
-        });
-
-        window.onload = function () {
-            renderCategoryFilter();
-            fetchData();
-        };
-        document.getElementById('categoryFilter').addEventListener('change', fetchData);
-
-        let timeout = null;
-        document.getElementById('searchInput').addEventListener('keyup', function () {
-            clearTimeout(timeout);
-            timeout = setTimeout(fetchData, 400);
-        });
-    </script>
-</body>
-
-</html>
+    // Użycie API z localStorage
+    const usage = JSON.parse(
+      localStorage.getItem("aiUsageTotal") ||
+        '{"prompt_tokens":0,"completion_tokens":0}',
+    );
+    const total = usage.prompt_tokens + usage.completion_tokens;
+    const el = document.getElementById("dash-api-usage");
+    if (el)
+      el.textContent =
+        (total > 1000 ? (total / 1000).toFixed(1) + "k" : total) + " / 24h";
+  });
+</script>
+{% endblock %}
