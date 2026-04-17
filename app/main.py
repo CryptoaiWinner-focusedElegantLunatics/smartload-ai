@@ -29,8 +29,7 @@ from app.api.exchange import router as exchange_router
 from pydantic import BaseModel
 from seed_admin import create_superuser
 from seed_db import seed_test_emails
-from seed_firetms import seed_all
-
+from app.seed_firetms import seed_all
 
 scheduler = AsyncIOScheduler()
 
