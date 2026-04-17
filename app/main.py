@@ -20,16 +20,16 @@ from app.services.ai_triage import categorize_email_with_gemma
 from app.services.tasks import process_emails_task
 from app.scraper.runner import run_all_scrapers
 from app.api import loads
-from app.scraper.runner import run_all_scrapers
-from app.api import loads
 from app.api.documents import router as documents_router
 from app.api.contractors import router as contractors_router
 from app.api.offers import router as offers_router
 from app.api.orders import router as orders_router
 from app.api.departments import router as departments_router
-from app.api.exchange import router as exchange_routerfrom pydantic import BaseModel
+from app.api.exchange import router as exchange_router
+from pydantic import BaseModel
 from seed_admin import create_superuser
 from seed_db import seed_test_emails
+from seed_firetms import seed_all
 
 
 scheduler = AsyncIOScheduler()
@@ -42,7 +42,8 @@ async def lifespan(app: FastAPI):
         session.commit()
         
     SQLModel.metadata.create_all(engine)
-    
+    seed_all()
+
     with Session(engine) as session:
         try:
             session.exec(text("ALTER TABLE emaillog ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"))
@@ -52,6 +53,7 @@ async def lifespan(app: FastAPI):
             print(f"⚠️ MIGRACJA ZIGNOROWANA (być może kolumna już istnieje): {e}")
 
     await run_all_scrapers()
+
     scheduler.add_job(run_all_scrapers, "interval", minutes=15)
     
     def trigger_imap_sync():
@@ -59,7 +61,9 @@ async def lifespan(app: FastAPI):
 
     scheduler.add_job(trigger_imap_sync, "interval", minutes=1)
     scheduler.start()
+
     yield
+
     scheduler.shutdown()
 
 
@@ -76,6 +80,40 @@ app.include_router(departments_router, prefix="/api", tags=["departments"])
 # --- Task 2.2: integracja giełdowa ---
 app.include_router(exchange_router, prefix="/api", tags=["exchange"])
 
+templates = Jinja2Templates(directory="app/templates")
+
+# Serwowanie wygenerowanych dokumentów CMR
+_static_docs = Path("static/docs")
+_static_docs.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+class CategoryUpdate(BaseModel):
+    category: str
+
+class RescanRequest(BaseModel):
+    custom_categories: list[str] = []
+
+
+# ──────────────────────────────────────────────────────────
+# WebSocket Connection Manager
+# ──────────────────────────────────────────────────────────
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def send_text(self, websocket: WebSocket, message: str):
+        await websocket.send_text(message)
+
+
+ws_manager = ConnectionManager()
 
 @app.get("/")
 def render_main_dashboard(request: Request, user: User = Depends(get_current_user)):
@@ -143,7 +181,7 @@ def trigger_background_sync(limit: Optional[int] = 50):
     return {
         "status": "processing",
         "task_id": task.id,
-        "message": f"Zlecono pobranie {limit} maili w tle.",
+        "message": f"Zlecono pobranie {limit} maili w tle."
     }
 
 
@@ -219,15 +257,12 @@ def get_emails(kategoria: Optional[str] = None, szukaj: Optional[str] = None):
     with Session(engine) as session:
         query = select(EmailLog).where(EmailLog.is_deleted == False)
         
-        # Opcja dodawania własnych filtrów!
         if kategoria and kategoria != "WSZYSTKIE":
             query = query.where(EmailLog.ai_category == kategoria)
         
         if szukaj:
-            # Wyszukuje po temacie lub nadawcy
             query = query.where(EmailLog.subject.contains(szukaj) | EmailLog.sender.contains(szukaj))
             
-        # Sortujemy od najnowszych
         query = query.order_by(EmailLog.id.desc()).limit(100)
         
         results = session.exec(query).all()
@@ -247,8 +282,6 @@ def update_email_category(email_id: int, payload: CategoryUpdate):
 
 @app.put("/api/emails/{email_id}/archive")
 def archive_email(email_id: int):
-    # TODO na przyszłość: Dodaj kolumnę 'is_archived: bool = False' do app.models.email_log.EmailLog
-    # Na razie robimy "zaślepkę", która udaje, że działa
     return {"status": "success", "message": "Mail zarchiwizowany (Funkcja w budowie)"}
     
 @app.delete("/api/emails/{email_id}")
@@ -292,7 +325,7 @@ def rescan_emails(payload: RescanRequest):
                 session.add(email)
                 updated_count += 1
             
-            time.sleep(2)  # Zwiększony odstęp by uniknąć rate-limitingu providera
+            time.sleep(2)
                 
         session.commit()
         return {"status": "success", "scanned": len(inne_emails), "updated": updated_count}
@@ -309,7 +342,7 @@ def render_chat(request: Request, user: User = Depends(get_current_user)):
 @app.get("/magiczny-guzik")
 def odpal_admina():
     url = os.getenv("DATABASE_URL")
-    print(f"DEBUG: Moja zmienna DATABASE_URL to: {url}") # To zobaczymy w logach
+    print(f"DEBUG: Moja zmienna DATABASE_URL to: {url}")
     
     if not url:
         return {"error": "Mordo, serwer w ogóle nie widzi zmiennej DATABASE_URL w systemie!"}
@@ -324,7 +357,6 @@ def odpal_admina():
 @app.websocket("/ws/chat")
 async def websocket_chat_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
-    # Unikalny identyfikator sesji — adres IP klienta
     session_id = websocket.client.host if websocket.client else "anonymous"
     try:
         while True:
