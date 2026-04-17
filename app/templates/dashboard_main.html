@@ -1,771 +1,815 @@
 {% extends "base.html" %} {% block title %}SmartLoad AI – Dashboard Główny{%
 endblock %} {% block page_title %}Dashboard Główny{% endblock %} {% block
 page_subtitle %}Centrum zarządzania SmartLoad AI{% endblock %} {% block
-head_extra %}
+head_extra %}z
 <style>
-  :root {
-    --font-headline: "Space Grotesk", sans-serif;
-    --color-primary: #0035c5;
-    --color-primary-container: #0047ff;
-    --color-tertiary-dim: #00daf3;
-    --color-card-bg: rgba(255, 255, 255, 0.85);
-    --color-card-border: rgba(255, 255, 255, 0.2);
-    --color-outline-variant-alpha: rgba(196, 197, 218, 0.15);
-    --color-text-primary: #0f172a;
-    --color-text-muted: #64748b;
-    --color-text-faint: #94a3b8;
-    --color-progress-bg: #e2e8f0;
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  }
-  .dark {
-    --color-card-bg: rgba(15, 23, 42, 0.7);
-    --color-card-border: rgba(255, 255, 255, 0.05);
-    --color-outline-variant-alpha: rgba(255, 255, 255, 0.08);
-    --color-text-primary: #f1f5f9;
-    --color-text-muted: #94a3b8;
-    --color-text-faint: #475569;
-    --color-progress-bg: #1e293b;
-  }
-
-  .font-headline {
-    font-family: var(--font-headline);
-  }
-  .glass-card {
-    background: var(--color-card-bg);
-    backdrop-filter: blur(24px);
-    border: 1px solid var(--color-card-border);
-  }
-  .gradient-purple {
-    background: linear-gradient(135deg, #6b21a8 0%, #3b0764 100%);
-  }
-  .gradient-teal {
-    background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%);
-  }
-
-  .dash-main {
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
-    padding: 3rem;
-    overflow-y: auto;
-    flex: 1;
-  }
-
-  /* Header */
-  .page-title {
-    font-family: var(--font-headline);
-    font-size: clamp(28px, 3vw, 40px);
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    color: var(--color-text-primary);
-    margin-bottom: 0.5rem;
-  }
-  .status-dot {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .pulse-ring {
-    position: relative;
-    width: 8px;
-    height: 8px;
-    flex-shrink: 0;
-  }
-  .pulse-ring::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: var(--color-tertiary-dim);
-    opacity: 0.75;
-    animation: ping 1.5s ease-in-out infinite;
-  }
-  .pulse-ring::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: var(--color-tertiary-dim);
-  }
-  @keyframes ping {
-    0% {
-      transform: scale(1);
-      opacity: 0.75;
+    :root {
+        --font-headline: "Space Grotesk", sans-serif;
+        --color-primary: #0035c5;
+        --color-primary-container: #0047ff;
+        --color-tertiary-dim: #00daf3;
+        --color-card-bg: rgba(255, 255, 255, 0.85);
+        --color-card-border: rgba(255, 255, 255, 0.2);
+        --color-outline-variant-alpha: rgba(196, 197, 218, 0.15);
+        --color-text-primary: #0f172a;
+        --color-text-muted: #64748b;
+        --color-text-faint: #94a3b8;
+        --color-progress-bg: #e2e8f0;
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
-    75%,
-    100% {
-      transform: scale(2.2);
-      opacity: 0;
+
+    .dark {
+        --color-card-bg: rgba(15, 23, 42, 0.7);
+        --color-card-border: rgba(255, 255, 255, 0.05);
+        --color-outline-variant-alpha: rgba(255, 255, 255, 0.08);
+        --color-text-primary: #f1f5f9;
+        --color-text-muted: #94a3b8;
+        --color-text-faint: #475569;
+        --color-progress-bg: #1e293b;
     }
-  }
-  .status-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--color-primary);
-  }
 
-  /* Modules */
-  .modules-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
-  }
-  .module-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 8px;
-    padding: 2rem;
-    color: #fff;
-    cursor: pointer;
-    text-decoration: none;
-    display: block;
-    transition:
-      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 0.25s;
-  }
-  .module-card:hover {
-    transform: translateY(-5px);
-  }
-  .module-card.purple {
-    box-shadow: 0 20px 60px rgba(107, 33, 168, 0.3);
-  }
-  .module-card.purple:hover {
-    box-shadow: 0 28px 80px rgba(107, 33, 168, 0.4);
-  }
-  .module-card.teal {
-    box-shadow: 0 20px 60px rgba(15, 118, 110, 0.3);
-  }
-  .module-card.teal:hover {
-    box-shadow: 0 28px 80px rgba(15, 118, 110, 0.4);
-  }
-  .module-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2.5rem;
-  }
-  .module-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .module-badge {
-    padding: 4px 12px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 100px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-  }
-  .module-badge-dot {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .badge-active-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-tertiary-dim);
-  }
-  .module-title {
-    font-family: var(--font-headline);
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    margin-bottom: 0.75rem;
-  }
-  .module-desc {
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 13px;
-    line-height: 1.65;
-    max-width: 340px;
-    margin-bottom: 2.5rem;
-  }
-  .module-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    transition: gap 0.2s;
-    color: #fff;
-    text-decoration: none;
-  }
-  .module-card:hover .module-cta {
-    gap: 1.25rem;
-  }
-
-  /* Insights */
-  .insights-grid {
-    display: grid;
-    grid-template-columns: 5fr 7fr;
-    gap: 2rem;
-    align-items: stretch;
-  }
-  .stats-col {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-  .stats-2col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    flex: 1;
-  }
-  .stat-card {
-    border-radius: 8px;
-    padding: 1.5rem;
-    background: var(--color-card-bg);
-    backdrop-filter: blur(24px);
-    border: 1px solid var(--color-card-border);
-    transition: border-color 0.2s;
-  }
-  .stat-card:hover {
-    border-color: rgba(0, 53, 197, 0.3);
-  }
-  .stat-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--color-text-muted);
-    margin-bottom: 1rem;
-  }
-  .stat-value-row {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-  }
-  .stat-number {
-    font-family: var(--font-headline);
-    font-size: 48px;
-    font-weight: 700;
-    color: var(--color-text-primary);
-    line-height: 1;
-  }
-  .stat-trend-pos {
-    font-size: 10px;
-    font-weight: 700;
-    color: #22c55e;
-  }
-  .stat-trend-new {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--color-primary);
-  }
-  .stat-progress {
-    margin-top: 1rem;
-    width: 100%;
-    height: 3px;
-    background: var(--color-progress-bg);
-    border-radius: 100px;
-    overflow: hidden;
-  }
-  .stat-bar {
-    height: 100%;
-    border-radius: 100px;
-    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .bar-primary {
-    background: var(--color-primary);
-  }
-  .bar-tertiary {
-    background: var(--color-tertiary-dim);
-  }
-  .bar-violet {
-    background: #8b5cf6;
-  }
-  .bar-slate {
-    background: #64748b;
-  }
-
-  .total-base-card {
-    border-radius: 8px;
-    padding: 2rem;
-    background: color-mix(in oklch, var(--color-primary) 8%, transparent);
-    border: 1px solid color-mix(in oklch, var(--color-primary) 25%, transparent);
-    position: relative;
-    overflow: hidden;
-  }
-  .total-base-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-  .total-base-row {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-  }
-  .total-base-number {
-    font-family: var(--font-headline);
-    font-size: 64px;
-    font-weight: 700;
-    color: var(--color-text-primary);
-    line-height: 1;
-    letter-spacing: -0.04em;
-  }
-  .total-base-sublabel {
-    font-size: 12px;
-    color: var(--color-text-muted);
-    font-weight: 500;
-  }
-  .db-icon-bg {
-    position: absolute;
-    right: -24px;
-    bottom: -24px;
-    opacity: 0.1;
-    transition: transform 0.7s ease;
-  }
-  .total-base-card:hover .db-icon-bg {
-    transform: rotate(-12deg);
-  }
-
-  /* Chart Card */
-  .chart-card {
-    border-radius: 8px;
-    padding: 2.5rem;
-    display: flex;
-    flex-direction: column;
-  }
-  .chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2.5rem;
-  }
-  .chart-title {
-    font-family: var(--font-headline);
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--color-text-primary);
-    letter-spacing: -0.02em;
-  }
-  .chart-legend {
-    display: flex;
-    gap: 1.5rem;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-  .legend-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--color-text-muted);
-  }
-  .chart-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-    position: relative;
-  }
-
-  /* Donut */
-  .donut-wrapper {
-    position: relative;
-    width: 260px;
-    height: 260px;
-    margin: 0 auto;
-  }
-  .donut-svg {
-    transform: rotate(-90deg);
-  }
-  .donut-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .donut-pct {
-    font-family: var(--font-headline);
-    font-size: 44px;
-    font-weight: 700;
-    color: var(--color-text-primary);
-    line-height: 1;
-  }
-  .donut-sublabel {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--color-text-muted);
-    margin-top: 4px;
-  }
-
-  /* Donut segments (dynamicznie nadpisywane przez JS) */
-  #donut-seg-1,
-  #donut-seg-2,
-  #donut-seg-3,
-  #donut-seg-4 {
-    transition: stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .chart-stats-row {
-    margin-top: 2rem;
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-  .chart-stat-pill {
-    padding: 1rem;
-    border: 1px solid var(--color-outline-variant-alpha);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .chart-stat-key {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--color-text-muted);
-  }
-  .chart-stat-val-primary {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--color-primary);
-  }
-  .chart-stat-val {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--color-text-primary);
-  }
-
-  /* Dynamic legend below donut */
-  #donut-legend {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem 1.5rem;
-    margin-top: 1.5rem;
-    width: 100%;
-  }
-  .donut-legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .donut-legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .donut-legend-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--color-text-muted);
-  }
-  .donut-legend-val {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--color-text-primary);
-    margin-left: 2px;
-  }
-
-  /* Loading / Empty states */
-  #chart-loading,
-  #chart-empty {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-  }
-  #chart-loading .spinner {
-    width: 32px;
-    height: 32px;
-    border: 2px solid var(--color-primary);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
+    .font-headline {
+        font-family: var(--font-headline);
     }
-  }
-  #chart-loading p,
-  #chart-empty p {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--color-text-muted);
-  }
-  #chart-empty .empty-icon {
-    font-size: 2rem;
-  }
 
-  /* Quick Footer */
-  .quick-footer {
-    padding-top: 2.5rem;
-    border-top: 1px solid var(--color-outline-variant-alpha);
-    margin-top: auto;
-  }
-  .quick-label {
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.3em;
-    color: var(--color-text-faint);
-    margin-bottom: 1.5rem;
-    display: block;
-  }
-  .quick-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-  }
-  .quick-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem;
-    border-radius: 8px;
-    background: var(--color-card-bg);
-    backdrop-filter: blur(24px);
-    border: 1px solid var(--color-card-border);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--color-text-primary);
-    text-decoration: none;
-    transition:
-      background 0.2s,
-      color 0.2s,
-      transform 0.15s,
-      border-color 0.2s;
-  }
-  .quick-card:hover {
-    background: var(--color-primary);
-    color: #fff;
-    border-color: var(--color-primary);
-    transform: scale(1.02);
-  }
-  .quick-card:hover i {
-    color: #fff !important;
-  }
-  .quick-card i {
-    color: var(--color-text-faint);
-    transition: color 0.2s;
-  }
+    .glass-card {
+        background: var(--color-card-bg);
+        backdrop-filter: blur(24px);
+        border: 1px solid var(--color-card-border);
+    }
 
-  /* Responsive */
-  @media (max-width: 1200px) {
-    .insights-grid {
-      grid-template-columns: 1fr;
+    .gradient-purple {
+        background: linear-gradient(135deg, #6b21a8 0%, #3b0764 100%);
     }
-  }
-  @media (max-width: 1024px) {
-    .modules-grid {
-      grid-template-columns: 1fr;
+
+    .gradient-teal {
+        background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%);
     }
+
     .dash-main {
-      padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2.5rem;
+        padding: 3rem;
+        overflow-y: auto;
+        flex: 1;
     }
-    .quick-grid {
-      grid-template-columns: repeat(2, 1fr);
+
+    /* Header */
+    .page-title {
+        font-family: var(--font-headline);
+        font-size: clamp(28px, 3vw, 40px);
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        color: var(--color-text-primary);
+        margin-bottom: 0.5rem;
     }
-  }
-  @media (max-width: 768px) {
-    .quick-grid {
-      grid-template-columns: 1fr 1fr;
+
+    .status-dot {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
     }
+
+    .pulse-ring {
+        position: relative;
+        width: 8px;
+        height: 8px;
+        flex-shrink: 0;
+    }
+
+    .pulse-ring::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: var(--color-tertiary-dim);
+        opacity: 0.75;
+        animation: ping 1.5s ease-in-out infinite;
+    }
+
+    .pulse-ring::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: var(--color-tertiary-dim);
+    }
+
+    @keyframes ping {
+        0% {
+            transform: scale(1);
+            opacity: 0.75;
+        }
+
+        75%,
+        100% {
+            transform: scale(2.2);
+            opacity: 0;
+        }
+    }
+
+    .status-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--color-primary);
+    }
+
+    /* Modules */
+    .modules-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+
+    .module-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        padding: 2rem;
+        color: #fff;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        transition:
+            transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+            box-shadow 0.25s;
+    }
+
+    .module-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .module-card.purple {
+        box-shadow: 0 20px 60px rgba(107, 33, 168, 0.3);
+    }
+
+    .module-card.purple:hover {
+        box-shadow: 0 28px 80px rgba(107, 33, 168, 0.4);
+    }
+
+    .module-card.teal {
+        box-shadow: 0 20px 60px rgba(15, 118, 110, 0.3);
+    }
+
+    .module-card.teal:hover {
+        box-shadow: 0 28px 80px rgba(15, 118, 110, 0.4);
+    }
+
+    .module-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2.5rem;
+    }
+
+    .module-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .module-badge {
+        padding: 4px 12px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 100px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+    }
+
+    .module-badge-dot {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .badge-active-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--color-tertiary-dim);
+    }
+
+    .module-title {
+        font-family: var(--font-headline);
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin-bottom: 0.75rem;
+    }
+
+    .module-desc {
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 13px;
+        line-height: 1.65;
+        max-width: 340px;
+        margin-bottom: 2.5rem;
+    }
+
+    .module-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        transition: gap 0.2s;
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .module-card:hover .module-cta {
+        gap: 1.25rem;
+    }
+
+    /* Insights */
+    .insights-grid {
+        display: grid;
+        grid-template-columns: 5fr 7fr;
+        gap: 2rem;
+        align-items: stretch;
+    }
+
+    .stats-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
     .stats-2col {
-      grid-template-columns: 1fr 1fr;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        flex: 1;
     }
-  }
+
+    .stat-card {
+        border-radius: 8px;
+        padding: 1.5rem;
+        background: var(--color-card-bg);
+        backdrop-filter: blur(24px);
+        border: 1px solid var(--color-card-border);
+        transition: border-color 0.2s;
+    }
+
+    .stat-card:hover {
+        border-color: rgba(0, 53, 197, 0.3);
+    }
+
+    .stat-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--color-text-muted);
+        margin-bottom: 1rem;
+    }
+
+    .stat-value-row {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    .stat-number {
+        font-family: var(--font-headline);
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        line-height: 1;
+    }
+
+    .stat-trend-pos {
+        font-size: 10px;
+        font-weight: 700;
+        color: #22c55e;
+    }
+
+    .stat-trend-new {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    .stat-progress {
+        margin-top: 1rem;
+        width: 100%;
+        height: 3px;
+        background: var(--color-progress-bg);
+        border-radius: 100px;
+        overflow: hidden;
+    }
+
+    .stat-bar {
+        height: 100%;
+        border-radius: 100px;
+        transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bar-primary {
+        background: var(--color-primary);
+    }
+
+    .bar-tertiary {
+        background: var(--color-tertiary-dim);
+    }
+
+    .bar-violet {
+        background: #8b5cf6;
+    }
+
+    .bar-slate {
+        background: #64748b;
+    }
+
+    .total-base-card {
+        border-radius: 8px;
+        padding: 2rem;
+        background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+        border: 1px solid color-mix(in oklch, var(--color-primary) 25%, transparent);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .total-base-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--color-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .total-base-row {
+        display: flex;
+        align-items: baseline;
+        gap: 1rem;
+    }
+
+    .total-base-number {
+        font-family: var(--font-headline);
+        font-size: 64px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        line-height: 1;
+        letter-spacing: -0.04em;
+    }
+
+    .total-base-sublabel {
+        font-size: 12px;
+        color: var(--color-text-muted);
+        font-weight: 500;
+    }
+
+    .db-icon-bg {
+        position: absolute;
+        right: -24px;
+        bottom: -24px;
+        opacity: 0.1;
+        transition: transform 0.7s ease;
+    }
+
+    .total-base-card:hover .db-icon-bg {
+        transform: rotate(-12deg);
+    }
+
+    /* Chart Card */
+    .chart-card {
+        border-radius: 8px;
+        padding: 2.5rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2.5rem;
+    }
+
+    .chart-title {
+        font-family: var(--font-headline);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        letter-spacing: -0.02em;
+    }
+
+    .chart-legend {
+        display: flex;
+        gap: 1.5rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .legend-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--color-text-muted);
+    }
+
+    .chart-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        position: relative;
+    }
+
+    /* Donut */
+    .donut-wrapper {
+        position: relative;
+        width: 260px;
+        height: 260px;
+        margin: 0 auto;
+    }
+
+    .donut-svg {
+        transform: rotate(-90deg);
+    }
+
+    .donut-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .donut-pct {
+        font-family: var(--font-headline);
+        font-size: 44px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        line-height: 1;
+    }
+
+    .donut-sublabel {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--color-text-muted);
+        margin-top: 4px;
+    }
+
+    /* Donut segments (dynamicznie nadpisywane przez JS) */
+    #donut-seg-1,
+    #donut-seg-2,
+    #donut-seg-3,
+    #donut-seg-4 {
+        transition: stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .chart-stats-row {
+        margin-top: 2rem;
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .chart-stat-pill {
+        padding: 1rem;
+        border: 1px solid var(--color-outline-variant-alpha);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chart-stat-key {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--color-text-muted);
+    }
+
+    .chart-stat-val-primary {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    .chart-stat-val {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+
+    /* Dynamic legend below donut */
+    #donut-legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem 1.5rem;
+        margin-top: 1.5rem;
+        width: 100%;
+    }
+
+    .donut-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .donut-legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .donut-legend-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--color-text-muted);
+    }
+
+    .donut-legend-val {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        margin-left: 2px;
+    }
+
+    /* Loading / Empty states */
+    #chart-loading,
+    #chart-empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+
+    #chart-loading .spinner {
+        width: 32px;
+        height: 32px;
+        border: 2px solid var(--color-primary);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    #chart-loading p,
+    #chart-empty p {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--color-text-muted);
+    }
+
+    #chart-empty .empty-icon {
+        font-size: 2rem;
+    }
+
+    /* Quick Footer */
+    .quick-footer {
+        padding-top: 2.5rem;
+        border-top: 1px solid var(--color-outline-variant-alpha);
+        margin-top: auto;
+    }
+
+    .quick-label {
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        color: var(--color-text-faint);
+        margin-bottom: 1.5rem;
+        display: block;
+    }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+
+    .quick-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.5rem;
+        border-radius: 8px;
+        background: var(--color-card-bg);
+        backdrop-filter: blur(24px);
+        border: 1px solid var(--color-card-border);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--color-text-primary);
+        text-decoration: none;
+        transition:
+            background 0.2s,
+            color 0.2s,
+            transform 0.15s,
+            border-color 0.2s;
+    }
+
+    .quick-card:hover {
+        background: var(--color-primary);
+        color: #fff;
+        border-color: var(--color-primary);
+        transform: scale(1.02);
+    }
+
+    .quick-card:hover i {
+        color: #fff !important;
+    }
+
+    .quick-card i {
+        color: var(--color-text-faint);
+        transition: color 0.2s;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .insights-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 1024px) {
+        .modules-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dash-main {
+            padding: 2rem;
+        }
+
+        .quick-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .quick-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .stats-2col {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
 </style>
 {% endblock %} {% block content %}
 <div class="dash-main">
-  <!-- Header -->
-  <header>
-    <h1 class="page-title">Dashboard Główny</h1>
-    <div class="status-dot">
-      <div class="pulse-ring"></div>
-      <span class="status-label">System Online</span>
-    </div>
-  </header>
-
-  <!-- Moduły -->
-  <section class="modules-grid" aria-label="Moduły główne">
-    <a href="/mail" class="module-card gradient-purple purple">
-      <div class="module-card-top">
-        <div class="module-icon">
-          <i
-            data-lucide="sparkles"
-            size="28"
-            style="color: rgba(255, 255, 255, 0.9)"
-          ></i>
+    <!-- Header -->
+    <header>
+        <h1 class="page-title">Dashboard Główny</h1>
+        <div class="status-dot">
+            <div class="pulse-ring"></div>
+            <span class="status-label">System Online</span>
         </div>
-        <span class="module-badge" id="dash-mail-badge">— Nowych</span>
-      </div>
-      <h2 class="module-title">Poczta AI</h2>
-      <p class="module-desc">
-        Inteligentne sortowanie i analiza korespondencji transportowej. System
-        automatycznie wyodrębnia parametry ładunków.
-      </p>
-      <span class="module-cta"
-        >Otwórz moduł <i data-lucide="arrow-right" size="14"></i
-      ></span>
-    </a>
+    </header>
 
-    <a href="/chat" class="module-card gradient-teal teal">
-      <div class="module-card-top">
-        <div class="module-icon">
-          <i
-            data-lucide="message-square"
-            size="28"
-            style="color: rgba(255, 255, 255, 0.9)"
-          ></i>
-        </div>
-        <div class="module-badge module-badge-dot">
-          <span class="badge-active-dot"></span>
-          <span>Flota Online</span>
-        </div>
-      </div>
-      <h2 class="module-title">Komunikator</h2>
-      <p class="module-desc">
-        Bezpośrednie połączenie z Twoją flotą. Automatyczne tłumaczenia
-        komunikatów i geolokalizacja w czasie rzeczywistym.
-      </p>
-      <span class="module-cta"
-        >Otwórz czat <i data-lucide="arrow-right" size="14"></i
-      ></span>
-    </a>
-  </section>
+    <!-- Moduły -->
+    <section class="modules-grid" aria-label="Moduły główne">
+        <a href="/mail" class="module-card gradient-purple purple">
+            <div class="module-card-top">
+                <div class="module-icon">
+                    <i data-lucide="sparkles" size="28" style="color: rgba(255, 255, 255, 0.9)"></i>
+                </div>
+                <span class="module-badge" id="dash-mail-badge">— Nowych</span>
+            </div>
+            <h2 class="module-title">Poczta AI</h2>
+            <p class="module-desc">
+                Inteligentne sortowanie i analiza korespondencji transportowej. System
+                automatycznie wyodrębnia parametry ładunków.
+            </p>
+            <span class="module-cta">Otwórz moduł <i data-lucide="arrow-right" size="14"></i></span>
+        </a>
 
-  <!-- Statystyki + Wykres -->
-  <section class="insights-grid" aria-label="Statystyki i wykresy">
-    <div class="stats-col">
-      <div class="stats-2col">
-        <div class="stat-card">
-          <p class="stat-label">Oferty</p>
-          <div class="stat-value-row">
-            <span class="stat-number" id="stat-oferta">0</span>
-            <span class="stat-trend-pos" id="trend-oferta"></span>
-          </div>
-          <div class="stat-progress">
-            <div
-              class="stat-bar bar-primary"
-              id="bar-oferta"
-              style="width: 0%"
-            ></div>
-          </div>
-        </div>
+        <a href="/chat" class="module-card gradient-teal teal">
+            <div class="module-card-top">
+                <div class="module-icon">
+                    <i data-lucide="message-square" size="28" style="color: rgba(255, 255, 255, 0.9)"></i>
+                </div>
+                <div class="module-badge module-badge-dot">
+                    <span class="badge-active-dot"></span>
+                    <span>Flota Online</span>
+                </div>
+            </div>
+            <h2 class="module-title">Komunikator</h2>
+            <p class="module-desc">
+                Bezpośrednie połączenie z Twoją flotą. Automatyczne tłumaczenia
+                komunikatów i geolokalizacja w czasie rzeczywistym.
+            </p>
+            <span class="module-cta">Otwórz czat <i data-lucide="arrow-right" size="14"></i></span>
+        </a>
+    </section>
 
-        <div class="stat-card">
-          <p class="stat-label">Zamówienia</p>
-          <div class="stat-value-row">
-            <span class="stat-number" id="stat-zamowienie">0</span>
-            <span class="stat-trend-new" id="trend-zamowienie"></span>
-          </div>
-          <div class="stat-progress">
-            <div
-              class="stat-bar bar-tertiary"
-              id="bar-zamowienie"
-              style="width: 0%"
-            ></div>
-          </div>
-        </div>
+    <!-- Statystyki + Wykres -->
+    <section class="insights-grid" aria-label="Statystyki i wykresy">
+        <div class="stats-col">
+            <div class="stats-2col">
+                <div class="stat-card">
+                    <p class="stat-label">Oferty</p>
+                    <div class="stat-value-row">
+                        <span class="stat-number" id="stat-oferta">0</span>
+                        <span class="stat-trend-pos" id="trend-oferta"></span>
+                    </div>
+                    <div class="stat-progress">
+                        <div class="stat-bar bar-primary" id="bar-oferta" style="width: 0%"></div>
+                    </div>
+                </div>
 
-        <div class="stat-card">
-          <p class="stat-label">Faktury</p>
-          <div class="stat-value-row">
-            <span class="stat-number" id="stat-faktura">0</span>
-          </div>
-          <div class="stat-progress">
-            <div
-              class="stat-bar bar-violet"
-              id="bar-faktura"
-              style="width: 0%"
-            ></div>
-          </div>
+                <div class="stat-card">
+                    <p class="stat-label">Zamówienia</p>
+                    <div class="stat-value-row">
+                        <span class="stat-number" id="stat-zamowienie">0</span>
+                        <span class="stat-trend-new" id="trend-zamowienie"></span>
+                    </div>
+                    <div class="stat-progress">
+                        <div class="stat-bar bar-tertiary" id="bar-zamowienie" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <p class="stat-label">Faktury</p>
+                    <div class="stat-value-row">
+                        <span class="stat-number" id="stat-faktura">0</span>
+                    </div>
+                    <div class="stat-progress">
+                        <div class="stat-bar bar-violet" id="bar-faktura" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <p class="stat-label">Inne</p>
+                    <div class="stat-value-row">
+                        <span class="stat-number" id="stat-inne">0</span>
+                    </div>
+                    <div class="stat-progress">
+                        <div class="stat-bar bar-slate" id="bar-inne" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="total-base-card">
+                <p class="total-base-label">Łącznie w bazie</p>
+                <div class="total-base-row">
+                    <span class="total-base-number" id="stat-total">0</span>
+                    <span class="total-base-sublabel">Zasoby zoptymalizowane przez AI</span>
+                </div>
+                <i data-lucide="database" size="120" class="db-icon-bg"
+                    style="color: var(--color-primary); transform: rotate(12deg)"></i>
+            </div>
         </div>
 
-        <div class="stat-card">
-          <p class="stat-label">Inne</p>
-          <div class="stat-value-row">
-            <span class="stat-number" id="stat-inne">0</span>
-          </div>
-          <div class="stat-progress">
-            <div
-              class="stat-bar bar-slate"
-              id="bar-inne"
-              style="width: 0%"
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="total-base-card">
-        <p class="total-base-label">Łącznie w bazie</p>
-        <div class="total-base-row">
-          <span class="total-base-number" id="stat-total">0</span>
-          <span class="total-base-sublabel"
-            >Zasoby zoptymalizowane przez AI</span
-          >
-        </div>
-        <i
-          data-lucide="database"
-          size="120"
-          class="db-icon-bg"
-          style="color: var(--color-primary); transform: rotate(12deg)"
-        ></i>
-      </div>
-    </div>
-
-    <!-- Chart Card -->
-    <div class="chart-card glass-card">
-      <div class="chart-header">
-        <h3 class="chart-title">Podział Kategorii</h3>
-        <div style="display: flex; align-items: center; gap: 1rem">
-          <!-- Dynamic legend items injected here by JS -->
-          <div class="chart-legend" id="chart-legend-top"></div>
-          <!-- Refresh button -->
-          <button
-            onclick="loadStats()"
-            title="Odśwież"
-            style="
+        <!-- Chart Card -->
+        <div class="chart-card glass-card">
+            <div class="chart-header">
+                <h3 class="chart-title">Podział Kategorii</h3>
+                <div style="display: flex; align-items: center; gap: 1rem">
+                    <!-- Dynamic legend items injected here by JS -->
+                    <div class="chart-legend" id="chart-legend-top"></div>
+                    <!-- Refresh button -->
+                    <button onclick="loadStats()" title="Odśwież" style="
               width: 32px;
               height: 32px;
               border-radius: 6px;
@@ -777,320 +821,262 @@ head_extra %}
               cursor: pointer;
               color: var(--color-text-muted);
               transition: background 0.15s;
-            "
-          >
-            <i data-lucide="refresh-cw" size="14"></i>
-          </button>
-        </div>
-      </div>
+            ">
+                        <i data-lucide="refresh-cw" size="14"></i>
+                    </button>
+                </div>
+            </div>
 
-      <div class="chart-body">
-        <!-- Loading state -->
-        <div id="chart-loading">
-          <div class="spinner"></div>
-          <p>Ładowanie danych…</p>
-        </div>
+            <div class="chart-body">
+                <!-- Loading state -->
+                <div id="chart-loading">
+                    <div class="spinner"></div>
+                    <p>Ładowanie danych…</p>
+                </div>
 
-        <!-- Empty state -->
-        <div id="chart-empty" style="display: none">
-          <span class="empty-icon">📭</span>
-          <p>Brak danych</p>
-        </div>
+                <!-- Empty state -->
+                <div id="chart-empty" style="display: none">
+                    <span class="empty-icon">📭</span>
+                    <p>Brak danych</p>
+                </div>
 
-        <!-- Donut SVG (widoczny po załadowaniu danych) -->
-        <div
-          id="chart-donut"
-          style="
+                <!-- Donut SVG (widoczny po załadowaniu danych) -->
+                <div id="chart-donut" style="
             display: none;
             width: 100%;
             display: none;
             flex-direction: column;
             align-items: center;
-          "
-        >
-          <div class="donut-wrapper">
-            <svg
-              class="donut-svg"
-              width="260"
-              height="260"
-              viewBox="0 0 200 200"
-              id="donut-svg"
-            >
-              <!-- Track -->
-              <circle
-                fill="none"
-                stroke="var(--color-progress-bg)"
-                stroke-width="26"
-                cx="100"
-                cy="100"
-                r="80"
-              />
-              <!-- Segmenty (max 4 kategorie) — nadpisywane przez JS -->
-              <circle
-                id="donut-seg-1"
-                fill="none"
-                stroke-width="26"
-                cx="100"
-                cy="100"
-                r="80"
-                stroke-linecap="round"
-                stroke-dasharray="0 502"
-                stroke-dashoffset="0"
-              />
-              <circle
-                id="donut-seg-2"
-                fill="none"
-                stroke-width="26"
-                cx="100"
-                cy="100"
-                r="80"
-                stroke-linecap="round"
-                stroke-dasharray="0 502"
-                stroke-dashoffset="0"
-              />
-              <circle
-                id="donut-seg-3"
-                fill="none"
-                stroke-width="26"
-                cx="100"
-                cy="100"
-                r="80"
-                stroke-linecap="round"
-                stroke-dasharray="0 502"
-                stroke-dashoffset="0"
-              />
-              <circle
-                id="donut-seg-4"
-                fill="none"
-                stroke-width="26"
-                cx="100"
-                cy="100"
-                r="80"
-                stroke-linecap="round"
-                stroke-dasharray="0 502"
-                stroke-dashoffset="0"
-              />
-            </svg>
-            <div class="donut-center">
-              <span class="donut-pct" id="donut-pct">—</span>
-              <span class="donut-sublabel">Efektywności</span>
+          ">
+                    <div class="donut-wrapper">
+                        <svg class="donut-svg" width="260" height="260" viewBox="0 0 200 200" id="donut-svg">
+                            <!-- Track -->
+                            <circle fill="none" stroke="var(--color-progress-bg)" stroke-width="26" cx="100" cy="100"
+                                r="80" />
+                            <!-- Segmenty (max 4 kategorie) — nadpisywane przez JS -->
+                            <circle id="donut-seg-1" fill="none" stroke-width="26" cx="100" cy="100" r="80"
+                                stroke-linecap="round" stroke-dasharray="0 502" stroke-dashoffset="0" />
+                            <circle id="donut-seg-2" fill="none" stroke-width="26" cx="100" cy="100" r="80"
+                                stroke-linecap="round" stroke-dasharray="0 502" stroke-dashoffset="0" />
+                            <circle id="donut-seg-3" fill="none" stroke-width="26" cx="100" cy="100" r="80"
+                                stroke-linecap="round" stroke-dasharray="0 502" stroke-dashoffset="0" />
+                            <circle id="donut-seg-4" fill="none" stroke-width="26" cx="100" cy="100" r="80"
+                                stroke-linecap="round" stroke-dasharray="0 502" stroke-dashoffset="0" />
+                        </svg>
+                        <div class="donut-center">
+                            <span class="donut-pct" id="donut-pct">—</span>
+                            <span class="donut-sublabel">Efektywności</span>
+                        </div>
+                    </div>
+                    <div id="donut-legend"></div>
+                </div>
             </div>
-          </div>
-          <div id="donut-legend"></div>
-        </div>
-      </div>
 
-      <div class="chart-stats-row">
-        <div class="chart-stat-pill">
-          <span class="chart-stat-key">Status Optymalizacji</span>
-          <span class="chart-stat-val-primary">EKSTREMALNY</span>
+            <div class="chart-stats-row">
+                <div class="chart-stat-pill">
+                    <span class="chart-stat-key">Status Optymalizacji</span>
+                    <span class="chart-stat-val-primary">EKSTREMALNY</span>
+                </div>
+                <div class="chart-stat-pill">
+                    <span class="chart-stat-key">Użycie API</span>
+                    <span class="chart-stat-val" id="dash-api-usage">— / 24h</span>
+                </div>
+            </div>
         </div>
-        <div class="chart-stat-pill">
-          <span class="chart-stat-key">Użycie API</span>
-          <span class="chart-stat-val" id="dash-api-usage">— / 24h</span>
-        </div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Quick Access -->
-  <footer class="quick-footer" aria-label="Panel szybkiego dostępu">
-    <label class="quick-label">Panel Szybkiego Dostępu</label>
-    <div class="quick-grid">
-      <a href="/mail?filter=OFERTA" class="quick-card"
-        >Wykaz Ofert <i data-lucide="tag" size="18"></i
-      ></a>
-      <a href="/mail?filter=ZAMÓWIENIE" class="quick-card"
-        >Zamówienia <i data-lucide="shopping-cart" size="18"></i
-      ></a>
-      <a href="/mail?filter=FAKTURA" class="quick-card"
-        >Rozliczenia <i data-lucide="receipt-text" size="18"></i
-      ></a>
-      <a href="/docs" target="_blank" class="quick-card"
-        >Katalog API <i data-lucide="code-2" size="18"></i
-      ></a>
-    </div>
-  </footer>
+    <!-- Quick Access -->
+    <footer class="quick-footer" aria-label="Panel szybkiego dostępu">
+        <label class="quick-label">Panel Szybkiego Dostępu</label>
+        <div class="quick-grid">
+            <a href="/mail?filter=OFERTA" class="quick-card">Wykaz Ofert <i data-lucide="tag" size="18"></i></a>
+            <a href="/mail?filter=ZAMOWIENIE" class="quick-card">Zamówienia <i data-lucide="shopping-cart"
+                    size="18"></i></a>
+            <a href="/mail?filter=FAKTURA" class="quick-card">Rozliczenia <i data-lucide="receipt-text"
+                    size="18"></i></a>
+            <a href="/docs" target="_blank" class="quick-card">Katalog API <i data-lucide="code-2" size="18"></i></a>
+        </div>
+    </footer>
 </div>
 {% endblock %} {% block scripts %}
 <script>
-  if (typeof lucide !== "undefined") lucide.createIcons();
+    if (typeof lucide !== "undefined") lucide.createIcons();
 
-  /* ── Paleta kategorii ── */
-  const PALETTE = {
-    OFERTA: "#0035c5",
-    ZAMOWIENIE: "#00daf3",
-    FAKTURA: "#8b5cf6",
-    DOKUMENT_CMR: "#f59e0b",
-    INNE: "#64748b",
-  };
-  function colorFor(cat) {
-    if (PALETTE[cat]) return PALETTE[cat];
-    let h = 0;
-    for (let i = 0; i < cat.length; i++) h = cat.charCodeAt(i) + ((h << 5) - h);
-    return (
-      "#" +
-      ((Math.abs(h) & 0xffffff) | 0x404040)
-        .toString(16)
-        .slice(-6)
-        .padStart(6, "0")
-    );
-  }
+    /* ── Paleta kategorii ── */
+    const PALETTE = {
+        OFERTA: "#0035c5",
+        ZAMOWIENIE: "#00daf3",
+        FAKTURA: "#8b5cf6",
+        DOKUMENT_CMR: "#f59e0b",
+        INNE: "#64748b",
+    };
+    function colorFor(cat) {
+        if (PALETTE[cat]) return PALETTE[cat];
+        let h = 0;
+        for (let i = 0; i < cat.length; i++) h = cat.charCodeAt(i) + ((h << 5) - h);
+        return (
+            "#" +
+            ((Math.abs(h) & 0xffffff) | 0x404040)
+                .toString(16)
+                .slice(-6)
+                .padStart(6, "0")
+        );
+    }
 
-  /* ── Counter animation ── */
-  function animateCounter(el, target, duration = 800) {
-    let start = 0;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start = Math.min(start + step, target);
-      el.textContent = Math.floor(start);
-      if (start >= target) clearInterval(timer);
-    }, 16);
-  }
+    /* ── Counter animation ── */
+    function animateCounter(el, target, duration = 800) {
+        let start = 0;
+        const step = target / (duration / 16);
+        const timer = setInterval(() => {
+            start = Math.min(start + step, target);
+            el.textContent = Math.floor(start);
+            if (start >= target) clearInterval(timer);
+        }, 16);
+    }
 
-  /* ── Donut SVG updater ── */
-  const CIRCUMFERENCE = 2 * Math.PI * 80; // ≈ 502.65
+    /* ── Donut SVG updater ── */
+    const CIRCUMFERENCE = 2 * Math.PI * 80; // ≈ 502.65
 
-  function updateDonut(entries) {
-    const total = entries.reduce((s, [, v]) => s + v, 0);
-    if (total === 0) return;
+    function updateDonut(entries) {
+        const total = entries.reduce((s, [, v]) => s + v, 0);
+        if (total === 0) return;
 
-    let offset = 0;
-    const segs = ["donut-seg-1", "donut-seg-2", "donut-seg-3", "donut-seg-4"];
+        let offset = 0;
+        const segs = ["donut-seg-1", "donut-seg-2", "donut-seg-3", "donut-seg-4"];
 
-    // Reset all segments first
-    segs.forEach((id) => {
-      const el = document.getElementById(id);
-      el.setAttribute("stroke-dasharray", `0 ${CIRCUMFERENCE}`);
-      el.setAttribute("stroke-dashoffset", "0");
-      el.setAttribute("stroke", "transparent");
-    });
+        // Reset all segments first
+        segs.forEach((id) => {
+            const el = document.getElementById(id);
+            el.setAttribute("stroke-dasharray", `0 ${CIRCUMFERENCE}`);
+            el.setAttribute("stroke-dashoffset", "0");
+            el.setAttribute("stroke", "transparent");
+        });
 
-    entries.slice(0, 4).forEach(([cat, val], i) => {
-      const arc = (val / total) * CIRCUMFERENCE;
-      const el = document.getElementById(segs[i]);
-      el.setAttribute("stroke", colorFor(cat));
-      // Small gap between segments
-      const gap = entries.length > 1 ? 4 : 0;
-      el.setAttribute(
-        "stroke-dasharray",
-        `${arc - gap} ${CIRCUMFERENCE - (arc - gap)}`,
-      );
-      el.setAttribute("stroke-dashoffset", -offset);
-      offset += arc;
-    });
+        entries.slice(0, 4).forEach(([cat, val], i) => {
+            const arc = (val / total) * CIRCUMFERENCE;
+            const el = document.getElementById(segs[i]);
+            el.setAttribute("stroke", colorFor(cat));
+            // Small gap between segments
+            const gap = entries.length > 1 ? 4 : 0;
+            el.setAttribute(
+                "stroke-dasharray",
+                `${arc - gap} ${CIRCUMFERENCE - (arc - gap)}`,
+            );
+            el.setAttribute("stroke-dashoffset", -offset);
+            offset += arc;
+        });
 
-    document.getElementById("donut-pct").textContent = "100%";
+        document.getElementById("donut-pct").textContent = "100%";
 
-    // Dynamic legend (top)
-    const legendTop = document.getElementById("chart-legend-top");
-    legendTop.innerHTML = entries
-      .slice(0, 4)
-      .map(
-        ([cat]) => `
+        // Dynamic legend (top)
+        const legendTop = document.getElementById("chart-legend-top");
+        legendTop.innerHTML = entries
+            .slice(0, 4)
+            .map(
+                ([cat]) => `
       <div class="legend-item">
         <span class="legend-dot" style="background:${colorFor(cat)}"></span>
         <span class="legend-label">${cat}</span>
       </div>`,
-      )
-      .join("");
+            )
+            .join("");
 
-    // Legend below donut
-    const legendEl = document.getElementById("donut-legend");
-    legendEl.innerHTML = entries
-      .map(
-        ([cat, val]) => `
+        // Legend below donut
+        const legendEl = document.getElementById("donut-legend");
+        legendEl.innerHTML = entries
+            .map(
+                ([cat, val]) => `
       <div class="donut-legend-item">
         <span class="donut-legend-dot" style="background:${colorFor(cat)}"></span>
         <span class="donut-legend-label">${cat}</span>
         <span class="donut-legend-val">${val} (${Math.round((val / total) * 100)}%)</span>
       </div>`,
-      )
-      .join("");
-  }
-
-  /* ── Stat cards updater ── */
-  function updateStatCards(data) {
-    const total = Object.values(data).reduce((a, b) => a + b, 0);
-
-    const map = {
-      OFERTA: { stat: "stat-oferta", bar: "bar-oferta" },
-      ZAMOWIENIE: { stat: "stat-zamowienie", bar: "bar-zamowienie" },
-      FAKTURA: { stat: "stat-faktura", bar: "bar-faktura" },
-      INNE: { stat: "stat-inne", bar: "bar-inne" },
-    };
-
-    for (const [key, cfg] of Object.entries(map)) {
-      const val = data[key] || 0;
-      const statEl = document.getElementById(cfg.stat);
-      const barEl = document.getElementById(cfg.bar);
-      if (statEl) animateCounter(statEl, val);
-      if (barEl && total > 0)
-        setTimeout(() => {
-          barEl.style.width = `${Math.round((val / total) * 100)}%`;
-        }, 400);
+            )
+            .join("");
     }
 
-    const totalEl = document.getElementById("stat-total");
-    if (totalEl) animateCounter(totalEl, total);
+    /* ── Stat cards updater ── */
+    function updateStatCards(data) {
+        const total = Object.values(data).reduce((a, b) => a + b, 0);
 
-    const badge = document.getElementById("dash-mail-badge");
-    if (badge) badge.textContent = `${total} Nowych`;
-  }
+        const map = {
+            OFERTA: { stat: "stat-oferta", bar: "bar-oferta" },
+            ZAMOWIENIE: { stat: "stat-zamowienie", bar: "bar-zamowienie" },
+            FAKTURA: { stat: "stat-faktura", bar: "bar-faktura" },
+            INNE: { stat: "stat-inne", bar: "bar-inne" },
+        };
 
-  /* ── Load stats from /api/stats ── */
-  async function loadStats() {
-    const loadingEl = document.getElementById("chart-loading");
-    const emptyEl = document.getElementById("chart-empty");
-    const donutEl = document.getElementById("chart-donut");
+        for (const [key, cfg] of Object.entries(map)) {
+            const val = data[key] || 0;
+            const statEl = document.getElementById(cfg.stat);
+            const barEl = document.getElementById(cfg.bar);
+            if (statEl) animateCounter(statEl, val);
+            if (barEl && total > 0)
+                setTimeout(() => {
+                    barEl.style.width = `${Math.round((val / total) * 100)}%`;
+                }, 400);
+        }
 
-    loadingEl.style.display = "flex";
-    emptyEl.style.display = "none";
-    donutEl.style.display = "none";
+        const totalEl = document.getElementById("stat-total");
+        if (totalEl) animateCounter(totalEl, total);
 
-    try {
-      const resp = await fetch("/api/stats");
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-
-      const entries = Object.entries(data).filter(([, v]) => v > 0);
-
-      loadingEl.style.display = "none";
-
-      if (entries.length === 0) {
-        emptyEl.style.display = "flex";
-        updateStatCards({});
-        return;
-      }
-
-      updateStatCards(data);
-      donutEl.style.display = "flex";
-
-      // Small delay so CSS transition on dasharray is visible
-      requestAnimationFrame(() => setTimeout(() => updateDonut(entries), 50));
-    } catch (err) {
-      console.error("Stats error:", err);
-      loadingEl.style.display = "none";
-      emptyEl.style.display = "flex";
-      emptyEl.querySelector("p").textContent = "Błąd ładowania danych";
+        const badge = document.getElementById("dash-mail-badge");
+        if (badge) badge.textContent = `${total} Nowych`;
     }
-  }
 
-  /* ── Użycie API z localStorage ── */
-  window.addEventListener("load", () => {
-    lucide.createIcons();
+    /* ── Load stats from /api/stats ── */
+    async function loadStats() {
+        const loadingEl = document.getElementById("chart-loading");
+        const emptyEl = document.getElementById("chart-empty");
+        const donutEl = document.getElementById("chart-donut");
 
-    const usage = JSON.parse(
-      localStorage.getItem("aiUsageTotal") ||
-        '{"prompt_tokens":0,"completion_tokens":0}',
-    );
-    const total = usage.prompt_tokens + usage.completion_tokens;
-    const el = document.getElementById("dash-api-usage");
-    if (el)
-      el.textContent =
-        (total > 1000 ? (total / 1000).toFixed(1) + "k" : total) + " / 24h";
+        loadingEl.style.display = "flex";
+        emptyEl.style.display = "none";
+        donutEl.style.display = "none";
 
-    loadStats();
-  });
+        try {
+            const resp = await fetch("/api/stats");
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+
+            const entries = Object.entries(data).filter(([, v]) => v > 0);
+
+            loadingEl.style.display = "none";
+
+            if (entries.length === 0) {
+                emptyEl.style.display = "flex";
+                updateStatCards({});
+                return;
+            }
+
+            updateStatCards(data);
+            donutEl.style.display = "flex";
+
+            // Small delay so CSS transition on dasharray is visible
+            requestAnimationFrame(() => setTimeout(() => updateDonut(entries), 50));
+        } catch (err) {
+            console.error("Stats error:", err);
+            loadingEl.style.display = "none";
+            emptyEl.style.display = "flex";
+            emptyEl.querySelector("p").textContent = "Błąd ładowania danych";
+        }
+    }
+
+    /* ── Użycie API z localStorage ── */
+    window.addEventListener("load", () => {
+        lucide.createIcons();
+
+        const usage = JSON.parse(
+            localStorage.getItem("aiUsageTotal") ||
+            '{"prompt_tokens":0,"completion_tokens":0}',
+        );
+        const total = usage.prompt_tokens + usage.completion_tokens;
+        const el = document.getElementById("dash-api-usage");
+        if (el)
+            el.textContent =
+                (total > 1000 ? (total / 1000).toFixed(1) + "k" : total) + " / 24h";
+
+        loadStats();
+    });
 </script>
 {% endblock %}
