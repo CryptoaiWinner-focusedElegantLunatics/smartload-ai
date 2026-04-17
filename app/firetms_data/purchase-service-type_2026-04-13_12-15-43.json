@@ -1,0 +1,67 @@
+{
+    "items": [
+        {
+            "id": "f60cf95d-0285-4268-9f44-054593bd5d8a",
+            "name": "Usługa transportowa"
+        },
+        {
+            "id": "e39c8603-9890-4d5e-9908-d40313e4c110",
+            "name": "Konsultacje"
+        },
+        {
+            "id": "535e010a-42be-4326-a29d-e74982dbfea8",
+            "name": "Wynajem biura"
+        },
+        {
+            "id": "34ab201e-6476-46c7-89bd-972fec9fe6ca",
+            "name": "Dostęp do giełdy transportowej"
+        },
+        {
+            "id": "dca3e4e3-7b1a-4f1b-a163-f1ab655ec12b",
+            "name": "Cargo"
+        },
+        {
+            "id": "c3eb2af4-a30a-4513-b6aa-ea975e6a3ef8",
+            "name": "Reklamacja - szkoda w transporcie"
+        },
+        {
+            "id": "02994495-4437-45ba-a1e5-7842ca226187",
+            "name": "Abonament"
+        },
+        {
+            "id": "4d7d51b3-0e5a-496c-8d65-9a6ee51bd866",
+            "name": "Usługa księgowa"
+        },
+        {
+            "id": "1ed39991-59a9-4c83-b750-48b4d815776c",
+            "name": "Sprzęt"
+        },
+        {
+            "id": "dde434b4-dd59-40b3-8b09-366dcfe8d36e",
+            "name": "Abonament - raty za sprzęt"
+        },
+        {
+            "id": "d402d6c7-87a6-4971-81cb-be4390b10c64",
+            "name": "Gadżety reklamowe"
+        },
+        {
+            "id": "3ce86689-cdbd-41f7-9b7c-b4f3e32b7520",
+            "name": "Odprawa celna"
+        },
+        {
+            "id": "e1a5d460-48e2-499a-b1b2-da53eab99bdd",
+            "name": "Nadpłata"
+        },
+        {
+            "id": "9dc532dd-9b6f-45c0-8e7f-79946c1acb59",
+            "name": "Podjazd na załadunek"
+        }
+    ],
+    "paging": {
+        "pageNumber": 1,
+        "pageSize": 20,
+        "firstItemIndex": 0
+    },
+    "totalItems": 14,
+    "maxPageNumber": 1
+}

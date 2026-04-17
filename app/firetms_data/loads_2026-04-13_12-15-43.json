@@ -1,0 +1,41 @@
+{
+    "items": [
+        {
+            "id": "77777f77-7ef7-777f-b777-7a77da7eefb7",
+            "carrierOrderNumber": "033\/04\/2025",
+            "carrierShortName": "PIOTR KOWALSKI",
+            "truckRegistrationNumber": "KOL1LO12",
+            "semitrailerRegistrationNumber": null,
+            "orderCreateDate": "2026-04-13T00:00:00.000+02:00",
+            "orderNumber": "0467\/2026",
+            "statusDescription": "W realizacji",
+            "client": "WARSZAWA LONDYN",
+            "payerSum": "600,00 PLN",
+            "speditor": "Kielnia Maciej",
+            "department": "Oddział główny",
+            "loadingsDescr": "PL05830 Nadarzyn (11.01.2026 11:30)",
+            "unloadingsDescr": "PL31346 Kraków (12.01.2026 11:00)",
+            "totalLdm": "0,0",
+            "dimensions": "1,20m. x 0,80m. x 1,00m.",
+            "totalWeight": "200,0 kg",
+            "cargoNamesWithDescriptions": "2.00 x Europaleta Kasy fiskalne (neutralny)",
+            "assignedClientOrderContactPerson": "Mariusz Pudzianowski",
+            "publicationOnExchange": null,
+            "clientSideOrderNumber": null,
+            "salesInvoiceNumber": null,
+            "purchaseInvoiceNumber": null,
+            "costCenterName": "",
+            "assignedIssuedOrderCostShare": "450,00 PLN",
+            "tags": "",
+            "carrierVatEuId": "PL2222222222",
+            "externalSupplierVatEuId": "PL2222222222"
+        },
+    ],
+    "paging": {
+        "pageNumber": 1,
+        "pageSize": 20,
+        "firstItemIndex": 0
+    },
+    "totalItems": 2381,
+    "maxPageNumber": 120
+}

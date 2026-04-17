@@ -20,8 +20,14 @@ from app.services.ai_triage import categorize_email_with_gemma
 from app.services.tasks import process_emails_task
 from app.scraper.runner import run_all_scrapers
 from app.api import loads
+from app.scraper.runner import run_all_scrapers
+from app.api import loads
 from app.api.documents import router as documents_router
-from pydantic import BaseModel
+from app.api.contractors import router as contractors_router
+from app.api.offers import router as offers_router
+from app.api.orders import router as orders_router
+from app.api.departments import router as departments_router
+from app.api.exchange import router as exchange_routerfrom pydantic import BaseModel
 from seed_admin import create_superuser
 from seed_db import seed_test_emails
 
@@ -46,7 +52,6 @@ async def lifespan(app: FastAPI):
             print(f"⚠️ MIGRACJA ZIGNOROWANA (być może kolumna już istnieje): {e}")
 
     await run_all_scrapers()
-
     scheduler.add_job(run_all_scrapers, "interval", minutes=15)
     
     def trigger_imap_sync():
@@ -54,49 +59,23 @@ async def lifespan(app: FastAPI):
 
     scheduler.add_job(trigger_imap_sync, "interval", minutes=1)
     scheduler.start()
-
     yield
-
     scheduler.shutdown()
 
 
 app = FastAPI(title="SmartLoad AI API")
 app.include_router(loads.router, prefix="/api", tags=["loads"])
 app.include_router(documents_router)
-templates = Jinja2Templates(directory="app/templates")
 
-# Serwowanie wygenerowanych dokumentów CMR
-_static_docs = Path("static/docs")
-_static_docs.mkdir(parents=True, exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# --- Nowe routery fireTMS mock ---
+app.include_router(contractors_router, prefix="/api", tags=["contractors"])
+app.include_router(offers_router, prefix="/api", tags=["offers"])
+app.include_router(orders_router, prefix="/api", tags=["orders"])
+app.include_router(departments_router, prefix="/api", tags=["departments"])
 
-class CategoryUpdate(BaseModel):
-    category: str
+# --- Task 2.2: integracja giełdowa ---
+app.include_router(exchange_router, prefix="/api", tags=["exchange"])
 
-class RescanRequest(BaseModel):
-    custom_categories: list[str] = []
-
-
-# ──────────────────────────────────────────────────────────
-# WebSocket Connection Manager
-# ──────────────────────────────────────────────────────────
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-
-    async def send_text(self, websocket: WebSocket, message: str):
-        await websocket.send_text(message)
-
-
-ws_manager = ConnectionManager()
 
 @app.get("/")
 def render_main_dashboard(request: Request, user: User = Depends(get_current_user)):
@@ -164,7 +143,7 @@ def trigger_background_sync(limit: Optional[int] = 50):
     return {
         "status": "processing",
         "task_id": task.id,
-        "message": f"Zlecono pobranie {limit} maili w tle."
+        "message": f"Zlecono pobranie {limit} maili w tle.",
     }
 
 

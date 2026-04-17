@@ -1,0 +1,23 @@
+{
+    "items": [
+        {
+            "id": "f22ac2d2-2222-2fb2-a2d2-2222ad2ddab2",
+            "name": "Oddział główny",
+            "docNumberGroupingCode": "OG",
+            "description": null,
+            "companyName": "MUSIC sp. z o.o",
+            "taxId": "6371935449",
+            "vatEuId": "PL6371935449",
+            "regon": "111222333",
+            "countryCode": "PL",
+            "nativeCurrency": "PLN"
+        }
+    ],
+    "paging": {
+        "pageNumber": 1,
+        "pageSize": 20,
+        "firstItemIndex": 0
+    },
+    "totalItems": 1,
+    "maxPageNumber": 1
+}

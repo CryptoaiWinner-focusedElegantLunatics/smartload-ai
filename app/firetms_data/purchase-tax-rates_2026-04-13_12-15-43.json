@@ -1,0 +1,23 @@
+{
+    "items": [
+        {
+            "id": "32a322f2-aa3d-4792-925b-8ac27d0ee365",
+            "name": "0%",
+            "tax": 0,
+            "rate": 0
+        },
+        {
+            "id": "82153786-4891-455e-879f-320abd9b3e0b",
+            "name": "23%",
+            "tax": 23,
+            "rate": 0.23
+        }
+    ],
+    "paging": {
+        "pageNumber": 1,
+        "pageSize": 20,
+        "firstItemIndex": 0
+    },
+    "totalItems": 2,
+    "maxPageNumber": 1
+}

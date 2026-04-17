@@ -1,0 +1,52 @@
+{
+    "items": [
+        {
+            "id": "101f11d1-1111-1c01-b111-f101cff1f111",
+            "name": "XTB Trans Kordian Profesor",
+            "address": {
+                "area": "",
+                "streetWithNumber": "MARIANA 18",
+                "city": "KRAKÓW",
+                "normalizedZipCode": "12-294",
+                "originalZipCode": "12--294",
+                "countryCode": "PL"
+            },
+            "normalizedTaxId": "1240050251",
+            "normalizedVatEuId": "PL1240050251",
+            "contactPersons": [
+                {
+                    "firstName": "Kordian",
+                    "lastName": "Profesor",
+                    "phone": null,
+                    "mobile": "+48 881732705",
+                    "email": "k.prof@xtb-trans.pl"
+                },
+                {
+                    "firstName": "Krzysztof",
+                    "lastName": "Pliszka",
+                    "phone": null,
+                    "mobile": "+48 888101101",
+                    "email": "ptm.liszka@xtb-trans.pl"
+                }
+            ],
+            "client": false,
+            "carrier": true,
+            "salesPaymentTerm": null,
+            "salesPaymentMethod": "BANK_TRANSFER",
+            "purchasePaymentTerm": {
+                "daysOffset": 45,
+                "basePoint": "INVOICE_RECEIPT",
+                "offsetType": "SET_AMOUNT_OF_DAYS"
+            },
+            "purchasePaymentMethod": "BANK_TRANSFER",
+            "currency": null,
+            "contractorNumber": null
+        },
+    ],
+    "paging": {
+        "pageNumber": 1,
+        "pageSize": 50,
+        "firstItemIndex": 0
+    },
+    "totalItems": 50
+}
