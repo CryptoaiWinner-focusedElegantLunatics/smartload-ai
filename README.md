@@ -61,3 +61,127 @@ aplikacja-spedycyjna-ai/
 ├── .env.example          # Wzór haseł i ustawień
 └── requirements.txt      # Lista bibliotek Pythona
 ```
+## 📑 Spis Endpointów
+
+---
+
+### 🏠 Widoki / Strony HTML (Templates)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/` | Główny dashboard (wymaga auth) |
+| `GET` | `/login` | Strona logowania |
+| `POST` | `/login` | Formularz logowania, ustawia cookie JWT |
+| `GET` | `/logout` | Wylogowanie, kasuje cookie |
+| `GET` | `/mail` | Widok skrzynki mailowej (wymaga auth) |
+| `GET` | `/chat` | Widok chatu z AI (wymaga auth) |
+
+---
+
+### 📧 Maile (`/api/emails`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/emails` | Lista maili (filtr: `kategoria`, `szukaj`) |
+| `GET` | `/api/stats` | Statystyki maili wg kategorii AI |
+| `PUT` | `/api/emails/{email_id}/category` | Zmiana kategorii maila |
+| `PUT` | `/api/emails/{email_id}/archive` | Archiwizacja maila (w budowie) |
+| `DELETE` | `/api/emails/{email_id}` | Usunięcie pojedynczego maila |
+| `POST` | `/api/emails/bulk-delete` | Masowe usuwanie maili |
+| `POST` | `/api/emails/rescan` | Re-skanowanie maili "INNE" przez AI |
+
+---
+
+### 📦 Ładunki (`/api/loads`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/loads` | Lista ładunków (filtr: `origin`, `destination`, `source`, paginacja) |
+| `GET` | `/api/loads/{load_id}` | Szczegóły pojedynczego ładunku |
+| `POST` | `/api/loads` | Dodanie ładunku (format fireTMS) |
+| `POST` | `/api/loads/own` | Dodanie własnego zlecenia |
+
+---
+
+### 🏢 Kontrahenci (`/api/contractors`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/contractors` | Lista kontrahentów (z paginacją) |
+| `GET` | `/api/contractors/count` | Liczba kontrahentów |
+| `GET` | `/api/contractors/{contractor_id}/bank-accounts` | Konta bankowe kontrahenta |
+| `POST` | `/api/contractors` | Dodanie nowego kontrahenta |
+
+---
+
+### 📋 Oferty (`/api/offers`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/offers` | Lista wszystkich ofert |
+| `GET` | `/api/offers/{tms_offer_id}` | Szczegóły oferty |
+| `POST` | `/api/offers` | Tworzenie nowej oferty |
+| `PUT` | `/api/offers/{tms_offer_id}` | Aktualizacja oferty |
+| `PUT` | `/api/offers/{tms_offer_id}/publications/{exchange_offer_id}` | Aktualizacja publikacji oferty na giełdzie |
+| `DELETE` | `/api/offers/{tms_offer_id}` | Usunięcie oferty |
+| `DELETE` | `/api/offers/{tms_offer_id}/publications/{exchange_offer_id}` | Usunięcie publikacji oferty |
+
+---
+
+### 🚛 Zlecenia (`/api/orders`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/orders` | Lista zleceń (filtr: `status`, paginacja) |
+| `GET` | `/api/orders/{order_id}` | Szczegóły zlecenia |
+| `POST` | `/api/transport-order` | Tworzenie nowego zlecenia transportowego |
+
+---
+
+### 🏬 Oddziały i Słowniki (`/api/departments`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/departments` | Lista oddziałów |
+| `GET` | `/api/departments/{department_id}` | Szczegóły oddziału |
+| `POST` | `/api/departments` | Tworzenie oddziału |
+| `POST` | `/api/departments/{department_id}` | Aktualizacja oddziału |
+| `GET` | `/api/currency-tables` | Tabele kursów walut (NBP) |
+| `GET` | `/api/purchase-service-type` | Typy usług zakupowych |
+| `GET` | `/api/purchase-tax-rates` | Stawki podatkowe |
+| `GET` | `/api/unit-of-measure` | Jednostki miary |
+| `PUT` | `/api/payment` | Oznaczenie płatności |
+
+---
+
+### 📊 Giełda (`/api/exchange`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/exchange/raw-offers` | Oferty ze scrapera (filtr: `origin`, `destination`, `min_price`, `max_price`, `source`) |
+| `POST` | `/api/exchange/publish-loads` | Masowa publikacja ładunków jako oferty giełdowe |
+| `GET` | `/api/exchange/stats` | Statystyki giełdowe dla dashboardu |
+
+---
+
+### 📄 Dokumenty (`/documents`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `POST` | `/documents/parse` | Upload PDF → ekstrakcja tekstu (OCR) |
+| `POST` | `/documents/extract` | Upload PDF → dane przesyłki przez LLM (AI) |
+
+---
+
+### 🔧 Narzędzia / Debug
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/db-check` | Sprawdzenie połączenia z bazą, liczba ładunków |
+| `GET` | `/loads` | Bezpośredni odczyt ładunków z DB (legacy) |
+| `POST` | `/sync-emails` | Ręczne wyzwolenie synchronizacji IMAP w tle |
+| `POST` | `/sync-loads` | Ręczne uruchomienie scrapera |
+| `GET` | `/test-ai-triage` | Raport testowy triażu AI na 5 przykładowych mailach |
+| `GET` | `/seed-danych` | Załadowanie testowych danych do DB |
+| `GET` | `/magiczny-guzik` | Tworzenie superusera admina |
+| `WebSocket` | `/ws/chat` | WebSocket – chat z AI dla kierowcy |
