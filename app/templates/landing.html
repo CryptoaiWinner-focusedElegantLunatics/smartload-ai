@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartLoad AI - Autonomiczny Broker Logistyczny</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/web/style.css" />
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav>
+      <div class="logo">SmartLoad AI</div>
+      <ul class="nav-links">
+        <li><a href="#platform">Platforma</a></li>
+        <li><a href="#intelligence">Inteligencja</a></li>
+        <li><a href="#network">Sieć</a></li>
+        <li><a href="#company">Firma</a></li>
+      </ul>
+      <div class="nav-buttons">
+        <button class="btn-login" onclick="window.location.href = '/login'">
+          Loguj
+        </button>
+        <button class="btn-started" onclick="window.location.href = '/login'">
+          Zacznij teraz
+        </button>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <h2>System operacyjny logistyki</h2>
+        <h1>
+          Autonomiczny Broker Logistyczny
+          <span class="highlight">napędzany przez AI</span>
+        </h1>
+        <p>
+          Łączymy nowoczesną technologię ze specyfiką rynku TFL. SmartLoad AI to
+          Twoja nowa przewaga konkurencyjna w świecie cyfrowej spedycji.
+        </p>
+        <div class="hero-buttons">
+          <button class="btn-primary" onclick="window.location.href = '/login'">
+            Zacznij teraz
+          </button>
+          <button class="btn-secondary" id="btn-demo">Obejrzyj demo</button>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div>
+          <div style="text-align: center; color: white">
+            <img
+              style="font-size: 0.9rem; opacity: 0.9"
+              src="/web/Gradient.png"
+              alt="Interfejs logistyki"
+            />
+          </div>
+        </div>
+        <div class="accuracy-badge">
+          <div class="number">99.4%</div>
+          <div class="label">Dokładność dopasowania AI</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Platform Section -->
+    <section id="platform" class="platform">
+      <div class="platform-header">
+        <div class="platform-image">
+          <div
+            style="
+              background-image: url(/web/image\ 1.png);
+              border-radius: 12px;
+              width: 100%;
+              height: 350px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            "
+          ></div>
+        </div>
+        <div class="platform-content">
+          <div class="platform-label">O Platformie</div>
+          <h2>Rewolucja w pobieraniu ofert.</h2>
+          <p>
+            SmartLoad AI to autorski projekt, który fundamentalnie zmienia
+            sposób pracy spedytora. Nasz system automatycznie monitoruje
+            skrzynki mailowe oraz zewnętrzne giełdy ładunków w czasie
+            rzeczywistym.
+          </p>
+          <p>
+            Zamiast tracić godziny na kopiowanie danych, pozwalasz AI na
+            natychmiastową ekstrakcję parametrów ładunku i ich kategoryzację.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Intelligence Section -->
+    <section id="intelligence" class="intelligence">
+      <h2 class="section-title">Inteligencja, która pracuje dla Ciebie</h2>
+      <p
+        style="
+          text-align: center;
+          color: var(--text-light);
+          margin-bottom: 3rem;
+          max-width: 600px;
+          margin-left: auto;
+          margin-right: auto;
+        "
+      >
+        Nasze algorytmy nie tylko czytają dane — one rozumieją kontekst rynkowy,
+        korelacje geograficzne i dynamikę cen.
+      </p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div><img src="/web/Icon.svg" alt="Icon" /></div>
+          <h3>Analiza Semantyczna</h3>
+          <p>
+            AI interpretuje zapytania mailowe, wyciągając kluczowe dane:
+            wymiary, wagę, rodzaj nadwozia i terminy.
+          </p>
+        </div>
+        <div class="feature-card featured">
+          <div><img src="/web/Icon2.svg" alt="Icon" /></div>
+          <h3>Agregacja Giełd</h3>
+          <p>
+            Łączymy oferty z wielu źródeł w jeden, czytelny strumień danych
+            zasilany silnikiem rekomendacji.
+          </p>
+        </div>
+      </div>
+
+      <div class="features-grid-bottom">
+        <div class="feature-card">
+          <div><img src="/web/Icon3.svg" alt="Icon" /></div>
+          <h3>Optymalizacja Tras</h3>
+          <p>
+            System sugeruje doładunki i optymalne trasy przejazdu w oparciu o
+            aktualne dane GPS.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div><img src="/web/Icon4.svg" alt="Icon" /></div>
+          <h3>Automatyczny Fetching</h3>
+          <p>
+            Automatyczne pobieranie ofert z wiadomości e-mail i giełd
+            zewnętrznych w czasie rzeczywistym.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div><img src="/web/Icon5.svg" alt="Icon" /></div>
+          <h3>Weryfikacja Przewoźników</h3>
+          <p>
+            Automatyczne sprawdzanie dokumentów i reputacji firm w bazach
+            danych.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Day in Life Section -->
+    <section class="day-in-life">
+      <div class="day-in-life-container">
+        <div class="day-in-life-content">
+          <h2>
+            Dzień z życia <span class="highlight">nowoczesnego spedytora</span>
+          </h2>
+
+          <div class="benefits-grid">
+            <div class="benefit-item">
+              <div class="benefit-icon">
+                <img src="/web/Icon6.svg" alt="Icon" />
+              </div>
+              <div class="benefit-content">
+                <h3>80% mniej czasu na administracji!</h3>
+                <p>
+                  System wykonuje za Ciebie żmudne zadania, pozwalając skupić
+                  się na budowaniu relacji i negocjacjach.
+                </p>
+              </div>
+            </div>
+            <div class="benefit-item">
+              <div class="benefit-icon">
+                <img src="/web/Icon7.svg" alt="Icon" />
+              </div>
+              <div class="benefit-content">
+                <h3>Eliminacja błędów ludzkich</h3>
+                <p>
+                  Brak pomyłek w adresach, terminach czy typach aut. AI
+                  weryfikuje każdą ofertę z niespotykana precyzją.
+                </p>
+              </div>
+            </div>
+            <div class="benefit-item">
+              <div class="benefit-icon">
+                <img src="/web/Icon8.svg" alt="Icon" />
+              </div>
+              <div class="benefit-content">
+                <h3>Błyskawiczne dopasowanie</h3>
+                <p>
+                  Znajdź ładunki idealnie pasujące do Twojej floty w ułamku
+                  sekundy, wyprzedzając konkurencję!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="terminal-section">
+          <div class="terminal">
+            <div class="terminal-header">
+              <div class="terminal-title">SMARTLOAD_TERMINAL_V1.02</div>
+              <div class="terminal-buttons">
+                <div class="terminal-btn red"></div>
+                <div class="terminal-btn yellow"></div>
+                <div class="terminal-btn green"></div>
+              </div>
+            </div>
+            <div class="terminal-line warning">Checking incoming emails...</div>
+            <div class="terminal-line timestamp">
+              [12:45:01] 14 new offers detected
+            </div>
+            <div class="terminal-line">
+              Extracting: DE-PL / 24t / XL-CODE / 13.6m
+            </div>
+            <div class="terminal-line">
+              Match Found: Fleet ID #8829 (Distance: 12km)
+            </div>
+            <div class="terminal-line" style="margin-top: 1rem"></div>
+            <div
+              class="terminal-line action"
+              style="
+                font-weight: bold;
+                background: rgba(15, 77, 217, 0.15);
+                padding: 0.5rem;
+                border-radius: 4px;
+              "
+            >
+              RECOMMENDED ACTION:
+            </div>
+            <div class="terminal-line action" style="margin-top: 0.5rem">
+              Wyślij ofertę: 1250.00 EUR (Margin: 12%)
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta" id="company">
+      <h2>Gotowy na przyszłość logistyki?</h2>
+      <p>
+        Dołącz do grona nowoczesnych firm spedycyjnych, które już teraz
+        optymalizują swoje procesy z SmartLoad AI.
+      </p>
+      <button class="cta-button" id="btn-contact">Skontaktuj się z nami</button>
+    </section>
+
+    <!-- Contact Modal -->
+    <div
+      id="contact-modal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        style="
+          background: #0f1117;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 2.5rem;
+          max-width: 460px;
+          width: 90%;
+          position: relative;
+        "
+      >
+        <button
+          id="modal-close"
+          style="
+            position: absolute;
+            top: 1rem;
+            right: 1.25rem;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+          "
+        >
+          &times;
+        </button>
+        <h3 style="color: #fff; margin-bottom: 0.5rem; font-size: 1.25rem">
+          Skontaktuj się z nami
+        </h3>
+        <p
+          style="
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+          "
+        >
+          Napisz do nas, a odezwiemy się w ciągu 24 godzin.
+        </p>
+        <form
+          id="contact-form"
+          style="display: flex; flex-direction: column; gap: 0.875rem"
+        >
+          <input
+            type="text"
+            placeholder="Imię i nazwisko"
+            required
+            style="
+              background: rgba(255, 255, 255, 0.07);
+              border: 1px solid rgba(255, 255, 255, 0.12);
+              border-radius: 8px;
+              padding: 0.75rem 1rem;
+              color: #fff;
+              font-size: 0.9rem;
+              outline: none;
+            "
+          />
+          <input
+            type="email"
+            placeholder="Adres e-mail"
+            required
+            style="
+              background: rgba(255, 255, 255, 0.07);
+              border: 1px solid rgba(255, 255, 255, 0.12);
+              border-radius: 8px;
+              padding: 0.75rem 1rem;
+              color: #fff;
+              font-size: 0.9rem;
+              outline: none;
+            "
+          />
+          <textarea
+            placeholder="Wiadomość"
+            rows="4"
+            required
+            style="
+              background: rgba(255, 255, 255, 0.07);
+              border: 1px solid rgba(255, 255, 255, 0.12);
+              border-radius: 8px;
+              padding: 0.75rem 1rem;
+              color: #fff;
+              font-size: 0.9rem;
+              outline: none;
+              resize: vertical;
+            "
+          ></textarea>
+          <button
+            type="submit"
+            style="
+              background: #0f4dd9;
+              color: #fff;
+              border: none;
+              border-radius: 8px;
+              padding: 0.875rem;
+              font-size: 0.95rem;
+              font-weight: 600;
+              cursor: pointer;
+              margin-top: 0.25rem;
+            "
+          >
+            Wyślij wiadomość
+          </button>
+        </form>
+        <div
+          id="form-success"
+          style="
+            display: none;
+            text-align: center;
+            color: #4ade80;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+          "
+        >
+          ✓ Wiadomość wysłana! Odezwiemy się wkrótce.
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-container">
+        <div class="footer-section">
+          <h4>SmartLoad AI</h4>
+          <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem">
+            Orchestrating the future of logistics
+          </p>
+        </div>
+        <div class="footer-section">
+          <h4>Produkt</h4>
+          <ul>
+            <li><a href="#platform">Platforma</a></li>
+            <li><a href="#intelligence">Cennik</a></li>
+            <li><a href="#">Bezpieczeństwo</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Firma</h4>
+          <ul>
+            <li><a href="#company">O nas</a></li>
+            <li><a href="#">Blog</a></li>
+            <li><a href="#">Kariera</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Wsparcie</h4>
+          <ul>
+            <li><a href="#">Dokumentacja</a></li>
+            <li><a href="#">Status</a></li>
+            <li><a href="#" id="footer-contact">Kontakt</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-logo">SmartLoad AI</div>
+        <div class="footer-copy">© 2026 SMARTLOAD AI. ALL RIGHTS RESERVED.</div>
+        <div style="display: flex; gap: 1rem; font-size: 0.9rem">
+          <a
+            href="#"
+            style="color: rgba(255, 255, 255, 0.7); text-decoration: none"
+            >Privacy Policy</a
+          >
+          <a
+            href="#"
+            style="color: rgba(255, 255, 255, 0.7); text-decoration: none"
+            >Terms of Service</a
+          >
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Smooth scroll for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute("href"));
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      });
+
+      // Terminal line animation
+      document.querySelectorAll(".terminal-line").forEach((line, index) => {
+        line.style.animationDelay = `${index * 0.15}s`;
+      });
+
+      // Fade-in on scroll
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) entry.target.classList.add("fade-in");
+          });
+        },
+        { threshold: 0.1 },
+      );
+      document
+        .querySelectorAll(".feature-card, .benefit-item, .section-title")
+        .forEach((el) => {
+          observer.observe(el);
+        });
+
+      // "Obejrzyj demo" — scroll do sekcji intelligence
+      document.getElementById("btn-demo").addEventListener("click", () => {
+        document
+          .getElementById("intelligence")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+
+      // Contact modal — otwieranie
+      const modal = document.getElementById("contact-modal");
+      const openModal = () => {
+        modal.style.display = "flex";
+      };
+      const closeModal = () => {
+        modal.style.display = "none";
+      };
+
+      document
+        .getElementById("btn-contact")
+        .addEventListener("click", openModal);
+      document
+        .getElementById("footer-contact")
+        .addEventListener("click", (e) => {
+          e.preventDefault();
+          openModal();
+        });
+      document
+        .getElementById("modal-close")
+        .addEventListener("click", closeModal);
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      // Contact form — submit (mock)
+      document
+        .getElementById("contact-form")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          document.getElementById("contact-form").style.display = "none";
+          document.getElementById("form-success").style.display = "block";
+          setTimeout(closeModal, 2500);
+          setTimeout(() => {
+            document.getElementById("contact-form").reset();
+            document.getElementById("contact-form").style.display = "flex";
+            document.getElementById("form-success").style.display = "none";
+          }, 2600);
+        });
+    </script>
+  </body>
+</html>
