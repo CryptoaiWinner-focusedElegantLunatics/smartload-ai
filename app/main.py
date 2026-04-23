@@ -30,8 +30,14 @@ from pydantic import BaseModel
 from seed_admin import create_superuser
 from seed_db import seed_test_emails
 from app.seed_firetms import seed_all
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 scheduler = AsyncIOScheduler()
+
+
+
 
 
 @asynccontextmanager
@@ -67,6 +73,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SmartLoad AI API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # w produkcji: Twój domain Next.js
+    allow_credentials=True,  # WAŻNE: żeby cookie działało
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(loads.router, prefix="/api", tags=["loads"])
 app.include_router(documents_router)
 
@@ -84,8 +97,8 @@ templates = Jinja2Templates(directory="app/templates")
 # Serwowanie wygenerowanych dokumentów CMR
 _static_docs = Path("static/docs")
 _static_docs.mkdir(parents=True, exist_ok=True)
+app.mount("/web", StaticFiles(directory="app/web"), name="web")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 class CategoryUpdate(BaseModel):
     category: str
 
@@ -115,6 +128,10 @@ class ConnectionManager:
 ws_manager = ConnectionManager()
 
 @app.get("/")
+def render_landing(request: Request):
+    return templates.TemplateResponse("landing.html", {"request": request})
+
+@app.get("/dashboard")
 def render_main_dashboard(request: Request, user: User = Depends(get_current_user)):
     return templates.TemplateResponse("dashboard_main.html", {"request": request})
 
@@ -151,7 +168,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         
         access_token = create_access_token(data={"sub": user.username})
         
-        response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
         response.set_cookie(
             key="access_token", 
             value=f"Bearer {access_token}", 
@@ -162,7 +179,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 
 @app.get("/logout")
 def logout():
-    response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     response.delete_cookie("access_token")
     return response
 

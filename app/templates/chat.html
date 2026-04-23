@@ -1,247 +1,361 @@
-{% extends "base.html" %}
-
-{% block title %}Komunikator Kierowcy – SmartLoad{% endblock %}
-
-{% block page_title %}Komunikator Kierowców{% endblock %}
-{% block page_subtitle %}Asystent spedycyjny AI w czasie rzeczywistym{% endblock %}
-
-{% block extra_styles %}
-/* Chat scrollbar */
-#chatMessages::-webkit-scrollbar { width: 5px; }
+{% extends "base.html" %} {% block title %}Komunikator Kierowcy – SmartLoad{%
+endblock %} {% block page_title %}Komunikator Kierowców{% endblock %} {% block
+page_subtitle %}Asystent spedycyjny AI w czasie rzeczywistym{% endblock %} {%
+block extra_styles %} #chatMessages::-webkit-scrollbar { width: 5px; }
 #chatMessages::-webkit-scrollbar-track { background: transparent; }
-#chatMessages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-.dark #chatMessages::-webkit-scrollbar-thumb { background: #2a2a2a; }
-
-/* Typing dots */
-.typing-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #94a3b8; display: inline-block;
-    animation: blink 1.2s infinite;
-}
-.dark .typing-dot { background: #555; }
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes blink {
-    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-    40% { opacity: 1; transform: scale(1); }
-}
-
-/* Bubble animations */
-@keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-12px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-@keyframes slideInRight {
-    from { opacity: 0; transform: translateX(12px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-.bubble-ai { animation: slideInLeft 0.22s ease; }
-.bubble-driver { animation: slideInRight 0.22s ease; }
-{% endblock %}
-
-{% block header_actions %}
+#chatMessages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius:
+3px; } .dark #chatMessages::-webkit-scrollbar-thumb { background: #2a2a2a; }
+.typing-dot { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8;
+display: inline-block; animation: blink 1.2s infinite; } .dark .typing-dot {
+background: #555; } .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; } @keyframes blink { 0%, 80%,
+100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform:
+scale(1); } } @keyframes slideInLeft { from { opacity: 0; transform:
+translateX(-12px); } to { opacity: 1; transform: translateX(0); } } @keyframes
+slideInRight { from { opacity: 0; transform: translateX(12px); } to { opacity:
+1; transform: translateX(0); } } .bubble-ai { animation: slideInLeft 0.22s ease;
+} .bubble-driver { animation: slideInRight 0.22s ease; } @keyframes offerPulse {
+0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); } 50% { box-shadow: 0 0 0
+6px rgba(59,130,246,0); } } .btn-accept-pulse { animation: offerPulse 2s
+infinite; } {% endblock %} {% block header_actions %}
 <div class="flex items-center gap-2">
-    <span id="headerStatusDot" class="w-2 h-2 bg-slate-400 rounded-full transition-colors"></span>
-    <span id="headerStatusText" class="text-xs text-slate-500 dark:text-xercik-muted">Łączenie...</span>
+  <span
+    id="headerStatusDot"
+    class="w-2 h-2 bg-slate-400 rounded-full transition-colors"
+  ></span>
+  <span
+    id="headerStatusText"
+    class="text-xs text-slate-500 dark:text-xercik-muted"
+    >Łączenie...</span
+  >
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="flex flex-col h-full overflow-hidden">
-
-    <!-- ── Pasek asystenta ─────────────────────────────────────────── -->
-    <div class="shrink-0 bg-white dark:bg-xercik-surface border-b border-slate-200 dark:border-xercik-border px-6 py-3 flex items-center gap-4 shadow-sm transition-colors">
-        <div class="relative shrink-0">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/25">
-                AI
-            </div>
-            <span id="statusDot"
-                class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-slate-400 border-2 border-white dark:border-xercik-surface rounded-full transition-colors"></span>
-        </div>
-        <div class="flex-1">
-            <div class="font-semibold text-slate-800 dark:text-xercik-text text-sm">SmartLoad Spedytor AI</div>
-            <div id="statusText" class="text-xs text-slate-400 dark:text-xercik-muted">Łączenie...</div>
-        </div>
-        <span class="text-xs bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full font-medium">🚛 TSL</span>
+  <div
+    class="shrink-0 bg-white dark:bg-xercik-surface border-b border-slate-200 dark:border-xercik-border px-6 py-3 flex items-center gap-4 shadow-sm transition-colors"
+  >
+    <div class="relative shrink-0">
+      <div
+        class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/25"
+      >
+        AI
+      </div>
+      <span
+        id="statusDot"
+        class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-slate-400 border-2 border-white dark:border-xercik-surface rounded-full transition-colors"
+      ></span>
     </div>
-
-    <!-- ── Wiadomości ──────────────────────────────────────────────── -->
-    <div id="chatMessages"
-         class="flex-1 overflow-y-auto px-6 py-5 space-y-4 scroll-smooth bg-slate-50 dark:bg-xercik-bg transition-colors">
-
-        <!-- Wiadomość powitalna -->
-        <div class="flex items-end gap-2.5 bubble-ai">
-            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow">AI</div>
-            <div class="max-w-[75%]">
-                <div class="bg-white dark:bg-xercik-card border border-slate-200 dark:border-xercik-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                    <p class="text-sm text-slate-700 dark:text-xercik-text leading-relaxed">
-                        Cześć! 👋 Jestem Twoim asystentem spedycyjnym SmartLoad.<br>
-                        Powiedz mi, <strong class="text-slate-900 dark:text-white">w jakiej okolicy jesteś</strong> lub skąd szukasz ładunku — a ja sprawdzę co mamy dla Ciebie! 🚛
-                    </p>
-                </div>
-                <div class="text-[10px] text-slate-400 dark:text-xercik-muted mt-1 ml-2">SmartLoad AI · teraz</div>
-            </div>
-        </div>
+    <div class="flex-1">
+      <div class="font-semibold text-slate-800 dark:text-xercik-text text-sm">
+        SmartLoad Spedytor AI
+      </div>
+      <div
+        id="statusText"
+        class="text-xs text-slate-400 dark:text-xercik-muted"
+      >
+        Łączenie...
+      </div>
     </div>
+    <span
+      class="text-xs bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full font-medium"
+      >🚛 TSL</span
+    >
+  </div>
 
-    <!-- ── Input ──────────────────────────────────────────────────── -->
-    <div class="shrink-0 bg-white dark:bg-xercik-surface border-t border-slate-200 dark:border-xercik-border px-6 py-4 transition-colors">
-        <div class="flex items-center gap-3 max-w-4xl mx-auto">
-            <div class="flex-1 bg-slate-50 dark:bg-xercik-card border border-slate-200 dark:border-xercik-border rounded-2xl px-4 py-3 focus-within:border-blue-400 dark:focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
-                <textarea
-                    id="messageInput"
-                    rows="1"
-                    placeholder="Napisz wiadomość… (np. 'Jestem w Warszawie, mam miejsce na 24t')"
-                    class="w-full bg-transparent text-sm text-slate-700 dark:text-xercik-text placeholder-slate-400 dark:placeholder-xercik-muted resize-none outline-none leading-relaxed max-h-32"
-                    style="overflow-y: auto;"
-                ></textarea>
-            </div>
-            <button id="sendBtn" onclick="sendMessage()"
-                class="w-11 h-11 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-200 dark:disabled:bg-xercik-border disabled:cursor-not-allowed rounded-2xl flex items-center justify-center transition-all shadow-lg shadow-blue-500/25 shrink-0"
-                title="Wyślij (Ctrl+Enter)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
-                </svg>
-            </button>
+  <div
+    id="chatMessages"
+    class="flex-1 overflow-y-auto px-6 py-5 space-y-4 scroll-smooth bg-slate-50 dark:bg-xercik-bg transition-colors"
+  >
+    <div class="flex items-end gap-2.5 bubble-ai">
+      <div
+        class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow"
+      >
+        AI
+      </div>
+      <div class="max-w-[75%]">
+        <div
+          class="bg-white dark:bg-xercik-card border border-slate-200 dark:border-xercik-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm"
+        >
+          <p
+            class="text-sm text-slate-700 dark:text-xercik-text leading-relaxed"
+          >
+            Cześć! 👋 Jestem Twoim asystentem spedycyjnym SmartLoad.<br />
+            Powiedz mi,
+            <strong class="text-slate-900 dark:text-white"
+              >w jakiej okolicy jesteś</strong
+            >
+            lub skąd szukasz ładunku — a ja sprawdzę co mamy dla Ciebie! 🚛
+          </p>
         </div>
-        <div class="text-center mt-2">
-            <span class="text-[10px] text-slate-400 dark:text-xercik-muted">Enter — nowa linia &nbsp;·&nbsp; Ctrl+Enter — wyślij</span>
+        <div
+          class="text-[10px] text-slate-400 dark:text-xercik-muted mt-1 ml-2"
+        >
+          SmartLoad AI · teraz
         </div>
+      </div>
     </div>
+  </div>
+
+  <div
+    class="shrink-0 bg-white dark:bg-xercik-surface border-t border-slate-200 dark:border-xercik-border px-6 py-4 transition-colors"
+  >
+    <div class="flex items-center gap-3 max-w-4xl mx-auto">
+      <div
+        class="flex-1 bg-slate-50 dark:bg-xercik-card border border-slate-200 dark:border-xercik-border rounded-2xl px-4 py-3 focus-within:border-blue-400 dark:focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all"
+      >
+        <textarea
+          id="messageInput"
+          rows="1"
+          placeholder="Napisz wiadomość… (np. 'Jestem w Warszawie, mam miejsce na 24t')"
+          class="w-full bg-transparent text-sm text-slate-700 dark:text-xercik-text placeholder-slate-400 dark:placeholder-xercik-muted resize-none outline-none leading-relaxed max-h-32"
+          style="overflow-y: auto"
+        ></textarea>
+      </div>
+      <button
+        id="sendBtn"
+        onclick="sendMessage()"
+        class="w-11 h-11 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-200 dark:disabled:bg-xercik-border disabled:cursor-not-allowed rounded-2xl flex items-center justify-center transition-all shadow-lg shadow-blue-500/25 shrink-0"
+        title="Wyślij (Ctrl+Enter)"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5 text-white"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"
+          />
+        </svg>
+      </button>
+    </div>
+    <div class="text-center mt-2">
+      <span class="text-[10px] text-slate-400 dark:text-xercik-muted"
+        >Enter — nowa linia &nbsp;·&nbsp; Ctrl+Enter — wyślij</span
+      >
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-    // ── WebSocket ────────────────────────────────────────────────────
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${proto}://${location.host}/ws/chat`;
-    let ws = null;
-    let reconnectTimer = null;
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const wsUrl = `${proto}://${location.host}/ws/chat`;
+  let ws = null;
 
-    function connect() {
-        ws = new WebSocket(wsUrl);
-        ws.onopen = () => {
-            setStatus('online', 'Połączony · gotowy');
-            document.getElementById('sendBtn').disabled = false;
-        };
-        ws.onmessage = (event) => {
-            removeTypingIndicator();
-            appendMessage('ai', event.data);
-            document.getElementById('sendBtn').disabled = false;
-        };
-        ws.onerror = () => setStatus('error', 'Błąd połączenia');
-        ws.onclose = () => {
-            setStatus('offline', 'Rozłączono — ponawiam...');
-            document.getElementById('sendBtn').disabled = true;
-            reconnectTimer = setTimeout(connect, 3000);
-        };
-    }
+  function connect() {
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      setStatus("online", "Połączony · gotowy");
+      document.getElementById("sendBtn").disabled = false;
+    };
+    ws.onmessage = (event) => {
+      removeTypingIndicator();
+      document.getElementById("sendBtn").disabled = false;
+      let parsed = null;
+      try {
+        parsed = JSON.parse(event.data);
+      } catch {}
+      if (parsed && parsed.type === "offer_card") {
+        appendOfferCard(parsed);
+      } else {
+        appendMessage("ai", event.data);
+      }
+    };
+    ws.onerror = () => setStatus("error", "Błąd połączenia");
+    ws.onclose = () => {
+      setStatus("offline", "Rozłączono — ponawiam...");
+      document.getElementById("sendBtn").disabled = true;
+      setTimeout(connect, 3000);
+    };
+  }
 
-    function setStatus(type, text) {
-        const dot = document.getElementById('statusDot');
-        const headerDot = document.getElementById('headerStatusDot');
-        const label = document.getElementById('statusText');
-        const headerLabel = document.getElementById('headerStatusText');
+  function setStatus(type, text) {
+    const dot = document.getElementById("statusDot");
+    const headerDot = document.getElementById("headerStatusDot");
+    const label = document.getElementById("statusText");
+    const headerLabel = document.getElementById("headerStatusText");
+    label.textContent = text;
+    if (headerLabel) headerLabel.textContent = text;
+    const colorMap = {
+      online: "bg-emerald-500",
+      error: "bg-red-500",
+      offline: "bg-slate-400",
+    };
+    const cls = colorMap[type] || "bg-slate-400";
+    dot.className = `absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white dark:border-xercik-surface rounded-full transition-colors ${cls}`;
+    if (headerDot)
+      headerDot.className = `w-2 h-2 rounded-full transition-colors ${cls}`;
+  }
 
-        label.textContent = text;
-        if (headerLabel) headerLabel.textContent = text;
+  function now() {
+    return new Date().toLocaleTimeString("pl-PL", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
-        const colorMap = {
-            online:  'bg-emerald-500',
-            error:   'bg-red-500',
-            offline: 'bg-slate-400'
-        };
-        const cls = colorMap[type] || 'bg-slate-400';
-        dot.className = `absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white dark:border-xercik-surface rounded-full transition-colors ${cls}`;
-        if (headerDot) headerDot.className = `w-2 h-2 rounded-full transition-colors ${cls}`;
-    }
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
-    // ── UI helpers ───────────────────────────────────────────────────
-    function now() {
-        return new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function appendMessage(role, text) {
-        const container = document.getElementById('chatMessages');
-        const wrapper = document.createElement('div');
-
-        if (role === 'driver') {
-            wrapper.className = 'flex items-end justify-end gap-2.5 bubble-driver';
-            wrapper.innerHTML = `
+  function appendMessage(role, text) {
+    const container = document.getElementById("chatMessages");
+    const wrapper = document.createElement("div");
+    if (role === "driver") {
+      wrapper.className = "flex items-end justify-end gap-2.5 bubble-driver";
+      wrapper.innerHTML = `
                 <div class="max-w-[75%]">
                     <div class="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3 shadow-lg shadow-blue-500/20">
                         <p class="text-sm text-white leading-relaxed">${escapeHtml(text)}</p>
                     </div>
                     <div class="text-[10px] text-slate-400 dark:text-xercik-muted mt-1 mr-2 text-right">Ty · ${now()}</div>
                 </div>
-                <div class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-xercik-card flex items-center justify-center text-lg shrink-0 shadow-sm">🚛</div>
-            `;
-        } else {
-            const safe = text.replace(/\n/g, '<br>');
-            wrapper.className = 'flex items-end gap-2.5 bubble-ai';
-            wrapper.innerHTML = `
+                <div class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-xercik-card flex items-center justify-center text-lg shrink-0 shadow-sm">🚛</div>`;
+    } else {
+      const safe = text.replace(/\n/g, "<br>");
+      wrapper.className = "flex items-end gap-2.5 bubble-ai";
+      wrapper.innerHTML = `
                 <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow">AI</div>
                 <div class="max-w-[75%]">
                     <div class="bg-white dark:bg-xercik-card border border-slate-200 dark:border-xercik-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
                         <div class="text-sm text-slate-700 dark:text-xercik-text leading-relaxed">${safe}</div>
                     </div>
                     <div class="text-[10px] text-slate-400 dark:text-xercik-muted mt-1 ml-2">SmartLoad AI · ${now()}</div>
-                </div>
-            `;
-        }
-
-        container.appendChild(wrapper);
-        container.scrollTop = container.scrollHeight;
+                </div>`;
     }
+    container.appendChild(wrapper);
+    container.scrollTop = container.scrollHeight;
+  }
 
-    function showTypingIndicator() {
-        const container = document.getElementById('chatMessages');
-        const el = document.createElement('div');
-        el.id = 'typingIndicator';
-        el.className = 'flex items-end gap-2.5 bubble-ai';
-        el.innerHTML = `
+  function appendOfferCard(data) {
+    const container = document.getElementById("chatMessages");
+    const wrapper = document.createElement("div");
+    wrapper.className = "flex items-end gap-2.5 bubble-ai";
+    const cardId = `offer-${Date.now()}`;
+    wrapper.innerHTML = `
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600
+                        flex items-center justify-center text-white text-xs font-bold shrink-0 shadow">AI</div>
+            <div class="max-w-[85%]">
+                <div class="bg-white dark:bg-xercik-card border border-slate-200 dark:border-xercik-border
+                            rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                    <p class="text-sm text-slate-700 dark:text-xercik-text leading-relaxed mb-3">
+                        ${data.message.replace(/\n/g, "<br>")}
+                    </p>
+                    <div class="bg-slate-50 dark:bg-[#0d0d1a] border border-slate-200 dark:border-[#2a2a3e] rounded-xl p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <div class="font-bold text-slate-900 dark:text-white text-sm">Ładunek ${escapeHtml(data.offer.id)}</div>
+                                <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(data.offer.weight)}</div>
+                            </div>
+                            <div class="text-blue-600 dark:text-blue-400 font-bold text-base">${escapeHtml(data.offer.price)}</div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Załadunek</div>
+                                <div class="text-sm text-slate-800 dark:text-white font-semibold">📍 ${escapeHtml(data.offer.route_from)}</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Rozładunek</div>
+                                <div class="text-sm text-slate-800 dark:text-white font-semibold">🏁 ${escapeHtml(data.offer.route_to)}</div>
+                            </div>
+                        </div>
+                        <div id="${cardId}-btns" class="flex gap-2">
+                            <button onclick="acceptOffer('${cardId}')"
+                                class="btn-accept-pulse flex-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700
+                                       text-white text-sm font-semibold py-2.5 rounded-xl transition-all">
+                                ✅ Przyjmij i bookuj
+                            </button>
+                            <button onclick="rejectOffer('${cardId}')"
+                                class="flex-1 bg-slate-100 dark:bg-[#1e1e2e] hover:bg-slate-200 dark:hover:bg-[#252535]
+                                       border border-slate-200 dark:border-[#2a2a3e] text-slate-500 dark:text-slate-400
+                                       text-sm font-semibold py-2.5 rounded-xl transition-all">
+                                ❌ Odrzuć
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-400 dark:text-xercik-muted mt-1 ml-2">SmartLoad AI · ${now()}</div>
+            </div>`;
+    container.appendChild(wrapper);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function acceptOffer(cardId) {
+    const btns = document.getElementById(`${cardId}-btns`);
+    if (!btns) return;
+    btns.innerHTML = `
+            <div class="w-full text-center text-sm text-emerald-600 dark:text-emerald-400 font-semibold
+                        py-2.5 bg-emerald-50 dark:bg-emerald-950/30
+                        border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
+                ✅ Zaakceptowano — rezerwuję trasę...
+            </div>`;
+    sendMessage("Przyjmuję, biorę to");
+  }
+
+  function rejectOffer(cardId) {
+    const btns = document.getElementById(`${cardId}-btns`);
+    if (!btns) return;
+    btns.innerHTML = `
+            <div class="w-full text-center text-sm text-slate-400 py-2.5
+                        bg-slate-50 dark:bg-[#1a1a2e] border border-slate-200 dark:border-[#2a2a3e] rounded-xl">
+                ❌ Odrzucono — szukam kolejnej oferty...
+            </div>`;
+    sendMessage("Nie, szukaj następnej");
+  }
+
+  function showTypingIndicator() {
+    const container = document.getElementById("chatMessages");
+    const el = document.createElement("div");
+    el.id = "typingIndicator";
+    el.className = "flex items-end gap-2.5 bubble-ai";
+    el.innerHTML = `
             <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow">AI</div>
             <div class="bg-white dark:bg-xercik-card border border-slate-200 dark:border-xercik-border rounded-2xl rounded-bl-sm px-4 py-3.5 flex items-center gap-1.5 shadow-sm">
                 <span class="typing-dot"></span>
                 <span class="typing-dot"></span>
                 <span class="typing-dot"></span>
-            </div>
-        `;
-        container.appendChild(el);
-        container.scrollTop = container.scrollHeight;
+            </div>`;
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    document.getElementById("typingIndicator")?.remove();
+  }
+
+  function sendMessage(forcedText) {
+    const input = document.getElementById("messageInput");
+    const text = forcedText || input.value.trim();
+    if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+    appendMessage("driver", text);
+    ws.send(text);
+    if (!forcedText) {
+      input.value = "";
+      input.style.height = "auto";
     }
+    document.getElementById("sendBtn").disabled = true;
+    showTypingIndicator();
+  }
 
-    function removeTypingIndicator() { document.getElementById('typingIndicator')?.remove(); }
-
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  document.getElementById("messageInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.ctrlKey) {
+      e.preventDefault();
+      sendMessage();
     }
+  });
 
-    // ── Send logic ───────────────────────────────────────────────────
-    function sendMessage() {
-        const input = document.getElementById('messageInput');
-        const text = input.value.trim();
-        if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
-        appendMessage('driver', text);
-        ws.send(text);
-        input.value = '';
-        input.style.height = 'auto';
-        document.getElementById('sendBtn').disabled = true;
-        showTypingIndicator();
-    }
-
-    document.getElementById('messageInput').addEventListener('keydown', e => {
-        if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); sendMessage(); }
+  document
+    .getElementById("messageInput")
+    .addEventListener("input", function () {
+      this.style.height = "auto";
+      this.style.height = Math.min(this.scrollHeight, 128) + "px";
     });
 
-    document.getElementById('messageInput').addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 128) + 'px';
-    });
-
-    connect();
+  connect();
 </script>
 {% endblock %}
