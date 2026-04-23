@@ -13,7 +13,7 @@ class Load(SQLModel, table=True):
     destination: str
 
     # dane o ładunku
-    title: Optional[str] = None
+    # title: Optional[str] = None
     weight_kg: Optional[float] = None
     category: Optional[str] = None
 

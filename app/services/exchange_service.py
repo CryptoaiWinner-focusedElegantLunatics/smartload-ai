@@ -2,10 +2,15 @@
 Serwis integracyjny – Task 2.2
 Pobiera surowe oferty (Load) z bazy i mapuje je na format fireTMS (Offer).
 Stanowi warstwę pośrednią między scraperem a resztą aplikacji (AI, frontend).
+Integruje również zewnętrzne giełdy (np. TimoCom) dla porównywarki AI.
 """
+import os
+import requests
+import uuid
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlmodel import Session, select
+from requests.auth import HTTPBasicAuth
 
 from app.models.load import Load
 from app.models.offer import (
@@ -21,7 +26,6 @@ from app.models.offer import (
 
 # Import in-memory offer store z routera (single source of truth)
 from app.api.offers import _offers
-import uuid
 
 
 # ---------------------------------------------------------------------------
@@ -55,14 +59,14 @@ def load_to_offer_dto(load: Load) -> PublicApiOfferDto:
     cargos = []
     if load.weight_kg or load.category:
         cargos.append({
-            "description": load.title or load.category or "Ładunek",
+            "description": getattr(load, 'title', None) or load.category or "Ładunek",
             "weightKg": load.weight_kg,
             "cargoType": load.category,
         })
 
     return PublicApiOfferDto(
         externalId=load.offer_id or f"LOAD-{load.id}",
-        description=load.title or f"{load.origin} → {load.destination}",
+        description=getattr(load, 'title', None) or f"{load.origin} → {load.destination}",
         expireDate=expire_date,
         price=price,
         loadingSpot=loading_spot,
@@ -240,3 +244,137 @@ def _find_offer_by_external_id(external_id: str) -> Optional[OfferRecord]:
             if offer.offer.externalId == external_id:
                 return offer
     return None
+
+
+# ===========================================================================
+# 🚀 INTEGRACJA TIMOCOM I AGREGATOR OFERT DLA AI (Nowość)
+# ===========================================================================
+
+class TimoComAdapter:
+    def __init__(self):
+        self.user = os.getenv("TIMOCOM_USER")
+        self.password = os.getenv("TIMOCOM_PASSWORD")
+        self.timo_id = os.getenv("TIMOCOM_ID")
+        self.base_url = "https://sandbox.timocom.com/freight-exchange/3"
+        
+        if self.user and self.password:
+            self.auth = HTTPBasicAuth(self.user, self.password)
+        else:
+            self.auth = None
+
+    def search_loads(self, from_country: str, from_city: str, to_country: str, to_city: str):
+        """Uderza do API TimoCom po aktualne ładunki (Tryb Stealth)"""
+        if not self.auth or not self.timo_id:
+            return []
+
+        endpoint = f"{self.base_url}/freight-offers/search"
+        params = {"timocom_id": self.timo_id}
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "SmartLoad-AI/1.0"
+        }
+
+        # Wyszukiwanie do 6h w tył (wymóg TimoCom)
+        now = datetime.now(timezone.utc)
+        past_time = now - timedelta(hours=6)
+
+        payload = {
+            "exclusiveLeftLowerBoundDateTime": past_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "inclusiveRightUpperBoundDateTime": now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "firstResult": 0,
+            "maxResults": 30,
+            "startLocation": {
+                "objectType": "areaSearch",
+                "area": {
+                    "address": {"objectType": "address", "country": from_country, "city": from_city},
+                    "size_km": 50
+                }
+            },
+            "destinationLocation": {
+                "objectType": "areaSearch",
+                "area": {
+                    "address": {"objectType": "address", "country": to_country, "city": to_city},
+                    "size_km": 50
+                }
+            }
+        }
+
+        try:
+            # Ustawiony timeout = 10s, żeby serwer nie zawisł (ERR_EMPTY_RESPONSE)
+            response = requests.post(endpoint, json=payload, headers=headers, auth=self.auth, params=params, timeout=10)
+            if response.status_code == 200:
+                return response.json().get("payload", [])
+            return []
+        except Exception:
+            return []
+
+
+class OfferAggregator:
+    def __init__(self):
+        self.timocom = TimoComAdapter()
+
+    def get_comparison(self, session: Session, from_city: str, to_city: str, from_country: str = "PL", to_country: str = "DE"):
+        """Pobiera dane z bazy (scrapers/emails) ORAZ giełdy TimoCom i sprowadza je do jednego formatu"""
+        
+        # 1. TIMOCOM
+        raw_timo = self.timocom.search_loads(from_country, from_city, to_country, to_city)
+        timo_offers = self._format_timo_data(raw_timo, from_city, to_city)
+
+        # 2. WEWNĘTRZNA BAZA DANYCH (używa Twojej funkcji get_raw_offers!)
+        raw_internal = get_raw_offers(session=session, limit=50, origin=from_city, destination=to_city)
+        internal_offers = self._format_internal_data(raw_internal, from_city, to_city)
+
+        # 3. ZNAJDYWANIE NAJLEPSZYCH (najwyższa cena)
+        best_timo = max(timo_offers, key=lambda x: x['price'], default=None) if timo_offers else None
+        best_internal = max(internal_offers, key=lambda x: x['price'], default=None) if internal_offers else None
+
+        return {
+            "best_picks": {
+                "timocom": best_timo,
+                "internal": best_internal
+            },
+            "lists": {
+                "timocom": timo_offers,
+                "internal": internal_offers
+            }
+        }
+
+    def _format_timo_data(self, raw_data, from_city, to_city):
+        formatted = []
+        for item in raw_data:
+            price_info = item.get("price", {})
+            formatted.append({
+                "id": item.get("id"),
+                "source": "TIMOCOM",
+                "origin": from_city,
+                "destination": to_city,
+                "weight": item.get("weight_t", 0.0),
+                "price": price_info.get("amount", 0.0),
+                "currency": price_info.get("currency", "EUR")
+            })
+        return formatted
+
+    def _format_internal_data(self, raw_data, from_city, to_city):
+        formatted = []
+        for item in raw_data:
+            offer = item.get("offer", {})
+            price_info = offer.get("price") or {}
+            
+            # FireTMS format w Twojej bazie trzyma wagę w KG w obiekcie cargos
+            cargos = offer.get("cargos") or []
+            weight_kg = cargos[0].get("weightKg", 0) if cargos else 0
+            weight_t = round(weight_kg / 1000, 2)
+
+            amount = price_info.get("amount", 0.0) if isinstance(price_info, dict) else 0.0
+
+            formatted.append({
+                "id": str(item.get("loadId")),
+                "source": item.get("source", "INTERNAL"),
+                "origin": from_city,
+                "destination": to_city,
+                "weight": weight_t,
+                "price": amount,
+                "currency": "EUR"
+            })
+        return formatted

@@ -1,0 +1,878 @@
+{% extends "base.html" %}
+
+{% block title %}SmartLoad AI – Porównywarka Ofert{% endblock %}
+{% block page_title %}Porównywarka Frachtu{% endblock %}
+{% block page_subtitle %}Zestawienie ofert z giełdy TimoCom i bazy wewnętrznej{% endblock %}
+
+{% block head_extra %}
+<style>
+  :root {
+    --font-headline: "Space Grotesk", sans-serif;
+  }
+
+  /* ── Search Form ── */
+  .compare-form {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .compare-field {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .compare-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-text-muted, #64748b);
+    margin-bottom: 8px;
+  }
+
+  .dark .compare-label {
+    color: #94a3b8;
+  }
+
+  .compare-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .dark .compare-input {
+    border-color: #252525;
+    background: #191919;
+    color: #e8e8e8;
+  }
+
+  .compare-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+
+  .dark .compare-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+  }
+
+  .compare-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+  }
+
+  .dark .compare-input::placeholder {
+    color: #555;
+  }
+
+  .input-wrap {
+    position: relative;
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+  }
+
+  .dark .input-icon {
+    color: #555;
+  }
+
+  .btn-compare {
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    min-height: 46px;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+  }
+
+  .btn-compare:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.45);
+  }
+
+  .btn-compare:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .btn-compare:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* ── AI Panel ── */
+  .ai-panel {
+    border-radius: 12px;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.06) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    display: none;
+    animation: slideUp 0.4s ease;
+  }
+
+  .dark .ai-panel {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+    border-color: rgba(59, 130, 246, 0.2);
+  }
+
+  .ai-panel.visible {
+    display: flex;
+  }
+
+  .ai-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  }
+
+  .ai-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #334155;
+    flex: 1;
+  }
+
+  .dark .ai-text {
+    color: #cbd5e1;
+  }
+
+  .ai-badge {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #6366f1;
+    margin-bottom: 4px;
+  }
+
+  .dark .ai-badge {
+    color: #818cf8;
+  }
+
+  /* ── Columns ── */
+  .compare-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .compare-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .column-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid;
+  }
+
+  .column-header.timo {
+    border-color: #3b82f6;
+  }
+
+  .column-header.internal {
+    border-color: #8b5cf6;
+  }
+
+  .column-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .column-icon.timo {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  .column-icon.internal {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  }
+
+  .column-title {
+    font-family: var(--font-headline);
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+
+  .dark .column-title {
+    color: #f1f5f9;
+  }
+
+  .column-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 100px;
+    padding: 3px 10px;
+  }
+
+  .column-count.timo {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+
+  .dark .column-count.timo {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  .column-count.internal {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+  }
+
+  .dark .column-count.internal {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+  }
+
+  /* ── Offer Cards ── */
+  .offer-card {
+    border-radius: 10px;
+    padding: 1.25rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dark .offer-card {
+    background: #191919;
+    border-color: #252525;
+  }
+
+  .offer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark .offer-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    border-color: #333;
+  }
+
+  .offer-card.best {
+    border-width: 2px;
+  }
+
+  .offer-card.best.timo {
+    border-color: #3b82f6;
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.03) 0%, transparent 100%);
+  }
+
+  .dark .offer-card.best.timo {
+    border-color: #2563eb;
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.06) 0%, #191919 100%);
+  }
+
+  .offer-card.best.internal {
+    border-color: #8b5cf6;
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.03) 0%, transparent 100%);
+  }
+
+  .dark .offer-card.best.internal {
+    border-color: #7c3aed;
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, #191919 100%);
+  }
+
+  .best-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding: 3px 8px;
+    border-radius: 100px;
+    color: #fff;
+  }
+
+  .best-badge.timo {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+  }
+
+  .best-badge.internal {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  }
+
+  .offer-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .offer-price {
+    font-family: var(--font-headline);
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+  }
+
+  .dark .offer-price {
+    color: #f1f5f9;
+  }
+
+  .offer-currency {
+    font-size: 14px;
+    font-weight: 700;
+    color: #64748b;
+  }
+
+  .dark .offer-currency {
+    color: #94a3b8;
+  }
+
+  .offer-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .offer-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  .dark .offer-chip {
+    background: #111;
+    color: #94a3b8;
+  }
+
+  .offer-source-tag {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+
+  .offer-source-tag.timo {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+
+  .dark .offer-source-tag.timo {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  .offer-source-tag.internal {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+  }
+
+  .dark .offer-source-tag.internal {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+  }
+
+  /* ── Empty Column ── */
+  .column-empty {
+    padding: 2rem;
+    text-align: center;
+    border-radius: 10px;
+    border: 1px dashed #e2e8f0;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .dark .column-empty {
+    border-color: #252525;
+    color: #555;
+  }
+
+  /* ── Loading Skeletons ── */
+  .skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+  }
+
+  .dark .skeleton {
+    background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+    background-size: 200% 100%;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .skel-card {
+    height: 120px;
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+  }
+
+  .skel-ai {
+    height: 80px;
+    border-radius: 12px;
+  }
+
+  /* ── Animations ── */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .anim-slide {
+    animation: slideUp 0.4s ease both;
+  }
+
+  .anim-slide-1 { animation-delay: 0.05s; }
+  .anim-slide-2 { animation-delay: 0.1s; }
+  .anim-slide-3 { animation-delay: 0.15s; }
+  .anim-slide-4 { animation-delay: 0.2s; }
+  .anim-slide-5 { animation-delay: 0.25s; }
+
+  /* ── Initial State Hero ── */
+  .compare-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .hero-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .dark .hero-icon {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+  }
+
+  .hero-title {
+    font-family: var(--font-headline);
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+
+  .dark .hero-title {
+    color: #f1f5f9;
+  }
+
+  .hero-desc {
+    font-size: 13px;
+    color: #64748b;
+    max-width: 400px;
+    line-height: 1.7;
+  }
+
+  .dark .hero-desc {
+    color: #888;
+  }
+
+  /* ── Error State ── */
+  .error-box {
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 500;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dark .error-box {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+  }
+
+  .error-box.visible {
+    display: flex;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .compare-columns {
+      grid-template-columns: 1fr;
+    }
+    .compare-form {
+      flex-direction: column;
+    }
+    .compare-field {
+      min-width: unset;
+    }
+    .btn-compare {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;flex-direction:column;gap:1.5rem;padding:2rem 3rem;overflow-y:auto;flex:1;">
+
+  <!-- ═══ Nagłówek Strony ═══ -->
+  <div>
+    <h1 style="font-family:var(--font-headline);font-size:clamp(24px,3vw,32px);font-weight:700;letter-spacing:-0.04em;color:var(--color-text-primary, #0f172a);margin:0 0 4px 0;">
+      Porównywarka Frachtu
+    </h1>
+    <p style="font-size:12px;color:var(--color-text-muted, #64748b);margin:0;">
+      Zestawiaj oferty z giełdy TimoCom z Twoją bazą wewnętrzną — AI doradzi najlepszy wybór
+    </p>
+  </div>
+
+  <!-- ═══ Formularz Wyszukiwania ═══ -->
+  <div class="glass-card" style="border-radius:12px;padding:1.5rem;">
+    <form id="compareForm" class="compare-form" onsubmit="handleCompare(event)">
+      <div class="compare-field">
+        <label class="compare-label">
+          <i data-lucide="circle-dot" style="width:12px;height:12px;color:#22c55e;"></i>
+          Miasto załadunku
+        </label>
+        <div class="input-wrap">
+          <i data-lucide="map-pin" class="input-icon" style="width:16px;height:16px;"></i>
+          <input
+            id="inputFrom"
+            type="text"
+            class="compare-input"
+            placeholder="np. Warszawa, Kraków..."
+            required
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <div class="compare-field">
+        <label class="compare-label">
+          <i data-lucide="flag" style="width:12px;height:12px;color:#ef4444;"></i>
+          Miasto rozładunku
+        </label>
+        <div class="input-wrap">
+          <i data-lucide="map-pin" class="input-icon" style="width:16px;height:16px;"></i>
+          <input
+            id="inputTo"
+            type="text"
+            class="compare-input"
+            placeholder="np. Berlin, Hamburg..."
+            required
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <button type="submit" id="btnCompare" class="btn-compare">
+        <i data-lucide="search" style="width:16px;height:16px;"></i>
+        Porównaj
+      </button>
+    </form>
+  </div>
+
+  <!-- ═══ Błąd ═══ -->
+  <div id="errorBox" class="error-box">
+    <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+    <span id="errorMsg"></span>
+  </div>
+
+  <!-- ═══ AI Panel ═══ -->
+  <div id="aiPanel" class="ai-panel" style="gap:1rem;align-items:flex-start;">
+    <div class="ai-avatar">
+      <i data-lucide="bot" style="width:22px;height:22px;color:#fff;"></i>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div class="ai-badge">Asystent SmartLoad AI</div>
+      <div class="ai-text" id="aiText"></div>
+    </div>
+  </div>
+
+  <!-- ═══ Loading Skeleton ═══ -->
+  <div id="loadingSkeleton" style="display:none;">
+    <div class="skeleton skel-ai" style="margin-bottom:1rem;"></div>
+    <div class="compare-columns">
+      <div>
+        <div class="skeleton" style="height:40px;margin-bottom:0.75rem;"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+      </div>
+      <div>
+        <div class="skeleton" style="height:40px;margin-bottom:0.75rem;"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Stan początkowy (hero) ═══ -->
+  <div id="initialHero" class="compare-hero">
+    <div class="hero-icon">
+      <i data-lucide="scale" style="width:32px;height:32px;color:#6366f1;"></i>
+    </div>
+    <div class="hero-title">Wyszukaj trasę do porównania</div>
+    <div class="hero-desc">
+      Wprowadź miasta załadunku i rozładunku powyżej. System przeszuka giełdę TimoCom oraz bazę wewnętrzną i zaproponuje najlepszą ofertę.
+    </div>
+  </div>
+
+  <!-- ═══ Wyniki — Kolumny ═══ -->
+  <div id="resultsPanel" style="display:none;">
+    <div class="compare-columns">
+
+      <!-- LEWA: TimoCom -->
+      <div class="compare-column">
+        <div class="column-header timo">
+          <div class="column-icon timo">
+            <i data-lucide="globe" style="width:18px;height:18px;color:#fff;"></i>
+          </div>
+          <div>
+            <div class="column-title">Giełda TimoCom</div>
+            <div style="font-size:10px;color:#64748b;font-weight:500;" class="dark:text-slate-500">Oferty z rynku spot</div>
+          </div>
+          <span id="timoCount" class="column-count timo">0</span>
+        </div>
+        <div id="timoList"></div>
+      </div>
+
+      <!-- PRAWA: Wewnętrzna Baza -->
+      <div class="compare-column">
+        <div class="column-header internal">
+          <div class="column-icon internal">
+            <i data-lucide="mail" style="width:18px;height:18px;color:#fff;"></i>
+          </div>
+          <div>
+            <div class="column-title">Baza Wewnętrzna</div>
+            <div style="font-size:10px;color:#64748b;font-weight:500;" class="dark:text-slate-500">Oferty z maili i scraperów</div>
+          </div>
+          <span id="internalCount" class="column-count internal">0</span>
+        </div>
+        <div id="internalList"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+  /* ── State ── */
+  let isLoading = false;
+
+  /* ── Helpers ── */
+  function $(id) { return document.getElementById(id); }
+
+  function setState(s) {
+    $("initialHero").style.display    = s === "initial" ? "flex" : "none";
+    $("loadingSkeleton").style.display = s === "loading" ? "block" : "none";
+    $("resultsPanel").style.display   = s === "results" ? "block" : "none";
+  }
+
+  function showError(msg) {
+    $("errorMsg").textContent = msg;
+    $("errorBox").classList.add("visible");
+    setTimeout(() => $("errorBox").classList.remove("visible"), 6000);
+  }
+
+  function formatPrice(price) {
+    if (price == null) return "—";
+    return Number(price).toLocaleString("pl-PL", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  /* ── Render Single Offer Card ── */
+  function renderOfferCard(offer, type, isBest) {
+    const price = formatPrice(offer.price);
+    const currency = offer.currency || "EUR";
+    const weight = offer.weight != null ? offer.weight + " t" : "—";
+    const source = offer.source || type.toUpperCase();
+    const origin = offer.origin || "?";
+    const destination = offer.destination || "?";
+    const animClass = "anim-slide";
+
+    return `
+      <div class="offer-card ${isBest ? "best " + type : ""} ${animClass}">
+        ${isBest ? `<span class="best-badge ${type}">★ Najlepsza</span>` : ""}
+        <div class="offer-source-tag ${type}">${source}</div>
+        <div class="offer-price-row">
+          <span class="offer-price">${price}</span>
+          <span class="offer-currency">${currency}</span>
+        </div>
+        <div class="offer-details">
+          <span class="offer-chip">
+            <i data-lucide="truck" style="width:12px;height:12px;"></i>
+            ${weight}
+          </span>
+          <span class="offer-chip">
+            <i data-lucide="route" style="width:12px;height:12px;"></i>
+            ${origin} → ${destination}
+          </span>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ── Render List ── */
+  function renderColumn(list, type, containerId, countId) {
+    const container = $(containerId);
+    const countEl = $(countId);
+    countEl.textContent = list.length;
+
+    if (!list.length) {
+      container.innerHTML = `
+        <div class="column-empty">
+          <i data-lucide="inbox" style="width:24px;height:24px;margin-bottom:8px;opacity:0.5;display:block;margin-left:auto;margin-right:auto;"></i>
+          Brak ofert na tej trasie
+        </div>
+      `;
+      lucide.createIcons({ attrs: { "stroke-width": 1.75 }, nameAttr: "data-lucide" });
+      return;
+    }
+
+    // Znajdź najlepszą ofertę (najwyższą cenę)
+    const bestId = list.reduce((best, cur) => (cur.price > best.price ? cur : best), list[0]).id;
+
+    container.innerHTML = list
+      .map(offer => renderOfferCard(offer, type, offer.id === bestId))
+      .join("");
+
+    lucide.createIcons({ attrs: { "stroke-width": 1.75 }, nameAttr: "data-lucide" });
+  }
+
+  /* ── Main Handler ── */
+  async function handleCompare(e) {
+    e.preventDefault();
+    if (isLoading) return;
+
+    const from = $("inputFrom").value.trim();
+    const to = $("inputTo").value.trim();
+    if (!from || !to) return;
+
+    isLoading = true;
+    $("btnCompare").disabled = true;
+    $("btnCompare").innerHTML = `
+      <svg class="animate-spin" style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+      </svg>
+      Szukam…
+    `;
+
+    $("errorBox").classList.remove("visible");
+    $("aiPanel").classList.remove("visible");
+    setState("loading");
+
+    try {
+      const url = `/api/exchange/compare?from_city=${encodeURIComponent(from)}&to_city=${encodeURIComponent(to)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Błąd serwera (HTTP ${res.status})`);
+      }
+
+      const data = await res.json();
+
+      // AI Panel
+      if (data.chat_response) {
+        $("aiText").textContent = data.chat_response;
+        $("aiPanel").classList.add("visible");
+      }
+
+      // Columns
+      const timoList = data.ui_data?.timocom_list || [];
+      const internalList = data.ui_data?.internal_list || [];
+
+      setState("results");
+
+      renderColumn(timoList, "timo", "timoList", "timoCount");
+      renderColumn(internalList, "internal", "internalList", "internalCount");
+
+    } catch (err) {
+      console.error("Compare error:", err);
+      showError(err.message || "Nie udało się pobrać danych. Spróbuj ponownie.");
+      setState("initial");
+    } finally {
+      isLoading = false;
+      $("btnCompare").disabled = false;
+      $("btnCompare").innerHTML = `
+        <i data-lucide="search" style="width:16px;height:16px;"></i>
+        Porównaj
+      `;
+      lucide.createIcons({ attrs: { "stroke-width": 1.75 }, nameAttr: "data-lucide" });
+    }
+  }
+
+  /* ── Init ── */
+  document.addEventListener("DOMContentLoaded", () => {
+    lucide.createIcons({ attrs: { "stroke-width": 1.75 }, nameAttr: "data-lucide" });
+  });
+
+</script>
+{% endblock %}

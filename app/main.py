@@ -1,6 +1,6 @@
 from typing import Optional
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, APIRouter, Request, Form, HTTPException, status
+from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, APIRouter, Request, Form, HTTPException, status, Query
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -127,6 +127,10 @@ def zasiej_dane():
 def render_mail(request: Request, user: User = Depends(get_current_user)):
     return templates.TemplateResponse("mail.html", {"request": request})
 
+@app.get("/compare")
+def render_compare(request: Request, user: User = Depends(get_current_user)):
+    return templates.TemplateResponse("compare.html", {"request": request})
+
 # ──────────────────────────────────────────────────────────
 # Auth Routes
 # ──────────────────────────────────────────────────────────
@@ -252,7 +256,7 @@ def get_email_stats(user: User = Depends(get_current_user)):
         return {row[0] or "INNE": row[1] for row in rows}
 
 @app.get("/api/emails")
-def get_emails(kategoria: Optional[str] = None, szukaj: Optional[str] = None):
+def get_emails(limit: int = 100, kategoria: Optional[str] = None, szukaj: Optional[str] = None):
     with Session(engine) as session:
         query = select(EmailLog).where(EmailLog.is_deleted == False)
         
@@ -262,7 +266,7 @@ def get_emails(kategoria: Optional[str] = None, szukaj: Optional[str] = None):
         if szukaj:
             query = query.where(EmailLog.subject.contains(szukaj) | EmailLog.sender.contains(szukaj))
             
-        query = query.order_by(EmailLog.id.desc()).limit(100)
+        query = query.order_by(EmailLog.id.desc()).limit(limit)
         
         results = session.exec(query).all()
         return results
@@ -311,20 +315,21 @@ def bulk_delete_emails(payload: BulkDeleteRequest):
 @app.post("/api/emails/rescan")
 def rescan_emails(payload: RescanRequest):
     with Session(engine) as session:
-        inne_emails = session.exec(select(EmailLog).where(EmailLog.ai_category == "INNE", EmailLog.is_deleted == False)).all()
+        inne_emails = session.exec(select(EmailLog).where(
+            (EmailLog.ai_category == "INNE") | (EmailLog.ai_category == None), 
+            EmailLog.is_deleted == False
+        )).all()
         updated_count = 0
         
         from bs4 import BeautifulSoup
         for email in inne_emails:
-            clean_text = BeautifulSoup(email.body, "html.parser").get_text(separator=' ', strip=True)
+            clean_text = BeautifulSoup(email.body, "html.parser").get_text(separator=' ', strip=True) if email.body else ""
             new_cat = categorize_email_with_gemma(email.subject, clean_text, payload.custom_categories)
             
-            if new_cat != "INNE":
+            if new_cat != email.ai_category:
                 email.ai_category = new_cat
                 session.add(email)
                 updated_count += 1
-            
-            time.sleep(2)
                 
         session.commit()
         return {"status": "success", "scanned": len(inne_emails), "updated": updated_count}

@@ -4,7 +4,10 @@ Router dla Task 2.2 – pobieranie surowych ofert z giełdy i zarządzanie publi
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 from typing import Optional
-
+from app.services.exchange_service import OfferAggregator
+from app.services.llm_service import generate_comparison_message
+from fastapi import APIRouter, Query, Depends
+from sqlmodel import Session
 from app.core.database import get_session
 from app.services.exchange_service import (
     get_raw_offers,
@@ -66,3 +69,28 @@ def publish_loads_to_exchange(
 def exchange_stats(session: Session = Depends(get_session)):
     """Statystyki dla dashboardu – liczba loadów, ofert, źródła."""
     return get_offer_stats(session)
+
+@router.get("/compare")
+def compare_offers(
+    from_city: str, 
+    to_city: str,
+    session: Session = Depends(get_session) # 🚨 TUTAJ WSTRZYKUJEMY BAZĘ DO ENDPOINTU!
+):
+    aggregator = OfferAggregator()
+    
+    # Przekazujemy wstrzykniętą sesję (session=session) do Agregatora
+    results = aggregator.get_comparison(session=session, from_city=from_city, to_city=to_city)
+    
+    # Generujemy podsumowanie AI
+    ai_recommendation = generate_comparison_message(
+        results["best_picks"]["timocom"], 
+        results["best_picks"]["internal"]
+    )
+    
+    return {
+        "chat_response": ai_recommendation,
+        "ui_data": {
+            "timocom_list": results["lists"]["timocom"],
+            "internal_list": results["lists"]["internal"]
+        }
+    }

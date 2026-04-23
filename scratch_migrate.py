@@ -1,6 +1,7 @@
 from sqlmodel import Session
 from sqlalchemy import text
 from app.core.database import engine
+from app.models.email_log import EmailLog
 
 
 NEW_COLUMNS = [

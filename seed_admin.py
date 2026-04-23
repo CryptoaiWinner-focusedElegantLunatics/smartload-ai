@@ -1,14 +1,12 @@
 import os
 from sqlalchemy import text  # <-- DODAJ TO
-from sqlmodel import Session, select, create_engine, SQLModel
+from sqlmodel import Session, select, SQLModel
 from app.models.user import User
 from app.models.load import Load  # Upewnij się, że Load też jest zaimportowany!
 from app.core.security import get_password_hash
+from app.core.database import engine
 
 def create_superuser():
-    database_url = os.getenv("DATABASE_URL")
-    engine = create_engine(database_url)
-
     # --- KROK 1: WŁĄCZAMY WSPARCIE DLA WEKTORÓW ---
     with engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))

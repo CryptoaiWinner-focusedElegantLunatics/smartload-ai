@@ -1456,11 +1456,12 @@ header_actions %}
       .querySelectorAll(".popraw-wrap.open")
       .forEach((w) => w.classList.remove("open"));
     try {
-      await fetch(`/api/emails/${id}/category`, {
-        method: "PATCH",
+      const res = await fetch(`/api/emails/${id}/category`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category: newCat }),
       });
+      if (!res.ok) throw new Error("HTTP " + res.status);
       const email = allEmails.find((x) => x.id === id);
       if (email) email.ai_category = newCat;
       applyFilters();
