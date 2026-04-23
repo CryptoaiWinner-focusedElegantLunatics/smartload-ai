@@ -30,8 +30,14 @@ from pydantic import BaseModel
 from seed_admin import create_superuser
 from seed_db import seed_test_emails
 from app.seed_firetms import seed_all
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 scheduler = AsyncIOScheduler()
+
+
+
 
 
 @asynccontextmanager
@@ -67,6 +73,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SmartLoad AI API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # w produkcji: Twój domain Next.js
+    allow_credentials=True,  # WAŻNE: żeby cookie działało
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(loads.router, prefix="/api", tags=["loads"])
 app.include_router(documents_router)
 
