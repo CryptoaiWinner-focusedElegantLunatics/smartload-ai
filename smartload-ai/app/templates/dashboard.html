@@ -1,0 +1,997 @@
+{% extends "base.html" %} {% block title %}SmartLoad AI – Dashboard Główny{%
+endblock %} {% block head_extra %}
+<style>
+  /* ── Design Tokens ── */
+  :root {
+    --font-headline: "Space Grotesk", sans-serif;
+    --color-primary: #0035c5;
+    --color-primary-container: #0047ff;
+    --color-tertiary-dim: #00daf3;
+    --color-card-bg: rgba(255, 255, 255, 0.85);
+    --color-card-border: rgba(255, 255, 255, 0.2);
+    --color-outline-variant-alpha: rgba(196, 197, 218, 0.15);
+    --color-text-primary: #0f172a;
+    --color-text-muted: #64748b;
+    --color-text-faint: #94a3b8;
+    --color-progress-bg: #e2e8f0;
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark {
+    --color-card-bg: rgba(15, 23, 42, 0.7);
+    --color-card-border: rgba(255, 255, 255, 0.05);
+    --color-outline-variant-alpha: rgba(255, 255, 255, 0.08);
+    --color-text-primary: #f1f5f9;
+    --color-text-muted: #94a3b8;
+    --color-text-faint: #475569;
+    --color-progress-bg: #1e293b;
+  }
+
+  .font-headline {
+    font-family: var(--font-headline);
+  }
+
+  .glass-card {
+    background: var(--color-card-bg);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-card-border);
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, #0035c5 0%, #0047ff 100%);
+  }
+
+  .gradient-purple {
+    background: linear-gradient(135deg, #6b21a8 0%, #3b0764 100%);
+  }
+
+  .gradient-teal {
+    background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%);
+  }
+
+  /* ── Page Layout ── */
+  .dash-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    padding: 3rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* ── Header ── */
+  .page-title {
+    font-family: var(--font-headline);
+    font-size: clamp(28px, 3vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .pulse-ring {
+    position: relative;
+    width: 8px;
+    height: 8px;
+  }
+
+  .pulse-ring::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--color-tertiary-dim);
+    opacity: 0.75;
+    animation: ping 1.5s ease-in-out infinite;
+  }
+
+  .pulse-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--color-tertiary-dim);
+  }
+
+  @keyframes ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.75;
+    }
+
+    75%,
+    100% {
+      transform: scale(2.2);
+      opacity: 0;
+    }
+  }
+
+  .status-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+  }
+
+  /* ── Modules Grid ── */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .module-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    padding: 2rem;
+    color: #fff;
+    cursor: pointer;
+    transition:
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.25s;
+  }
+
+  .module-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .module-card.purple {
+    box-shadow: 0 20px 60px rgba(107, 33, 168, 0.3);
+  }
+
+  .module-card.purple:hover {
+    box-shadow: 0 28px 80px rgba(107, 33, 168, 0.4);
+  }
+
+  .module-card.teal {
+    box-shadow: 0 20px 60px rgba(15, 118, 110, 0.3);
+  }
+
+  .module-card.teal:hover {
+    box-shadow: 0 28px 80px rgba(15, 118, 110, 0.4);
+  }
+
+  .module-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2.5rem;
+  }
+
+  .module-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .module-badge {
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+
+  .module-badge-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .badge-active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-tertiary-dim);
+  }
+
+  .module-title {
+    font-family: var(--font-headline);
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.75rem;
+  }
+
+  .module-desc {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 13px;
+    line-height: 1.65;
+    max-width: 340px;
+    margin-bottom: 2.5rem;
+  }
+
+  .module-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    transition: gap 0.2s;
+  }
+
+  .module-card:hover .module-cta {
+    gap: 1.25rem;
+  }
+
+  /* ── Insights Grid ── */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 2rem;
+    align-items: stretch;
+  }
+
+  .stats-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .stats-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    flex: 1;
+  }
+
+  .stat-card {
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: var(--color-card-bg);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-card-border);
+  }
+
+  .stat-card:hover {
+    border-color: rgba(0, 53, 197, 0.3);
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+  }
+
+  .stat-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .stat-number {
+    font-family: var(--font-headline);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1;
+  }
+
+  .stat-trend-pos {
+    font-size: 10px;
+    font-weight: 700;
+    color: #22c55e;
+  }
+
+  .stat-trend-new {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .stat-progress {
+    margin-top: 1rem;
+    width: 100%;
+    height: 3px;
+    background: var(--color-progress-bg);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .stat-bar {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .bar-primary {
+    background: var(--color-primary);
+  }
+
+  .bar-tertiary {
+    background: var(--color-tertiary-dim);
+  }
+
+  .total-base-card {
+    border-radius: 8px;
+    padding: 2rem;
+    background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 25%, transparent);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .total-base-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .total-base-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  .total-base-number {
+    font-family: var(--font-headline);
+    font-size: 64px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .total-base-sublabel {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  .db-icon-bg {
+    position: absolute;
+    right: -24px;
+    bottom: -24px;
+    opacity: 0.1;
+    transition: transform 0.7s ease;
+  }
+
+  .total-base-card:hover .db-icon-bg {
+    transform: rotate(-12deg);
+  }
+
+  /* ── Chart Card ── */
+  .chart-card {
+    border-radius: 8px;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .chart-title {
+    font-family: var(--font-headline);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .legend-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-text-muted);
+  }
+
+  .chart-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+    position: relative;
+  }
+
+  .donut-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 260px;
+    aspect-ratio: 1;
+    margin: 0 auto;
+  }
+
+  .donut-svg {
+    transform: rotate(-90deg);
+  }
+
+  .donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .donut-pct {
+    font-family: var(--font-headline);
+    font-size: 44px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1;
+  }
+
+  .donut-sublabel {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+  }
+
+  .chart-stats-row {
+    margin-top: 2rem;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .chart-stat-pill {
+    padding: 1rem;
+    border: 1px solid var(--color-outline-variant-alpha);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chart-stat-key {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+  }
+
+  .chart-stat-val-primary {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .chart-stat-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  /* ── Quick Footer ── */
+  .quick-footer {
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--color-outline-variant-alpha);
+    margin-top: auto;
+  }
+
+  .quick-label {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: var(--color-text-faint);
+    margin-bottom: 1.5rem;
+    display: block;
+  }
+
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+
+  .quick-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-radius: 8px;
+    background: var(--color-card-bg);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-card-border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-text-primary);
+    transition:
+      background 0.2s,
+      color 0.2s,
+      transform 0.15s,
+      border-color 0.2s;
+  }
+
+  .quick-card:hover {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+    transform: scale(1.02);
+  }
+
+  .quick-card:hover i {
+    color: #fff !important;
+  }
+
+  .quick-card i {
+    color: var(--color-text-faint);
+    transition: color 0.2s;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1200px) {
+    .insights-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .modules-grid {
+      grid-template-columns: 1fr;
+    }
+    .dash-main {
+      padding: 1.5rem;
+    }
+    .quick-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .chart-card {
+      padding: 1.5rem;
+    }
+    .chart-header {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .chart-title {
+      font-size: 18px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .dash-main {
+      padding: 1rem;
+      gap: 1.5rem;
+    }
+
+    /* Moduły — pełna szerokość */
+    .modules-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .module-card {
+      padding: 1.5rem;
+    }
+    .module-title {
+      font-size: 22px;
+    }
+
+    /* Stats — 2 kolumny na mobile */
+    .stats-2col {
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .stat-number {
+      font-size: 32px;
+    }
+    .total-base-number {
+      font-size: 44px;
+    }
+
+    /* Insights — jedna kolumna */
+    .insights-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* Chart card */
+    .chart-card {
+      padding: 1.25rem;
+    }
+    .chart-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .chart-legend {
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+    }
+
+    /* Donut — mniejszy na telefonie */
+    .donut-wrapper {
+      width: 200px;
+      height: 200px;
+    }
+    .donut-svg {
+      width: 200px;
+      height: 200px;
+    }
+    .donut-pct {
+      font-size: 32px;
+    }
+
+    /* Legend pod donutem — kolumna */
+    #donut-legend {
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Chart stats pills */
+    .chart-stats-row {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    .chart-stat-pill {
+      padding: 0.75rem;
+    }
+
+    /* Quick grid */
+    .quick-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .quick-card {
+      padding: 1rem;
+      font-size: 10px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-2col {
+      grid-template-columns: 1fr 1fr;
+    }
+    .stat-number {
+      font-size: 28px;
+    }
+    .quick-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .module-card-top {
+      margin-bottom: 1.5rem;
+    }
+    .module-desc {
+      margin-bottom: 1.5rem;
+    }
+    .total-base-card {
+      padding: 1.25rem;
+    }
+  }
+</style>
+{% endblock %} {% block page_title %}Dashboard Główny{% endblock %} {% block
+page_subtitle %}Centrum zarządzania SmartLoad AI{% endblock %} {% block content
+%}
+<div class="dash-main" id="mainContent">
+  <!-- Featured Modules -->
+  <section class="modules-grid" aria-label="Moduły główne">
+    <div
+      class="module-card gradient-purple purple"
+      onclick="location.href = '/mail'"
+    >
+      <div class="module-card-top">
+        <div class="module-icon">
+          <i
+            data-lucide="sparkles"
+            size="28"
+            style="color: rgba(255, 255, 255, 0.9)"
+          ></i>
+        </div>
+        <span class="module-badge" id="dash-mail-badge">— Nowych</span>
+      </div>
+      <h2 class="module-title">Poczta AI</h2>
+      <p class="module-desc">
+        Inteligentne sortowanie i analiza korespondencji transportowej. System
+        automatycznie wyodrębnia parametry ładunków.
+      </p>
+      <a href="/mail" class="module-cta">
+        Otwórz moduł <i data-lucide="arrow-right" size="14"></i>
+      </a>
+    </div>
+
+    <div
+      class="module-card gradient-teal teal"
+      onclick="location.href = '/chat'"
+    >
+      <div class="module-card-top">
+        <div class="module-icon">
+          <i
+            data-lucide="message-square"
+            size="28"
+            style="color: rgba(255, 255, 255, 0.9)"
+          ></i>
+        </div>
+        <div class="module-badge module-badge-dot">
+          <span class="badge-active-dot"></span>
+          <span>Flota Online</span>
+        </div>
+      </div>
+      <h2 class="module-title">Komunikator</h2>
+      <p class="module-desc">
+        Bezpośrednie połączenie z Twoją flotą. Automatyczne tłumaczenia
+        komunikatów i geolokalizacja w czasie rzeczywistym.
+      </p>
+      <a href="/chat" class="module-cta">
+        Otwórz czat <i data-lucide="arrow-right" size="14"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- Insights & Data -->
+  <section class="insights-grid" aria-label="Statystyki i wykresy">
+    <div class="stats-col">
+      <div class="stats-2col">
+        <div class="stat-card">
+          <p class="stat-label">Oferty</p>
+          <div class="stat-value-row">
+            <span
+              class="stat-number"
+              data-count-to="{{ stats.oferty | default(0) }}"
+              >0</span
+            >
+            <span class="stat-trend-pos">+12%</span>
+          </div>
+          <div class="stat-progress">
+            <div
+              class="stat-bar bar-primary"
+              style="width: 0%"
+              data-width="70%"
+            ></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Zamówienia</p>
+          <div class="stat-value-row">
+            <span
+              class="stat-number"
+              data-count-to="{{ stats.zamowienia | default(0) }}"
+              >0</span
+            >
+            <span class="stat-trend-new">New</span>
+          </div>
+          <div class="stat-progress">
+            <div
+              class="stat-bar bar-tertiary"
+              style="width: 0%"
+              data-width="30%"
+            ></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Faktury</p>
+          <div class="stat-value-row">
+            <span
+              class="stat-number"
+              data-count-to="{{ stats.faktury | default(0) }}"
+              >0</span
+            >
+          </div>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Inne</p>
+          <div class="stat-value-row">
+            <span
+              class="stat-number"
+              data-count-to="{{ stats.inne | default(0) }}"
+              >0</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="total-base-card">
+        <p class="total-base-label">Łącznie w bazie</p>
+        <div class="total-base-row">
+          <span
+            class="total-base-number"
+            data-count-to="{{ stats.total | default(0) }}"
+            >0</span
+          >
+          <span class="total-base-sublabel"
+            >Zasoby zoptymalizowane przez AI</span
+          >
+        </div>
+        <i
+          data-lucide="database"
+          size="120"
+          class="db-icon-bg"
+          style="color: var(--color-primary); transform: rotate(12deg)"
+        ></i>
+      </div>
+    </div>
+
+    <div class="chart-card glass-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Podział Kategorii</h3>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <span class="legend-dot" style="background: #6b21a8"></span
+            ><span class="legend-label">Poczta</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background: #0f766e"></span
+            ><span class="legend-label">Komunikator</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="donut-wrapper">
+          <svg
+            class="donut-svg"
+            width="100%"
+            height="100%"
+            viewBox="0 0 200 200"
+            id="donut-svg"
+            style="max-width: 260px; max-height: 260px"
+          >
+            <circle
+              fill="none"
+              stroke="var(--color-progress-bg)"
+              stroke-width="26"
+              cx="100"
+              cy="100"
+              r="80"
+            />
+            <circle
+              fill="none"
+              stroke="#6b21a8"
+              stroke-width="26"
+              cx="100"
+              cy="100"
+              r="80"
+              stroke-dasharray="376.5 502"
+              stroke-linecap="round"
+            />
+            <circle
+              fill="none"
+              stroke="#0f766e"
+              stroke-width="26"
+              cx="100"
+              cy="100"
+              r="80"
+              stroke-dasharray="125.5 502"
+              stroke-dashoffset="-376.5"
+              stroke-linecap="round"
+            />
+          </svg>
+          <div class="donut-center">
+            <span class="donut-pct">100%</span>
+            <span class="donut-sublabel">Efektywności</span>
+          </div>
+        </div>
+        <div class="chart-stats-row">
+          <div class="chart-stat-pill">
+            <span class="chart-stat-key">Status Optymalizacji</span>
+            <span class="chart-stat-val-primary">EKSTREMALNY</span>
+          </div>
+          <div class="chart-stat-pill">
+            <span class="chart-stat-key">Użycie API</span>
+            <span class="chart-stat-val" id="dash-api-usage">— / 24h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Access -->
+  <footer class="quick-footer" aria-label="Panel szybkiego dostępu">
+    <label class="quick-label">Panel Szybkiego Dostępu</label>
+    <div class="quick-grid">
+      <a href="/mail?filter=OFERTA" class="quick-card"
+        >Wykaz Ofert <i data-lucide="tag" size="18"></i
+      ></a>
+      <a href="/mail?filter=ZAMOWIENIE" class="quick-card"
+        >Zamówienia <i data-lucide="shopping-cart" size="18"></i
+      ></a>
+      <a href="/mail?filter=FAKTURA" class="quick-card"
+        >Rozliczenia <i data-lucide="receipt-text" size="18"></i
+      ></a>
+      <a href="/docs" class="quick-card"
+        >Katalog API <i data-lucide="code-2" size="18"></i
+      ></a>
+    </div>
+  </footer>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  // Re-init Lucide (base.html może go nie ładować)
+  if (typeof lucide !== "undefined") lucide.createIcons();
+
+  // Counter animation
+  function animateCounter(el, target, duration) {
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) {
+        start = target;
+        clearInterval(timer);
+      }
+      el.textContent = Math.floor(start);
+    }, 16);
+  }
+
+  window.addEventListener("load", () => {
+    // Progress bars
+    setTimeout(() => {
+      document.querySelectorAll("[data-width]").forEach((bar) => {
+        bar.style.width = bar.dataset.width;
+      });
+      document.querySelectorAll("[data-count-to]").forEach((el) => {
+        animateCounter(el, parseInt(el.dataset.countTo) || 0, 800);
+      });
+    }, 300);
+
+    // Pobierz liczbę nowych maili z API i zaktualizuj badge
+    fetch("/api/emails?limit=1")
+      .then((r) => r.json())
+      .then((data) => {
+        const count = data.total || 0;
+        const badge = document.getElementById("dash-mail-badge");
+        if (badge) badge.textContent = count + " Nowych";
+      })
+      .catch(() => {});
+
+    // Użycie API z localStorage
+    const usage = JSON.parse(
+      localStorage.getItem("aiUsageTotal") ||
+        '{"prompt_tokens":0,"completion_tokens":0}',
+    );
+    const total = usage.prompt_tokens + usage.completion_tokens;
+    const el = document.getElementById("dash-api-usage");
+    if (el)
+      el.textContent =
+        (total > 1000 ? (total / 1000).toFixed(1) + "k" : total) + " / 24h";
+  });
+</script>
+{% endblock %}

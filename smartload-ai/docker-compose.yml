@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  db:
+    image: ankane/pgvector:latest
+    container_name: smartload_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: smartload
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartload_redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: .
+    container_name: smartload_backend
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
+  celery_worker:
+    build: .
+    container_name: smartload_celery
+    command: celery -A app.core.celery_app worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+      - backend
+
+  # --- TUTAJ DODAJEMY FRONTEND ---
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: smartload_frontend
+    ports:
+      - "80:80"
+    volumes:
+      # Mapujemy nowy folder app/web do kontenera
+      - ./app/web:/usr/share/nginx/html
+    depends_on:
+      - backend
+volumes:
+  postgres_data:

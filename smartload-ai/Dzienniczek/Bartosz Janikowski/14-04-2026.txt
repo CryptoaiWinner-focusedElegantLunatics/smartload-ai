@@ -1,0 +1,1 @@
+Integracja danych z JSONow z fireTMS

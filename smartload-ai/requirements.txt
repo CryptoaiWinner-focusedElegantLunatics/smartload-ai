@@ -1,0 +1,51 @@
+# Core
+fastapi==0.110.0
+uvicorn[standard]==0.27.1
+pydantic==2.6.1
+pydantic-settings==2.1.0
+python-dotenv==1.0.1
+
+# Baza danych
+sqlalchemy==2.0.27
+psycopg2-binary==2.9.9
+sqlmodel==0.0.16
+
+# Fetching i Scrapping
+httpx==0.27.0
+beautifulsoup4==4.12.3
+playwright==1.42.0
+lxml
+
+# Email Gateway
+imap-tools==1.5.0
+
+# Utils
+python-multipart==0.0.9
+
+# Auth — JWT + Passwords
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+python-jose[cryptography]==3.3.0
+
+# AI Vector Support
+pgvector==0.2.5
+celery==5.3.6
+redis==5.0.3
+beautifulsoup4==4.12.3
+requests==2.31.0
+jinja2
+
+lxml
+apscheduler
+
+# OCR
+PyMuPDF==1.24.2
+pytesseract==0.3.10
+Pillow==10.3.0
+pdf2image==1.17.0
+groq
+reportlab==4.2.0
+pypdf
+# Testing
+pytest==8.1.1
+pytest-asyncio==0.23.6

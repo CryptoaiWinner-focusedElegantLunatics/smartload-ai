@@ -1,0 +1,1620 @@
+{% extends "base.html" %} {% block title %}Poczta AI – SmartLoad{% endblock %}
+{% block page_title %}Poczta AI{% endblock %} {% block page_subtitle
+%}Klasyfikacja i zarządzanie mailami spedycyjnymi{% endblock %} {% block
+header_actions %}
+<button
+  id="btnScanInne"
+  onclick="scanInne()"
+  class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow shadow-violet-500/30 hover:opacity-90 transition-opacity cursor-pointer border-0"
+>
+  ⚡ Skanuj INNE
+</button>
+{% endblock %} {% block head_extra %}
+<style>
+  :root {
+    --c-primary: #3b82f6;
+    --c-primary-dim: rgba(59, 130, 246, 0.15);
+    --c-green: #22c55e;
+    --c-border: #e2e8f0;
+    --c-bg: #f8fafc;
+    --c-surface: #ffffff;
+    --c-hover: #f1f5f9;
+    --c-text: #0f172a;
+    --c-muted: #64748b;
+    --c-faint: #94a3b8;
+  }
+  .dark {
+    --c-border: #252525;
+    --c-bg: #0a0a0a;
+    --c-surface: #111111;
+    --c-hover: #191919;
+    --c-text: #e8e8e8;
+    --c-muted: #888888;
+    --c-faint: #555555;
+  }
+  .btn-add-cat {
+    padding: 0.55rem 0.875rem;
+    border-radius: 8px;
+    border: 1px dashed var(--c-border);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--c-muted);
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      color 0.15s;
+    white-space: nowrap;
+  }
+  .btn-add-cat:hover {
+    border-color: var(--c-primary);
+    color: var(--c-primary);
+  }
+  .mail-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--c-bg);
+  }
+  .mail-filters {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: var(--c-surface);
+    border-bottom: 1px solid var(--c-border);
+    flex-shrink: 0;
+  }
+  .filter-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--c-faint);
+    margin-bottom: 4px;
+  }
+  .filter-input {
+    width: 100%;
+    padding: 0.55rem 0.875rem;
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    background: var(--c-bg);
+    font-size: 12px;
+    color: var(--c-text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .filter-input:focus {
+    border-color: var(--c-primary);
+  }
+  .filter-input::placeholder {
+    color: var(--c-faint);
+  }
+  .filter-select-wrap {
+    min-width: 180px;
+  }
+  .filter-select {
+    width: 100%;
+    padding: 0.55rem 2rem 0.55rem 0.875rem;
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    background: var(--c-bg);
+    font-size: 12px;
+    color: var(--c-text);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    transition: border-color 0.15s;
+  }
+  .filter-select:focus {
+    border-color: var(--c-primary);
+  }
+  .btn-filter {
+    padding: 0.55rem 1.25rem;
+    border-radius: 8px;
+    border: none;
+    background: var(--c-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .btn-filter:hover {
+    opacity: 0.88;
+  }
+  .btn-delete-many {
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #fca5a5;
+    background: transparent;
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+  .btn-delete-many:hover {
+    background: rgba(239, 68, 68, 0.08);
+  }
+  .mail-table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--c-surface);
+  }
+  table.mail-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .mail-tbl thead th {
+    padding: 0.625rem 1rem;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--c-faint);
+    background: var(--c-surface);
+    border-bottom: 1px solid var(--c-border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .mail-tbl thead th:first-child {
+    width: 36px;
+    padding-left: 1.25rem;
+  }
+  .mail-tbl tbody tr {
+    border-bottom: 1px solid var(--c-border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .mail-tbl tbody tr:hover {
+    background: var(--c-hover);
+  }
+  .mail-tbl td {
+    padding: 0.8rem 1rem;
+    vertical-align: middle;
+    color: var(--c-text);
+  }
+  .mail-tbl td:first-child {
+    padding-left: 1.25rem;
+  }
+  .col-sender {
+    min-width: 180px;
+    max-width: 220px;
+  }
+  .sender-email {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .col-subject {
+    min-width: 180px;
+  }
+  .subject-txt {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--c-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    display: block;
+  }
+  .col-route {
+    white-space: nowrap;
+    min-width: 160px;
+  }
+  .route-txt {
+    font-size: 13px;
+    color: var(--c-text);
+  }
+  .route-arrow {
+    color: var(--c-faint);
+    margin: 0 4px;
+  }
+  .col-weight {
+    white-space: nowrap;
+    color: var(--c-muted);
+    font-size: 13px;
+  }
+  .col-rate {
+    white-space: nowrap;
+  }
+  .rate-val {
+    font-weight: 700;
+    color: var(--c-green);
+    font-size: 13px;
+  }
+  .col-cat {
+    white-space: nowrap;
+  }
+  .cat-pill {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px solid transparent;
+  }
+  .col-actions {
+    white-space: nowrap;
+    text-align: right;
+    padding-right: 1.25rem;
+  }
+  .act-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .popraw-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+  .btn-popraw {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.3rem 0.625rem;
+    border-radius: 6px;
+    border: 1px solid var(--c-border);
+    background: var(--c-surface);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c-muted);
+    cursor: pointer;
+    transition:
+      border-color 0.12s,
+      color 0.12s;
+    white-space: nowrap;
+  }
+  .btn-popraw:hover {
+    border-color: var(--c-primary);
+    color: var(--c-primary);
+  }
+  .popraw-chevron {
+    font-size: 9px;
+  }
+  .popraw-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 50;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    min-width: 160px;
+    overflow: hidden;
+  }
+  .popraw-wrap.open .popraw-dropdown {
+    display: block;
+  }
+  .popraw-opt {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.1s;
+    gap: 0.5rem;
+  }
+  .popraw-opt:hover {
+    background: var(--c-hover);
+  }
+  .btn-del-row {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--c-border);
+    background: transparent;
+    color: var(--c-faint);
+    cursor: pointer;
+    transition:
+      background 0.1s,
+      color 0.1s,
+      border-color 0.1s;
+  }
+  .btn-del-row:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border-color: #fca5a5;
+  }
+  .mail-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 5rem 2rem;
+    color: var(--c-faint);
+  }
+  .mail-state .spin {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--c-primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: _spin 0.7s linear infinite;
+  }
+  @keyframes _spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .mail-state p {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-box {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+  }
+  .modal-hdr {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--c-border);
+    gap: 1rem;
+  }
+  .modal-subj {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--c-text);
+  }
+  .modal-from {
+    font-size: 11px;
+    color: var(--c-faint);
+    margin-top: 3px;
+  }
+  .modal-close-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--c-border);
+    background: var(--c-hover);
+    color: var(--c-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+  }
+  .modal-close-btn:hover {
+    background: var(--c-border);
+  }
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem 1.5rem;
+  }
+  .modal-sec-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--c-faint);
+    margin-bottom: 0.625rem;
+  }
+  .modal-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+  }
+  .modal-chip {
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c-muted);
+    background: var(--c-hover);
+    border: 1px solid var(--c-border);
+  }
+  .modal-chip.hi {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: var(--c-primary);
+  }
+  .modal-content-txt {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--c-muted);
+    white-space: pre-wrap;
+  }
+  .modal-ftr {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--c-border);
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+  .btn-m {
+    padding: 0.5rem 1.125rem;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--c-border);
+    background: var(--c-surface);
+    color: var(--c-muted);
+    transition: background 0.12s;
+  }
+  .btn-m:hover {
+    background: var(--c-hover);
+  }
+  .btn-m.primary {
+    background: var(--c-primary);
+    color: #fff;
+    border-color: var(--c-primary);
+  }
+  .btn-m.primary:hover {
+    opacity: 0.88;
+  }
+  .btn-m.danger {
+    color: #ef4444;
+  }
+  .btn-m.danger:hover {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: #fca5a5;
+  }
+
+  /* ── Mobile cards ── */
+  .mail-card-list {
+    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .mail-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    cursor: pointer;
+    transition: background 0.1s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mail-card:active {
+    background: var(--c-hover);
+  }
+  .mail-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .mail-card-sender {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--c-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mail-card-subject {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c-text);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 2px;
+  }
+  .mail-card-route {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--c-bg);
+    border-radius: 7px;
+    padding: 0.5rem 0.75rem;
+  }
+  .mail-card-city {
+    flex: 1;
+    text-align: center;
+  }
+  .mail-card-city-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--c-faint);
+    margin-bottom: 2px;
+  }
+  .mail-card-city-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--c-text);
+  }
+  .mail-card-arrow {
+    color: var(--c-faint);
+    flex-shrink: 0;
+  }
+  .mail-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mail-card-stats {
+    display: flex;
+    gap: 1.25rem;
+  }
+  .mail-card-stat-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--c-faint);
+  }
+  .mail-card-stat-val {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--c-text);
+  }
+  .mail-card-stat-val.green {
+    color: var(--c-green);
+  }
+  .mail-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  .mail-tbl tbody tr.is-selected {
+    background: rgba(59, 130, 246, 0.08) !important;
+    outline: 1px solid rgba(59, 130, 246, 0.25);
+    outline-offset: -1px;
+  }
+  .dark .mail-tbl tbody tr.is-selected {
+    background: rgba(59, 130, 246, 0.12) !important;
+  }
+  .mail-tbl tbody tr.is-selected td:first-child {
+    border-left: 3px solid var(--c-primary);
+  }
+
+  /* ── Zaznaczona karta mobile ── */
+  .mail-card.is-selected {
+    border-color: var(--c-primary);
+    background: rgba(59, 130, 246, 0.06) !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+
+  /* ── Shift-select: zablokuj text-select podczas zaznaczania ── */
+  .mail-table-wrap.selecting {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  @media (max-width: 768px) {
+    .mail-filters {
+      grid-template-columns: 1fr 1fr;
+    }
+    .mail-tbl {
+      display: none;
+    }
+    .mail-card-list {
+      display: flex;
+    }
+  }
+  @media (max-width: 560px) {
+    .mail-filters {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .mail-filters {
+      grid-template-columns: 1fr 1fr;
+    }
+    .mail-tbl {
+      display: none;
+    }
+    .mail-card-list {
+      display: flex;
+    }
+  }
+  @media (max-width: 560px) {
+    .mail-filters {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %} {% block content %} {% include "components/popup.html" %}
+<div class="mail-wrap">
+  <!-- ── Filter bar ── -->
+  <div class="mail-filters">
+    <div>
+      <div class="filter-label">Szukaj w temacie / nadawcy</div>
+      <input
+        class="filter-input"
+        id="filterSearch"
+        type="text"
+        placeholder="np. Trans.eu, DE-PL..."
+        oninput="applyFilters()"
+      />
+    </div>
+
+    <div class="filter-select-wrap">
+      <div
+        class="filter-label"
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 4px;
+        "
+      >
+        <span>Kategoria AI</span>
+        <button
+          onclick="addCustomCategory()"
+          title="Dodaj własną kategorię"
+          style="
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1px solid var(--c-border);
+            background: transparent;
+            color: var(--c-faint);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition:
+              border-color 0.15s,
+              color 0.15s;
+          "
+          onmouseover="
+            this.style.borderColor = 'var(--c-primary)';
+            this.style.color = 'var(--c-primary)';
+          "
+          onmouseout="
+            this.style.borderColor = 'var(--c-border)';
+            this.style.color = 'var(--c-faint)';
+          "
+        >
+          +
+        </button>
+      </div>
+      <select class="filter-select" id="filterCat" onchange="applyFilters()">
+        <option value="">Wszystkie kategorie</option>
+        <option value="OFERTA">Oferta</option>
+        <option value="ZAMOWIENIE">Zamówienie</option>
+        <option value="FAKTURA">Faktura</option>
+        <option value="DOKUMENT_CMR">Dokument CMR</option>
+        <option value="INNE">Inne</option>
+      </select>
+    </div>
+
+    <button class="btn-delete-many" onclick="deleteSelected()">
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6l-1 14H6L5 6" />
+        <path d="M9 6V4h6v2" />
+      </svg>
+      Usuń wiele
+    </button>
+  </div>
+
+  <!-- ── Table + Cards ── -->
+  <div class="mail-table-wrap">
+    <div id="stateLoading" class="mail-state">
+      <div class="spin"></div>
+      <p>Ładowanie maili…</p>
+    </div>
+
+    <div id="stateEmpty" class="mail-state" style="display: none">
+      <svg
+        width="44"
+        height="44"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        style="opacity: 0.25"
+      >
+        <path d="M22 12h-6l-2 3H10l-2-3H2" />
+        <path
+          d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"
+        />
+      </svg>
+      <p>Brak maili</p>
+    </div>
+
+    <!-- Desktop table -->
+    <table class="mail-tbl" id="mailTable" style="display: none">
+      <thead>
+        <tr>
+          <th>
+            <input
+              type="checkbox"
+              id="checkAll"
+              onchange="toggleAll(this)"
+              style="cursor: pointer"
+            />
+          </th>
+          <th class="col-sender">Nadawca</th>
+          <th class="col-subject">Temat</th>
+          <th class="col-route">Trasa</th>
+          <th class="col-weight">Waga</th>
+          <th class="col-rate">Stawka</th>
+          <th class="col-cat">Kategoria AI</th>
+          <th class="col-actions">Akcje</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <!-- Mobile cards -->
+    <div class="mail-card-list" id="cardList"></div>
+  </div>
+</div>
+
+<!-- ── Modal: szczegóły maila ── -->
+<div
+  class="modal-backdrop"
+  id="modalBackdrop"
+  style="display: none"
+  onclick="onBackdropClick(event)"
+>
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-subj" id="mSubject">—</div>
+        <div class="modal-from" id="mFrom">—</div>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal()">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-sec-label">Dane wyodrębnione przez AI</div>
+      <div class="modal-chips" id="mChips"></div>
+      <div class="modal-sec-label">Treść wiadomości</div>
+      <div class="modal-content-txt" id="mBody">—</div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-m danger" onclick="deleteEmail(currentId)">
+        Usuń
+      </button>
+      <button class="btn-m" onclick="closeModal()">Zamknij</button>
+      <button class="btn-m primary">Odpowiedz</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Dodaj kategorię ── -->
+<div
+  id="catModal"
+  style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  "
+>
+  <div
+    style="
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 380px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+    "
+  >
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--c-border);
+      "
+    >
+      <span style="font-size: 14px; font-weight: 800; color: var(--c-text)"
+        >Dodaj kategorię AI</span
+      >
+      <button
+        onclick="closeCatModal()"
+        style="
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          border: 1px solid var(--c-border);
+          background: var(--c-hover);
+          color: var(--c-muted);
+          cursor: pointer;
+          font-size: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        "
+      >
+        &times;
+      </button>
+    </div>
+    <div style="padding: 1.25rem 1.5rem">
+      <label
+        style="
+          font-size: 9px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.2em;
+          color: var(--c-faint);
+          display: block;
+          margin-bottom: 8px;
+        "
+      >
+        Nazwa kategorii (np. REKLAMACJA)
+      </label>
+      <input
+        id="newCatInput"
+        type="text"
+        placeholder="WPISZ_NAZWE"
+        style="
+          width: 100%;
+          padding: 0.6rem 0.875rem;
+          border: 1px solid var(--c-border);
+          border-radius: 8px;
+          background: var(--c-bg);
+          color: var(--c-text);
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          outline: none;
+          box-sizing: border-box;
+        "
+        oninput="
+          this.value = this.value.toUpperCase().replace(/[^A-Z0-9_]/g, '')
+        "
+        onkeydown="if (event.key === 'Enter') saveCat();"
+      />
+    </div>
+    <div
+      style="
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--c-border);
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      "
+    >
+      <button onclick="closeCatModal()" class="btn-m">Anuluj</button>
+      <button onclick="saveCat()" class="btn-m primary">Dodaj</button>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  let allEmails = [];
+  let currentId = null;
+  let selectedIds = new Set();
+  let lastCheckedIndex = -1; // ← shift+click
+
+  const DEFAULT_CATS = [
+    "OFERTA",
+    "ZAMOWIENIE",
+    "FAKTURA",
+    "DOKUMENT_CMR",
+    "INNE",
+  ];
+  let customCats = JSON.parse(localStorage.getItem("customCategories") || "[]");
+  let CATS = [...DEFAULT_CATS, ...customCats];
+
+  const CAT_COLORS = {
+    OFERTA: { bg: "#1d4ed8", text: "#fff" },
+    ZAMOWIENIE: { bg: "#059669", text: "#fff" },
+    FAKTURA: { bg: "#7c3aed", text: "#fff" },
+    INNE: { bg: "#475569", text: "#fff" },
+    DOKUMENT_CMR: { bg: "#d97706", text: "#fff" },
+  };
+  const HASH_PALETTE = [
+    { bg: "#db2777", text: "#fff" },
+    { bg: "#0891b2", text: "#fff" },
+    { bg: "#4f46e5", text: "#fff" },
+    { bg: "#b45309", text: "#fff" },
+    { bg: "#15803d", text: "#fff" },
+    { bg: "#0f766e", text: "#fff" },
+    { bg: "#9333ea", text: "#fff" },
+    { bg: "#c2410c", text: "#fff" },
+  ];
+  function getCatColor(cat) {
+    if (CAT_COLORS[cat]) return CAT_COLORS[cat];
+    let hash = 0;
+    for (let i = 0; i < cat.length; i++)
+      hash = cat.charCodeAt(i) + ((hash << 5) - hash);
+    const color = HASH_PALETTE[Math.abs(hash) % HASH_PALETTE.length];
+    CAT_COLORS[cat] = color;
+    return color;
+  }
+  function catPillHTML(cat, small = false) {
+    const { bg, text } = getCatColor(cat);
+    const size = small ? "font-size:10px;padding:2px 8px;" : "";
+    return `<span class="cat-pill" style="background:${bg};color:${text};border-color:${bg};${size}">${cat}</span>`;
+  }
+
+  /* ── Fetch ── */
+  async function loadEmails() {
+    setState("loading");
+    try {
+      const r = await fetch("/api/emails?limit=500");
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      allEmails = Array.isArray(data) ? data : data.emails || data.items || [];
+      updateSidebarBadge();
+      applyFilters();
+    } catch (e) {
+      console.error(e);
+      setState("empty");
+    }
+  }
+
+  function updateSidebarBadge() {
+    const b = document.getElementById("sidebar-mail-badge");
+    if (b) {
+      b.textContent = allEmails.length;
+      b.classList.remove("hidden");
+    }
+  }
+
+  /* ── Filters ── */
+  function applyFilters() {
+    const search = (
+      document.getElementById("filterSearch")?.value || ""
+    ).toLowerCase();
+    const cat = document.getElementById("filterCat")?.value || "";
+    const list = allEmails.filter((e) => {
+      const s =
+        !search ||
+        (e.sender || "").toLowerCase().includes(search) ||
+        (e.subject || "").toLowerCase().includes(search);
+      const c = !cat || e.ai_category === cat;
+      return s && c;
+    });
+    renderTable(list);
+  }
+
+  /* ── Helpers zaznaczenia ── */
+  function setRowSelected(id, selected) {
+    selectedIds[selected ? "add" : "delete"](id);
+
+    // tabela
+    const cb = document.querySelector(`#tableBody input[data-id="${id}"]`);
+    if (cb) {
+      cb.checked = selected;
+      cb.closest("tr")?.classList.toggle("is-selected", selected);
+    }
+    // karta
+    const card = document.querySelector(`.mail-card[data-id="${id}"]`);
+    if (card) card.classList.toggle("is-selected", selected);
+  }
+
+  /* ── Render ── */
+  function renderTable(emails) {
+    if (!emails.length) {
+      setState("empty");
+      return;
+    }
+    setState("table");
+
+    // Desktop
+    document.getElementById("tableBody").innerHTML = emails
+      .map((e, idx) => {
+        const cat = e.ai_category || "INNE";
+        const origin = e.loading_city || "?";
+        const dest = e.unloading_city || "?";
+        const weight =
+          e.weight_kg != null ? (e.weight_kg / 1000).toFixed(1) + " t" : "—";
+        const price =
+          e.price != null
+            ? Number(e.price).toLocaleString("pl-PL") +
+              " " +
+              (e.currency || "EUR")
+            : "—";
+        const dropdownOpts = CATS.map(
+          (c) => `
+        <button class="popraw-opt" onclick="reclassify(${e.id},'${c}',event)">
+          ${catPillHTML(c, true)}
+        </button>`,
+        ).join("");
+        const sel = selectedIds.has(e.id);
+        return `
+      <tr class="${sel ? "is-selected" : ""}" onclick="openEmail(${e.id})">
+        <td onclick="event.stopPropagation()" style="padding-left:1.25rem;">
+          <input type="checkbox" data-id="${e.id}" data-idx="${idx}"
+  onclick="toggleSelect(${e.id}, this, event)"
+  style="cursor:pointer;" ${sel ? "checked" : ""}>
+        </td>
+        <td class="col-sender"><span class="sender-email" title="${e.sender || ""}">${e.sender || "—"}</span></td>
+        <td class="col-subject"><span class="subject-txt" title="${e.subject || ""}">${e.subject || "(brak tematu)"}</span></td>
+        <td class="col-route"><span class="route-txt">${origin}<span class="route-arrow"> → </span>${dest}</span></td>
+        <td class="col-weight">${weight}</td>
+        <td class="col-rate"><span class="rate-val">${price}</span></td>
+        <td class="col-cat">${catPillHTML(cat)}</td>
+        <td class="col-actions" onclick="event.stopPropagation()">
+          <div class="act-group">
+            <div class="popraw-wrap">
+              <button class="btn-popraw" onclick="toggleDropdown(this,event)">Popraw AI <span class="popraw-chevron">▾</span></button>
+              <div class="popraw-dropdown">${dropdownOpts}</div>
+            </div>
+            <button class="btn-del-row" onclick="deleteEmail(${e.id})" title="Usuń">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/>
+              </svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+      })
+      .join("");
+
+    // Mobile karty
+    document.getElementById("cardList").innerHTML = emails
+      .map((e, idx) => {
+        const cat = e.ai_category || "INNE";
+        const weight =
+          e.weight_kg != null ? (e.weight_kg / 1000).toFixed(1) + " t" : "—";
+        const price =
+          e.price != null
+            ? Number(e.price).toLocaleString("pl-PL") +
+              " " +
+              (e.currency || "EUR")
+            : "—";
+        const dropdownOpts = CATS.map(
+          (c) => `
+        <button class="popraw-opt" onclick="reclassify(${e.id},'${c}',event)">
+          ${catPillHTML(c, true)}
+        </button>`,
+        ).join("");
+        const sel = selectedIds.has(e.id);
+        return `
+      <div class="mail-card ${sel ? "is-selected" : ""}" data-id="${e.id}" data-idx="${idx}" onclick="openEmail(${e.id})">
+        <div class="mail-card-top">
+          <div style="min-width:0;flex:1;display:flex;align-items:flex-start;gap:0.5rem;">
+            <input type="checkbox" data-id="${e.id}" data-idx="${idx}"
+              onclick="event.stopPropagation()"
+              onchange="toggleSelectCard(${e.id}, this, event)"
+              style="cursor:pointer;margin-top:3px;flex-shrink:0;" ${sel ? "checked" : ""}>
+            <div style="min-width:0">
+              <div class="mail-card-sender">${e.sender || "—"}</div>
+              <div class="mail-card-subject">${e.subject || "(brak tematu)"}</div>
+            </div>
+          </div>
+          ${catPillHTML(cat)}
+        </div>
+        <div class="mail-card-route">
+          <div class="mail-card-city">
+            <div class="mail-card-city-label">Start</div>
+            <div class="mail-card-city-name">${e.loading_city || "?"}</div>
+          </div>
+          <div class="mail-card-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M17 8l4 4-4 4M3 12h18"/>
+            </svg>
+          </div>
+          <div class="mail-card-city">
+            <div class="mail-card-city-label">Koniec</div>
+            <div class="mail-card-city-name">${e.unloading_city || "?"}</div>
+          </div>
+        </div>
+        <div class="mail-card-bottom">
+          <div class="mail-card-stats">
+            <div>
+              <div class="mail-card-stat-label">Waga</div>
+              <div class="mail-card-stat-val">${weight}</div>
+            </div>
+            <div>
+              <div class="mail-card-stat-label">Stawka</div>
+              <div class="mail-card-stat-val green">${price}</div>
+            </div>
+          </div>
+          <div class="mail-card-actions" onclick="event.stopPropagation()">
+            <div class="popraw-wrap">
+              <button class="btn-popraw" onclick="toggleDropdown(this,event)">Popraw AI <span class="popraw-chevron">▾</span></button>
+              <div class="popraw-dropdown">${dropdownOpts}</div>
+            </div>
+            <button class="btn-del-row" onclick="deleteEmail(${e.id})" title="Usuń">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>`;
+      })
+      .join("");
+  }
+
+  function setState(s) {
+    document.getElementById("stateLoading").style.display =
+      s === "loading" ? "flex" : "none";
+    document.getElementById("stateEmpty").style.display =
+      s === "empty" ? "flex" : "none";
+    document.getElementById("mailTable").style.display =
+      s === "table" ? "" : "none";
+  }
+
+  /* ── Dropdown Popraw AI ── */
+  function toggleDropdown(btn, e) {
+    e.stopPropagation();
+    const wrap = btn.closest(".popraw-wrap");
+    const isOpen = wrap.classList.contains("open");
+    document
+      .querySelectorAll(".popraw-wrap.open")
+      .forEach((w) => w.classList.remove("open"));
+    if (!isOpen) wrap.classList.add("open");
+  }
+  document.addEventListener("click", () => {
+    document
+      .querySelectorAll(".popraw-wrap.open")
+      .forEach((w) => w.classList.remove("open"));
+  });
+
+  /* ── Checkbox + Shift+click (tabela) ── */
+  function toggleSelect(id, cb, event) {
+    const wrap =
+      document.getElementById("mail-table-wrap") ||
+      document.querySelector(".mail-table-wrap");
+
+    if (event.shiftKey && lastCheckedIndex !== -1) {
+      // blokuj text-select podczas shift+click
+      wrap?.classList.add("selecting");
+
+      const allCbs = [
+        ...document.querySelectorAll("#tableBody input[type=checkbox]"),
+      ];
+      const currentIndex = parseInt(cb.dataset.idx);
+      const [from, to] = [
+        Math.min(lastCheckedIndex, currentIndex),
+        Math.max(lastCheckedIndex, currentIndex),
+      ];
+
+      allCbs.forEach((c) => {
+        const idx = parseInt(c.dataset.idx);
+        if (idx >= from && idx <= to) {
+          const cid = Number(c.dataset.id);
+          setRowSelected(cid, cb.checked);
+        }
+      });
+
+      setTimeout(() => wrap?.classList.remove("selecting"), 200);
+    } else {
+      setRowSelected(id, cb.checked);
+    }
+
+    lastCheckedIndex = parseInt(cb.dataset.idx);
+    syncCheckAll();
+  }
+
+  /* ── Checkbox + Shift+click (karty mobile) ── */
+  function toggleSelectCard(id, cb, event) {
+    if (event.shiftKey && lastCheckedIndex !== -1) {
+      const allCbs = [
+        ...document.querySelectorAll("#cardList input[type=checkbox]"),
+      ];
+      const currentIndex = parseInt(cb.dataset.idx);
+      const [from, to] = [
+        Math.min(lastCheckedIndex, currentIndex),
+        Math.max(lastCheckedIndex, currentIndex),
+      ];
+      allCbs.forEach((c) => {
+        const idx = parseInt(c.dataset.idx);
+        if (idx >= from && idx <= to) {
+          setRowSelected(Number(c.dataset.id), cb.checked);
+        }
+      });
+    } else {
+      setRowSelected(id, cb.checked);
+    }
+    lastCheckedIndex = parseInt(cb.dataset.idx);
+    syncCheckAll();
+  }
+
+  function syncCheckAll() {
+    const all = [
+      ...document.querySelectorAll("#tableBody input[type=checkbox]"),
+    ];
+    const checkAll = document.getElementById("checkAll");
+    if (!checkAll || !all.length) return;
+    checkAll.checked = all.length > 0 && all.every((c) => c.checked);
+    checkAll.indeterminate = !checkAll.checked && all.some((c) => c.checked);
+  }
+
+  function toggleAll(cb) {
+    const allCbs = document.querySelectorAll("#tableBody input[type=checkbox]");
+    allCbs.forEach((c) => {
+      c.checked = cb.checked;
+      setRowSelected(Number(c.dataset.id), cb.checked);
+    });
+    lastCheckedIndex = -1;
+  }
+
+  /* ── Modal ── */
+  function openEmail(id) {
+    currentId = id;
+    const e = allEmails.find((x) => x.id === id);
+    if (!e) return;
+    document.getElementById("mSubject").textContent =
+      e.subject || "(brak tematu)";
+    document.getElementById("mFrom").textContent =
+      `Od: ${e.sender || "—"} · ${e.received_at ? new Date(e.received_at).toLocaleString("pl-PL") : ""}`;
+    document.getElementById("mBody").textContent = e.body || "(brak treści)";
+    const chips = [
+      { label: "Kategoria", val: e.ai_category, hi: true },
+      {
+        label: "Trasa",
+        val: `${e.loading_city || "?"} → ${e.unloading_city || "?"}`,
+      },
+      {
+        label: "Waga",
+        val:
+          e.weight_kg != null ? (e.weight_kg / 1000).toFixed(1) + " t" : null,
+      },
+      {
+        label: "Stawka",
+        val:
+          e.price != null
+            ? Number(e.price).toLocaleString("pl-PL") +
+              " " +
+              (e.currency || "EUR")
+            : null,
+      },
+      { label: "Załadunek ZIP", val: e.loading_zip || null },
+      { label: "Rozładunek ZIP", val: e.unloading_zip || null },
+    ].filter((c) => c.val);
+    document.getElementById("mChips").innerHTML = chips
+      .map(
+        (c) =>
+          `<span class="modal-chip ${c.hi ? "hi" : ""}">${c.label}: <strong>${c.val}</strong></span>`,
+      )
+      .join("");
+    document.getElementById("modalBackdrop").style.display = "flex";
+  }
+  function closeModal() {
+    document.getElementById("modalBackdrop").style.display = "none";
+    currentId = null;
+  }
+  function onBackdropClick(e) {
+    if (e.target === e.currentTarget) closeModal();
+  }
+
+  /* ── Delete single ── */
+  async function deleteEmail(id) {
+    if (!id) return;
+    // Zamknij modal PRZED pokazaniem popupu potwierdzenia
+    closeModal();
+    showPopup({
+      type: "delete",
+      title: "Usuń wiadomość",
+      message:
+        "Czy na pewno chcesz usunąć tę wiadomość? Tej operacji nie można cofnąć.",
+      confirmText: "Usuń",
+      cancelText: "Anuluj",
+      onConfirm: async () => {
+        try {
+          await fetch(`/api/emails/${id}`, { method: "DELETE" });
+          allEmails = allEmails.filter((e) => e.id !== id);
+          selectedIds.delete(id);
+          updateSidebarBadge();
+          applyFilters();
+          showPopup({
+            type: "success",
+            title: "Usunięto",
+            message: "Wiadomość została pomyślnie usunięta.",
+            confirmText: "OK",
+            hideCancel: true,
+          });
+        } catch {
+          showPopup({
+            type: "error",
+            title: "Błąd",
+            message: "Nie udało się usunąć wiadomości.",
+            confirmText: "OK",
+            hideCancel: true,
+          });
+        }
+      },
+    });
+  }
+  /* ── Delete many ── */
+  function deleteSelected() {
+    if (!selectedIds.size) {
+      showPopup({
+        type: "info",
+        title: "Brak zaznaczonych",
+        message: "Zaznacz wiadomości które chcesz usunąć.",
+        confirmText: "OK",
+        hideCancel: true,
+      });
+      return;
+    }
+    showPopup({
+      type: "delete",
+      title: `Usuń ${selectedIds.size} wiadomości`,
+      message: `Czy na pewno chcesz usunąć ${selectedIds.size} zaznaczonych wiadomości? Tej operacji nie można cofnąć.`,
+      confirmText: "Usuń wszystkie",
+      cancelText: "Anuluj",
+      onConfirm: async () => {
+        try {
+          await Promise.all(
+            [...selectedIds].map((id) =>
+              fetch(`/api/emails/${id}`, { method: "DELETE" }),
+            ),
+          );
+          allEmails = allEmails.filter((e) => !selectedIds.has(e.id));
+          selectedIds.clear();
+          lastCheckedIndex = -1;
+          document.getElementById("checkAll").checked = false;
+          document.getElementById("checkAll").indeterminate = false;
+          updateSidebarBadge();
+          applyFilters();
+          showPopup({
+            type: "success",
+            title: "Usunięto",
+            message: "Zaznaczone wiadomości zostały usunięte.",
+            confirmText: "OK",
+            hideCancel: true,
+          });
+        } catch {
+          showPopup({
+            type: "error",
+            title: "Błąd",
+            message: "Nie udało się usunąć wiadomości.",
+            confirmText: "OK",
+            hideCancel: true,
+          });
+        }
+      },
+    });
+  }
+
+  /* ── Reclassify ── */
+  async function reclassify(id, newCat, e) {
+    e.stopPropagation();
+    document
+      .querySelectorAll(".popraw-wrap.open")
+      .forEach((w) => w.classList.remove("open"));
+    try {
+      const res = await fetch(`/api/emails/${id}/category`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: newCat }),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const email = allEmails.find((x) => x.id === id);
+      if (email) email.ai_category = newCat;
+      applyFilters();
+    } catch {
+      showPopup({
+        type: "error",
+        title: "Błąd",
+        message: "Nie udało się zmienić kategorii.",
+        confirmText: "OK",
+        hideCancel: true,
+      });
+    }
+  }
+
+  /* ── Scan INNE ── */
+  async function scanInne() {
+    showPopup({
+      type: "info",
+      title: "Skanowanie INNE",
+      message:
+        "Czy chcesz ponownie przeskanować maile z kategorią 'INNE'? AI użyje też Twoich własnych kategorii.",
+      confirmText: "Skanuj",
+      onConfirm: async () => {
+        const btn = document.getElementById("btnScanInne");
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = "⏳ Skanowanie…";
+        }
+        try {
+          const r = await fetch("/api/emails/rescan", {
+            // ← jedyna zmiana
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ custom_categories: customCats }),
+          });
+          const data = await r.json();
+          if (data.usage) trackUsageAndLog(data.usage);
+          await loadEmails();
+          showPopup({
+            type: "success",
+            title: "Skanowanie zakończone",
+            message: `Przeskanowano: ${data.scanned ?? "?"}, zaktualizowano: ${data.updated ?? "?"}`,
+            confirmText: "OK",
+            hideCancel: true,
+          });
+        } catch {
+          showPopup({
+            type: "error",
+            title: "Błąd skanowania",
+            message: "Nie udało się przeskanować wiadomości.",
+            confirmText: "OK",
+            hideCancel: true,
+          });
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = "⚡ Skanuj INNE";
+          }
+        }
+      },
+    });
+  }
+
+  function trackUsageAndLog(usage) {
+    if (!usage) return;
+    let stored = JSON.parse(
+      localStorage.getItem("aiUsageTotal") ||
+        '{"prompt_tokens":0,"completion_tokens":0}',
+    );
+    stored.prompt_tokens += usage.prompt_tokens || 0;
+    stored.completion_tokens += usage.completion_tokens || 0;
+    localStorage.setItem("aiUsageTotal", JSON.stringify(stored));
+    const cost =
+      (stored.prompt_tokens / 1e6) * 0.08 +
+      (stored.completion_tokens / 1e6) * 0.35;
+    console.log(
+      "%c🚀 AI TOKENS",
+      "background:#6366f1;color:white;padding:4px;border-radius:4px;font-weight:bold",
+    );
+    console.log(`💸 Łączny szacowany koszt: $${cost.toFixed(5)}`);
+  }
+
+  /* ── Custom kategoria ── */
+  function addCustomCategory() {
+    document.getElementById("newCatInput").value = "";
+    document.getElementById("catModal").style.display = "flex";
+    setTimeout(() => document.getElementById("newCatInput").focus(), 50);
+  }
+  function closeCatModal() {
+    document.getElementById("catModal").style.display = "none";
+  }
+  function saveCat() {
+    const input = document.getElementById("newCatInput");
+    const cat = (input?.value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, "");
+    if (!cat) {
+      showPopup({
+        type: "error",
+        title: "Błąd",
+        message: "Nazwa kategorii nie może być pusta.",
+        confirmText: "OK",
+        hideCancel: true,
+      });
+      return;
+    }
+    if (CATS.includes(cat)) {
+      showPopup({
+        type: "info",
+        title: "Już istnieje",
+        message: `Kategoria "${cat}" już jest na liście.`,
+        confirmText: "OK",
+        hideCancel: true,
+      });
+      return;
+    }
+    CATS.push(cat);
+    customCats.push(cat);
+    localStorage.setItem("customCategories", JSON.stringify(customCats));
+    const sel = document.getElementById("filterCat");
+    if (sel) {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      sel.appendChild(opt);
+    }
+    closeCatModal();
+    showPopup({
+      type: "success",
+      title: "Dodano kategorię",
+      message: `Kategoria "${cat}" została dodana i pojawi się w dropdownach "Popraw AI".`,
+      confirmText: "OK",
+      hideCancel: true,
+    });
+  }
+
+  /* ── Init ── */
+  document.addEventListener("DOMContentLoaded", () => {
+    const sel = document.getElementById("filterCat");
+    customCats.forEach((cat) => {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      sel.appendChild(opt);
+    });
+    loadEmails();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeModal();
+      closeCatModal();
+    }
+  });
+</script>
+{% endblock %}
