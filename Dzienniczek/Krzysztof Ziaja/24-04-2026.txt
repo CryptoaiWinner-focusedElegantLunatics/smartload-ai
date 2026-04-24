@@ -1,0 +1,1 @@
+Uporządkowanie projektu, rozdzielenie main na parę plików i zgrupowanie seed'ów w jedno miejsce
