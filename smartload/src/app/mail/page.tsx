@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "../components/Sidebar";
+import DOMPurify from "dompurify";
+
 
 interface Email {
   id: number;
@@ -457,7 +459,7 @@ function MailPageInner() {
   }) {
     const stored = JSON.parse(
       localStorage.getItem("aiUsageTotal") ||
-        '{"prompt_tokens":0,"completion_tokens":0}',
+      '{"prompt_tokens":0,"completion_tokens":0}',
     );
     stored.prompt_tokens += usage.prompt_tokens || 0;
     stored.completion_tokens += usage.completion_tokens || 0;
@@ -663,7 +665,12 @@ function MailPageInner() {
         .mail-card { background: ${cSurface}; border: 1px solid ${cBorder}; border-radius: 10px; padding: 0.875rem 1rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.625rem; }
         .mail-card:active { background: ${cHover}; }
         .mail-card.is-selected { border-color: ${cPrimary} !important; background: rgba(59,130,246,0.06) !important; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+        
+        .email-body-content { overflow: auto; }
+        .email-body-content img, .email-body-content table { max-width: 100% !important; height: auto !important; }
+
         @media (max-width: 768px) {
+
           .mail-tbl-wrap-desktop { display: none !important; }
           .mail-card-list { display: flex !important; }
           .mail-filters-grid { grid-template-columns: 1fr 1fr !important; }
@@ -1867,15 +1874,17 @@ function MailPageInner() {
                 Treść wiadomości
               </div>
               <div
+                className="email-body-content"
                 style={{
                   fontSize: 13,
                   lineHeight: 1.75,
                   color: cMuted,
-                  whiteSpace: "pre-wrap",
                 }}
-              >
-                {modal.body || "(brak treści)"}
-              </div>
+                dangerouslySetInnerHTML={{
+                  __html: modal.body ? DOMPurify.sanitize(modal.body) : "(brak treści)",
+                }}
+              />
+
             </div>
             <div
               style={{
@@ -2261,14 +2270,14 @@ function MailPageInner() {
                           cursor: "pointer",
                         }}
                         onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = isDark
-                            ? "#333"
-                            : "#e2e8f0")
+                        (e.currentTarget.style.background = isDark
+                          ? "#333"
+                          : "#e2e8f0")
                         }
                         onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = isDark
-                            ? "#2a2a2a"
-                            : "#f1f5f9")
+                        (e.currentTarget.style.background = isDark
+                          ? "#2a2a2a"
+                          : "#f1f5f9")
                         }
                       >
                         {popup.cancelText || "Anuluj"}
