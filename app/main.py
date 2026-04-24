@@ -7,11 +7,11 @@ from sqlmodel import SQLModel, Session
 from sqlalchemy import text
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+
 from app.core.database import engine
 from app.scraper.runner import run_all_scrapers
 from app.services.tasks import process_emails_task
 from app.seeds.seed_firetms import seed_all
-
 from app.api import loads
 from app.api.auth import router as auth_router
 from app.api.views import router as views_router

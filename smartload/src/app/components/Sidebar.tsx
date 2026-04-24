@@ -121,6 +121,27 @@ export default function Sidebar() {
         </svg>
       ),
     },
+    {
+      href: "/compare",
+      label: "Porównywarka",
+      gradient: "linear-gradient(135deg, #f59e0b, #d97706)",
+      icon: (
+        <svg
+          width="16"
+          height="16"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="white"
+          strokeWidth="2"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M16 16s3-3 3-8V4h-7v4h-3V4H2v4c0 5 3 8 3 8m2 0v4h10v-4m-5-8v8"
+          />
+        </svg>
+      ),
+    },
   ];
 
   const bg = isDark ? "#111111" : "#ffffff";
