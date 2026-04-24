@@ -530,7 +530,77 @@ export default function Sidebar() {
           </span>
           <span style={{ fontSize: 16 }}>{isDark ? "🌙" : "☀️"}</span>
         </button>
-
+        {/* Ustawienia — zastąp gołe <a href="/settings"> tym: */}
+        <Link
+          href="/settings"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "10px 12px",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 500,
+            textDecoration: "none",
+            color:
+              pathname === "/settings"
+                ? isDark
+                  ? "#60a5fa"
+                  : "#3b82f6"
+                : textColor,
+            background:
+              pathname === "/settings"
+                ? isDark
+                  ? "rgba(59,130,246,0.15)"
+                  : "rgba(59,130,246,0.08)"
+                : "transparent",
+            borderLeft:
+              pathname === "/settings"
+                ? `3px solid ${isDark ? "#60a5fa" : "#3b82f6"}`
+                : "3px solid transparent",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.background = isDark
+              ? "rgba(255,255,255,0.05)"
+              : "rgba(0,0,0,0.04)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.background =
+              pathname === "/settings"
+                ? isDark
+                  ? "rgba(59,130,246,0.15)"
+                  : "rgba(59,130,246,0.08)"
+                : "transparent")
+          }
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              flexShrink: 0,
+              background: cardBg,
+              border: `1px solid ${border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={mutedColor}
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+          </div>
+          <span style={{ flex: 1 }}>Ustawienia</span>
+        </Link>
         <button
           onClick={handleLogout}
           style={{
