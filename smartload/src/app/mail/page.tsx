@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "../components/Sidebar";
 
-// ── Types ──
 interface Email {
   id: number;
   sender?: string;
@@ -75,7 +74,13 @@ interface PopupOpts {
   onConfirm?: () => void;
 }
 
-// ── Inner component (needs useSearchParams) ──
+const STATUS_OPTIONS = [
+  { value: "all", label: "Wszystkie" },
+  { value: "unread", label: "Nieodczytane" },
+  { value: "read", label: "Odczytane" },
+  { value: "starred", label: "⭐ Oznaczone gwiazdką" },
+];
+
 function MailPageInner() {
   const searchParams = useSearchParams();
 
@@ -107,6 +112,7 @@ function MailPageInner() {
   const cFaint = isDark ? "#555555" : "#94a3b8";
   const cPrimary = "#3b82f6";
   const cGreen = "#22c55e";
+  const cStar = "#f59e0b";
 
   const [allEmails, setAllEmails] = useState<Email[]>([]);
   const [filtered, setFiltered] = useState<Email[]>([]);
@@ -117,7 +123,25 @@ function MailPageInner() {
   const [catFilter, setCatFilter] = useState(
     () => searchParams.get("filter") ?? "",
   );
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const [starredIds, setStarredIds] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set();
+    return new Set(
+      JSON.parse(localStorage.getItem("starredEmails") || "[]") as number[],
+    );
+  });
+  const [readIds, setReadIds] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set();
+    return new Set(
+      JSON.parse(localStorage.getItem("readEmails") || "[]") as number[],
+    );
+  });
+
+  const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const lastCheckedIdx = useRef(-1);
+
   const [customCats, setCustomCats] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     return JSON.parse(localStorage.getItem("customCategories") || "[]");
@@ -130,15 +154,12 @@ function MailPageInner() {
   const [popup, setPopup] = useState<PopupOpts | null>(null);
   const pendingConfirmRef = useRef<(() => void) | null>(null);
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
-  const lastCheckedIdx = useRef(-1);
   const [scanning, setScanning] = useState(false);
 
-  // ── Sync catFilter z URL gdy się zmieni ──
   useEffect(() => {
     setCatFilter(searchParams.get("filter") ?? "");
   }, [searchParams]);
 
-  // ── Load ──
   const loadEmails = useCallback(async () => {
     setLoadState("loading");
     try {
@@ -160,7 +181,6 @@ function MailPageInner() {
     loadEmails();
   }, [loadEmails]);
 
-  // ── Filters ──
   useEffect(() => {
     const s = search.toLowerCase();
     const list = allEmails.filter((e) => {
@@ -169,15 +189,19 @@ function MailPageInner() {
         (e.sender || "").toLowerCase().includes(s) ||
         (e.subject || "").toLowerCase().includes(s);
       const matchCat = !catFilter || e.ai_category === catFilter;
-      return matchSearch && matchCat;
+      const matchStatus =
+        statusFilter === "all" ||
+        (statusFilter === "unread" && !readIds.has(e.id)) ||
+        (statusFilter === "read" && readIds.has(e.id)) ||
+        (statusFilter === "starred" && starredIds.has(e.id));
+      return matchSearch && matchCat && matchStatus;
     });
     setFiltered(list);
     setLoadState(
       list.length ? "table" : allEmails.length ? "empty" : "loading",
     );
-  }, [allEmails, search, catFilter]);
+  }, [allEmails, search, catFilter, statusFilter, readIds, starredIds]);
 
-  // ── Dropdown close on outside click ──
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest(".popraw-dropdown-wrap")) return;
@@ -187,20 +211,19 @@ function MailPageInner() {
     return () => document.removeEventListener("click", handler);
   }, []);
 
-  // ── Escape ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setModal(null);
         setCatModal(false);
         setOpenDropdown(null);
+        exitDeleteMode();
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
-  // ── Popup helpers ──
   function showPopup(opts: PopupOpts) {
     pendingConfirmRef.current = opts.onConfirm || null;
     setPopup(opts);
@@ -211,15 +234,33 @@ function MailPageInner() {
     if (fn) fn();
   }
 
-  // ── Select helpers ──
-  function setRowSelected(id: number, selected: boolean) {
-    setSelectedIds((prev) => {
-      const n = new Set(prev);
-      if (selected) n.add(id);
-      else n.delete(id);
-      return n;
+  function exitDeleteMode() {
+    setDeleteMode(false);
+    setSelectedIds(new Set());
+    lastCheckedIdx.current = -1;
+  }
+
+  function toggleStar(id: number, ev: React.MouseEvent) {
+    ev.stopPropagation();
+    setStarredIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      localStorage.setItem("starredEmails", JSON.stringify([...next]));
+      return next;
     });
   }
+
+  function markRead(id: number) {
+    setReadIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem("readEmails", JSON.stringify([...next]));
+      return next;
+    });
+  }
+
   function toggleSelect(
     id: number,
     idx: number,
@@ -232,27 +273,30 @@ function MailPageInner() {
       setSelectedIds((prev) => {
         const next = new Set(prev);
         filtered.forEach((e, i) => {
-          if (i >= from && i <= to) {
-            if (checked) next.add(e.id);
-            else next.delete(e.id);
-          }
+          if (i >= from && i <= to)
+            checked ? next.add(e.id) : next.delete(e.id);
         });
         return next;
       });
     } else {
-      setRowSelected(id, checked);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        checked ? next.add(id) : next.delete(id);
+        return next;
+      });
     }
     lastCheckedIdx.current = idx;
   }
+
   function toggleAll(checked: boolean) {
     setSelectedIds(checked ? new Set(filtered.map((e) => e.id)) : new Set());
     lastCheckedIdx.current = -1;
   }
+
   const allChecked =
     filtered.length > 0 && filtered.every((e) => selectedIds.has(e.id));
   const anyChecked = filtered.some((e) => selectedIds.has(e.id));
 
-  // ── Delete ──
   function deleteEmail(id: number) {
     setModal(null);
     showPopup({
@@ -322,8 +366,7 @@ function MailPageInner() {
             ),
           );
           setAllEmails((prev) => prev.filter((e) => !selectedIds.has(e.id)));
-          setSelectedIds(new Set());
-          lastCheckedIdx.current = -1;
+          exitDeleteMode();
           showPopup({
             type: "success",
             title: "Usunięto",
@@ -344,7 +387,6 @@ function MailPageInner() {
     });
   }
 
-  // ── Reclassify ──
   async function reclassify(id: number, newCat: string) {
     setOpenDropdown(null);
     try {
@@ -368,7 +410,6 @@ function MailPageInner() {
     }
   }
 
-  // ── Scan INNE ──
   function scanInne() {
     showPopup({
       type: "info",
@@ -423,7 +464,6 @@ function MailPageInner() {
     localStorage.setItem("aiUsageTotal", JSON.stringify(stored));
   }
 
-  // ── Custom category ──
   function saveCat() {
     const cat = newCatInput
       .trim()
@@ -463,7 +503,6 @@ function MailPageInner() {
     });
   }
 
-  // ── CatPill ──
   function CatPill({ cat, small = false }: { cat: string; small?: boolean }) {
     const { bg, text } = getCatColor(cat);
     return (
@@ -486,7 +525,44 @@ function MailPageInner() {
     );
   }
 
-  // ── PoprawDropdown ──
+  function StarButton({ id }: { id: number }) {
+    const starred = starredIds.has(id);
+    return (
+      <button
+        onClick={(ev) => toggleStar(id, ev)}
+        title={starred ? "Usuń gwiazdkę" : "Oznacz gwiazdką"}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 28,
+          height: 28,
+          borderRadius: 6,
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          color: starred ? cStar : cFaint,
+          flexShrink: 0,
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = cStar)}
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.color = starred ? cStar : cFaint)
+        }
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill={starred ? cStar : "none"}
+          stroke={starred ? cStar : "currentColor"}
+          strokeWidth="2"
+        >
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      </button>
+    );
+  }
+
   function PoprawDropdown({
     emailId,
     keyId,
@@ -573,6 +649,7 @@ function MailPageInner() {
     );
   }
 
+  // ── KONIEC CZĘŚCI 1 — ciąg dalszy w części 2 ──  return (
   return (
     <>
       <style>{`
@@ -580,12 +657,12 @@ function MailPageInner() {
         .mail-tbl tbody tr:hover { background: ${cHover}; }
         .mail-tbl tbody tr.is-selected { background: rgba(59,130,246,0.08) !important; outline: 1px solid rgba(59,130,246,0.25); outline-offset: -1px; }
         .mail-tbl tbody tr.is-selected td:first-child { border-left: 3px solid ${cPrimary}; }
-        .mail-card.is-selected { border-color: ${cPrimary} !important; background: rgba(59,130,246,0.06) !important; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
         .btn-del-row:hover { background: rgba(239,68,68,0.08); color: #ef4444; border-color: #fca5a5; }
         .filter-input:focus { border-color: ${cPrimary}; outline: none; }
         .filter-select:focus { border-color: ${cPrimary}; outline: none; }
         .mail-card { background: ${cSurface}; border: 1px solid ${cBorder}; border-radius: 10px; padding: 0.875rem 1rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.625rem; }
         .mail-card:active { background: ${cHover}; }
+        .mail-card.is-selected { border-color: ${cPrimary} !important; background: rgba(59,130,246,0.06) !important; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
         @media (max-width: 768px) {
           .mail-tbl-wrap-desktop { display: none !important; }
           .mail-card-list { display: flex !important; }
@@ -612,7 +689,7 @@ function MailPageInner() {
             overflow: "hidden",
           }}
         >
-          {/* Top bar */}
+          {/* ── Top bar ── */}
           <header
             style={{
               height: 56,
@@ -663,6 +740,77 @@ function MailPageInner() {
             </button>
           </header>
 
+          {/* ── Delete mode banner ── */}
+          {deleteMode && (
+            <div
+              style={{
+                flexShrink: 0,
+                background: isDark ? "#1a0f0f" : "#fff5f5",
+                borderBottom: "1px solid #fca5a5",
+                padding: "0.6rem 1.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
+              }}
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="2"
+              >
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#ef4444",
+                  flex: 1,
+                }}
+              >
+                Tryb usuwania — kliknij maile do zaznaczenia
+                {selectedIds.size > 0 && ` (${selectedIds.size} zaznaczonych)`}
+              </span>
+              {selectedIds.size > 0 && (
+                <button
+                  onClick={deleteSelected}
+                  style={{
+                    padding: "0.35rem 0.875rem",
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#dc2626",
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Usuń {selectedIds.size}
+                </button>
+              )}
+              <button
+                onClick={exitDeleteMode}
+                style={{
+                  padding: "0.35rem 0.875rem",
+                  borderRadius: 6,
+                  border: "1px solid #fca5a5",
+                  background: "transparent",
+                  color: "#ef4444",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Anuluj
+              </button>
+            </div>
+          )}
+
           <div
             style={{
               flex: 1,
@@ -672,12 +820,12 @@ function MailPageInner() {
               background: cBg,
             }}
           >
-            {/* Filter bar */}
+            {/* ── Filter bar ── */}
             <div
               className="mail-filters-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr auto auto",
+                gridTemplateColumns: "1fr auto auto auto",
                 gap: "0.75rem",
                 alignItems: "end",
                 padding: "1rem 1.5rem",
@@ -686,6 +834,7 @@ function MailPageInner() {
                 flexShrink: 0,
               }}
             >
+              {/* Search */}
               <div>
                 <div
                   style={{
@@ -718,6 +867,49 @@ function MailPageInner() {
                 />
               </div>
 
+              {/* Status filter */}
+              <div style={{ minWidth: 170 }}>
+                <div
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.2em",
+                    color: cFaint,
+                    marginBottom: 4,
+                  }}
+                >
+                  Status
+                </div>
+                <select
+                  className="filter-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.55rem 2rem 0.55rem 0.875rem",
+                    border: `1px solid ${cBorder}`,
+                    borderRadius: 8,
+                    background: cBg,
+                    fontSize: 12,
+                    color: cText,
+                    cursor: "pointer",
+                    appearance: "none",
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 0.6rem center",
+                  }}
+                >
+                  {STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Category filter */}
               <div style={{ minWidth: 200 }}>
                 <div
                   style={{
@@ -785,14 +977,17 @@ function MailPageInner() {
                 </select>
               </div>
 
+              {/* Usuń wiele */}
               <button
-                onClick={deleteSelected}
+                onClick={() =>
+                  deleteMode ? deleteSelected() : setDeleteMode(true)
+                }
                 style={{
                   padding: "0.55rem 1rem",
                   borderRadius: 8,
-                  border: "1px solid #fca5a5",
-                  background: "transparent",
-                  color: "#ef4444",
+                  border: deleteMode ? "none" : "1px solid #fca5a5",
+                  background: deleteMode ? "#dc2626" : "transparent",
+                  color: deleteMode ? "#fff" : "#ef4444",
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: "pointer",
@@ -818,7 +1013,7 @@ function MailPageInner() {
               </button>
             </div>
 
-            {/* Content */}
+            {/* ── Content area ── */}
             <div style={{ flex: 1, overflowY: "auto", background: cSurface }}>
               {loadState === "loading" && (
                 <div
@@ -894,7 +1089,7 @@ function MailPageInner() {
                 </div>
               )}
 
-              {/* Desktop table */}
+              {/* ── Desktop table ── */}
               {loadState === "table" && (
                 <div className="mail-tbl-wrap-desktop">
                   <table
@@ -909,14 +1104,9 @@ function MailPageInner() {
                       <tr>
                         <th
                           style={{
-                            width: 36,
-                            padding: "0.625rem 1rem",
-                            textAlign: "left",
-                            fontSize: 10,
-                            fontWeight: 800,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.12em",
-                            color: cFaint,
+                            width: 44,
+                            padding: "0.625rem 0.5rem 0.625rem 1rem",
+                            textAlign: "center",
                             background: cSurface,
                             borderBottom: `1px solid ${cBorder}`,
                             position: "sticky",
@@ -924,16 +1114,29 @@ function MailPageInner() {
                             zIndex: 2,
                           }}
                         >
-                          <input
-                            type="checkbox"
-                            checked={allChecked}
-                            ref={(el) => {
-                              if (el)
-                                el.indeterminate = !allChecked && anyChecked;
-                            }}
-                            onChange={(e) => toggleAll(e.target.checked)}
-                            style={{ cursor: "pointer" }}
-                          />
+                          {deleteMode ? (
+                            <input
+                              type="checkbox"
+                              checked={allChecked}
+                              ref={(el) => {
+                                if (el)
+                                  el.indeterminate = !allChecked && anyChecked;
+                              }}
+                              onChange={(e) => toggleAll(e.target.checked)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          ) : (
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke={cFaint}
+                              strokeWidth="2"
+                            >
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          )}
                         </th>
                         {[
                           "Nadawca",
@@ -973,44 +1176,69 @@ function MailPageInner() {
                       {filtered.map((e, idx) => {
                         const cat = e.ai_category || "INNE";
                         const sel = selectedIds.has(e.id);
+                        const isUnread = !readIds.has(e.id);
                         return (
                           <tr
                             key={e.id}
                             className={sel ? "is-selected" : ""}
-                            onClick={() => setModal(e)}
+                            onClick={() => {
+                              if (deleteMode) {
+                                toggleSelect(e.id, idx, !sel, false);
+                              } else {
+                                markRead(e.id);
+                                setModal(e);
+                              }
+                            }}
                             style={{
                               borderBottom: `1px solid ${cBorder}`,
                               cursor: "pointer",
                               transition: "background 0.1s",
+                              background:
+                                isUnread && !sel
+                                  ? isDark
+                                    ? "rgba(59,130,246,0.04)"
+                                    : "rgba(59,130,246,0.03)"
+                                  : undefined,
                             }}
                           >
+                            {/* Star / checkbox */}
                             <td
-                              style={{ paddingLeft: "1.25rem" }}
+                              style={{
+                                paddingLeft: "1rem",
+                                paddingRight: "0.5rem",
+                                verticalAlign: "middle",
+                                textAlign: "center",
+                              }}
                               onClick={(ev) => ev.stopPropagation()}
                             >
-                              <input
-                                type="checkbox"
-                                checked={sel}
-                                onChange={(ev) =>
-                                  toggleSelect(
-                                    e.id,
-                                    idx,
-                                    ev.target.checked,
-                                    false,
-                                  )
-                                }
-                                onClick={(ev) => {
-                                  ev.stopPropagation();
-                                  toggleSelect(
-                                    e.id,
-                                    idx,
-                                    (ev.target as HTMLInputElement).checked,
-                                    (ev as React.MouseEvent).shiftKey,
-                                  );
-                                }}
-                                style={{ cursor: "pointer" }}
-                              />
+                              {deleteMode ? (
+                                <input
+                                  type="checkbox"
+                                  checked={sel}
+                                  onChange={(ev) =>
+                                    toggleSelect(
+                                      e.id,
+                                      idx,
+                                      ev.target.checked,
+                                      false,
+                                    )
+                                  }
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    toggleSelect(
+                                      e.id,
+                                      idx,
+                                      (ev.target as HTMLInputElement).checked,
+                                      (ev as React.MouseEvent).shiftKey,
+                                    );
+                                  }}
+                                  style={{ cursor: "pointer" }}
+                                />
+                              ) : (
+                                <StarButton id={e.id} />
+                              )}
                             </td>
+                            {/* Nadawca */}
                             <td
                               style={{
                                 padding: "0.8rem 1rem",
@@ -1019,21 +1247,42 @@ function MailPageInner() {
                                 maxWidth: 220,
                               }}
                             >
-                              <span
+                              <div
                                 style={{
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  color: cText,
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  display: "block",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
                                 }}
-                                title={e.sender || ""}
                               >
-                                {e.sender || "—"}
-                              </span>
+                                {isUnread && (
+                                  <span
+                                    style={{
+                                      width: 6,
+                                      height: 6,
+                                      borderRadius: "50%",
+                                      background: cPrimary,
+                                      flexShrink: 0,
+                                      display: "inline-block",
+                                    }}
+                                  />
+                                )}
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: isUnread ? 700 : 500,
+                                    color: cText,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                  }}
+                                  title={e.sender || ""}
+                                >
+                                  {e.sender || "—"}
+                                </span>
+                              </div>
                             </td>
+                            {/* Temat */}
                             <td
                               style={{
                                 padding: "0.8rem 1rem",
@@ -1044,6 +1293,7 @@ function MailPageInner() {
                               <span
                                 style={{
                                   fontSize: 13,
+                                  fontWeight: isUnread ? 700 : 400,
                                   color: cText,
                                   whiteSpace: "nowrap",
                                   overflow: "hidden",
@@ -1056,6 +1306,7 @@ function MailPageInner() {
                                 {e.subject || "(brak tematu)"}
                               </span>
                             </td>
+                            {/* Trasa */}
                             <td
                               style={{
                                 padding: "0.8rem 1rem",
@@ -1074,6 +1325,7 @@ function MailPageInner() {
                                 {e.unloading_city || "?"}
                               </span>
                             </td>
+                            {/* Waga */}
                             <td
                               style={{
                                 padding: "0.8rem 1rem",
@@ -1085,6 +1337,7 @@ function MailPageInner() {
                             >
                               {fmtWeight(e.weight_kg)}
                             </td>
+                            {/* Stawka */}
                             <td
                               style={{
                                 padding: "0.8rem 1rem",
@@ -1102,6 +1355,7 @@ function MailPageInner() {
                                 {fmtPrice(e.price, e.currency)}
                               </span>
                             </td>
+                            {/* Kategoria */}
                             <td
                               style={{
                                 padding: "0.8rem 1rem",
@@ -1111,6 +1365,7 @@ function MailPageInner() {
                             >
                               <CatPill cat={cat} />
                             </td>
+                            {/* Akcje */}
                             <td
                               style={{
                                 padding: "0.8rem 1.25rem 0.8rem 1rem",
@@ -1127,7 +1382,9 @@ function MailPageInner() {
                                   gap: 4,
                                 }}
                               >
-                                <PoprawDropdown emailId={e.id} keyId={e.id} />
+                                {!deleteMode && (
+                                  <PoprawDropdown emailId={e.id} keyId={e.id} />
+                                )}
                                 <button
                                   className="btn-del-row"
                                   onClick={() => deleteEmail(e.id)}
@@ -1170,7 +1427,7 @@ function MailPageInner() {
                 </div>
               )}
 
-              {/* Mobile cards */}
+              {/* ── Mobile cards ── */}
               {loadState === "table" && (
                 <div
                   className="mail-card-list"
@@ -1185,11 +1442,24 @@ function MailPageInner() {
                     const cat = e.ai_category || "INNE";
                     const sel = selectedIds.has(e.id);
                     const mobileKey = -e.id;
+                    const isUnread = !readIds.has(e.id);
                     return (
                       <div
                         key={e.id}
                         className={`mail-card${sel ? " is-selected" : ""}`}
-                        onClick={() => setModal(e)}
+                        onClick={() => {
+                          if (deleteMode) {
+                            toggleSelect(e.id, idx, !sel, false);
+                          } else {
+                            markRead(e.id);
+                            setModal(e);
+                          }
+                        }}
+                        style={{
+                          borderLeft: isUnread
+                            ? `3px solid ${cPrimary}`
+                            : undefined,
+                        }}
                       >
                         <div
                           style={{
@@ -1208,24 +1478,28 @@ function MailPageInner() {
                               gap: "0.5rem",
                             }}
                           >
-                            <input
-                              type="checkbox"
-                              checked={sel}
+                            <div
                               onClick={(ev) => ev.stopPropagation()}
-                              onChange={(ev) =>
-                                toggleSelect(
-                                  e.id,
-                                  idx,
-                                  ev.target.checked,
-                                  false,
-                                )
-                              }
-                              style={{
-                                cursor: "pointer",
-                                marginTop: 3,
-                                flexShrink: 0,
-                              }}
-                            />
+                              style={{ flexShrink: 0, marginTop: 1 }}
+                            >
+                              {deleteMode ? (
+                                <input
+                                  type="checkbox"
+                                  checked={sel}
+                                  onChange={(ev) =>
+                                    toggleSelect(
+                                      e.id,
+                                      idx,
+                                      ev.target.checked,
+                                      false,
+                                    )
+                                  }
+                                  style={{ cursor: "pointer" }}
+                                />
+                              ) : (
+                                <StarButton id={e.id} />
+                              )}
+                            </div>
                             <div style={{ minWidth: 0 }}>
                               <div
                                 style={{
@@ -1244,7 +1518,7 @@ function MailPageInner() {
                               <div
                                 style={{
                                   fontSize: 13,
-                                  fontWeight: 600,
+                                  fontWeight: isUnread ? 700 : 400,
                                   color: cText,
                                   lineHeight: 1.4,
                                   marginTop: 2,
@@ -1384,7 +1658,12 @@ function MailPageInner() {
                             }}
                             onClick={(ev) => ev.stopPropagation()}
                           >
-                            <PoprawDropdown emailId={e.id} keyId={mobileKey} />
+                            {!deleteMode && (
+                              <PoprawDropdown
+                                emailId={e.id}
+                                keyId={mobileKey}
+                              />
+                            )}
                             <button
                               className="btn-del-row"
                               onClick={() => deleteEmail(e.id)}
@@ -1426,7 +1705,7 @@ function MailPageInner() {
         </div>
       </div>
 
-      {/* Modal: szczegóły maila */}
+      {/* ── Modal: szczegóły maila ── */}
       {modal && (
         <div
           style={{
@@ -1468,9 +1747,12 @@ function MailPageInner() {
                 gap: "1rem",
               }}
             >
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: cText }}>
-                  {modal.subject || "(brak tematu)"}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: cText }}>
+                    {modal.subject || "(brak tematu)"}
+                  </div>
+                  <StarButton id={modal.id} />
                 </div>
                 <div style={{ fontSize: 11, color: cFaint, marginTop: 3 }}>
                   Od: {modal.sender || "—"} ·{" "}
@@ -1653,7 +1935,7 @@ function MailPageInner() {
         </div>
       )}
 
-      {/* Modal: Dodaj kategorię */}
+      {/* ── Modal: Dodaj kategorię ── */}
       {catModal && (
         <div
           style={{
@@ -1800,7 +2082,7 @@ function MailPageInner() {
         </div>
       )}
 
-      {/* Popup */}
+      {/* ── Popup ── */}
       {popup &&
         (() => {
           const PS = {
@@ -2025,7 +2307,6 @@ function MailPageInner() {
   );
 }
 
-// ── Export z Suspense (wymagane przez useSearchParams) ──
 export default function MailPage() {
   return (
     <Suspense fallback={null}>
