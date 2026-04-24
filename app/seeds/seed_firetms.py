@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 
 # --- Ścieżka do plików JSON (domyślnie obok tego skryptu) ---
-DATA_DIR = Path(__file__).parent / "firetms_data"
+DATA_DIR = Path(__file__).parent.parent / "firetms_data"
 
 
 # ---------------------------------------------------------------------------
