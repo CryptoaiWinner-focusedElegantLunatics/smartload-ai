@@ -190,12 +190,13 @@ export default function ChatPage() {
     offline: "Rozłączono — ponawiam...",
     connecting: "Łączenie...",
   };
-  function fixLinks(html: string) {
-    return html.replace(
-      /href="\/static\//g,
-      'href="http://localhost:8000/static/',
-    );
-  }
+ function fixLinks(html: string) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  return html.replace(
+    /href="\/static\//g,
+    `href="${apiUrl}/static/`,
+  );
+}
   const dotColor = statusColors[wsStatus] ?? statusColors.connecting;
   const statusLabel = statusLabels[wsStatus] ?? "Łączenie...";
 
