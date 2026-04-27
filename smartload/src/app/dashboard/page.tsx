@@ -785,9 +785,8 @@ export default function DashboardPage() {
                     </svg>
                   </Link>
                   <a
-                    href="http://localhost:8000/docs"
+                    href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/docs`}
                     target="_blank"
-                    className="quick-card"
                   >
                     Katalog API
                     <svg
