@@ -20,6 +20,20 @@ def seed_data():
     return {"status": "Data seeded successfully."}
 
 
+@router.post("/seed-loads")
+def seed_loads():
+    from app.seeds.seed import seed_db
+    seed_db()
+    return {"status": "Base loads seeded successfully."}
+
+
+@router.post("/seed-advanced")
+def seed_advanced(count_emails: int = 100, count_loads: int = 50):
+    from app.seeds.advanced_seeder import seed_everything
+    seed_everything(count_emails=count_emails, count_timo=count_loads)
+    return {"status": "Advanced seed completed.", "emails": count_emails, "loads": count_loads}
+
+
 @router.post("/seed-timocom")
 def seed_timocom():
     from app.seeds.timocom_seeder import seed
