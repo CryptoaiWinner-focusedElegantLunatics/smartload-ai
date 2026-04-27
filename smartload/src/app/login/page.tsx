@@ -31,10 +31,11 @@ export default function LoginPage() {
       });
 
       // Backend robi redirect 302 przy sukcesie
-      if (res.ok || res.redirected) {
+      if (res.ok) {
         router.push("/dashboard");
       } else {
-        setError("Nieprawidłowy login lub hasło.");
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || "Nieprawidłowy login lub hasło.");
       }
     } catch {
       setError("Błąd połączenia z serwerem.");

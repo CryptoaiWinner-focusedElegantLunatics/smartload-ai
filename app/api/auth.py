@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, Form, Depends, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse  # dodaj JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from app.core.database import engine
@@ -20,19 +20,19 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == username)).first()
         if not user or not verify_password(password, user.hashed_password):
-            return templates.TemplateResponse(
-                "login.html",
-                {"request": request, "error": "Nieprawidłowy login lub hasło."}
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Nieprawidłowy login lub hasło."}
             )
         access_token = create_access_token(data={"sub": user.username})
-        response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+        response = JSONResponse(content={"ok": True})  # zamiast RedirectResponse
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
             httponly=True,
             samesite="none",
             secure=True,
-            )   
+        )
         return response
 
 
