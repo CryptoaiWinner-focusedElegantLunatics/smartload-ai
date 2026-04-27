@@ -3,10 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import imaplib
-from database import get_db
-from models import ImapSettings  # nowy model poniżej
+from app.core.database import get_session
+from app.models.settings import ImapSettings  # nowy model poniżej
 
-router = APIRouter(prefix="/api/settings", tags=["settings"])
+router = APIRouter(prefix="/settings", tags=["settings"])
 
 class ImapSettingsSchema(BaseModel):
     email_user: str
@@ -15,7 +15,7 @@ class ImapSettingsSchema(BaseModel):
     email_imap_port: int = 993
 
 @router.get("/imap")
-def get_imap_settings(db: Session = Depends(get_db)):
+def get_imap_settings(db: Session = Depends(get_session)):
     row = db.query(ImapSettings).first()
     if not row:
         # fallback do .env
@@ -34,7 +34,7 @@ def get_imap_settings(db: Session = Depends(get_db)):
     }
 
 @router.post("/imap")
-def save_imap_settings(payload: ImapSettingsSchema, db: Session = Depends(get_db)):
+def save_imap_settings(payload: ImapSettingsSchema, db: Session = Depends(get_session)):
     row = db.query(ImapSettings).first()
     if row:
         row.email_user        = payload.email_user

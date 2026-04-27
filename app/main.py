@@ -26,6 +26,7 @@ from app.api.offers import router as offers_router
 from app.api.orders import router as orders_router
 from app.api.departments import router as departments_router
 from app.api.exchange import router as exchange_router
+from app.api.settings import router as settings_router
 
 scheduler = AsyncIOScheduler()
 
@@ -104,3 +105,4 @@ app.include_router(offers_router, prefix="/api", tags=["offers"])
 app.include_router(orders_router, prefix="/api", tags=["orders"])
 app.include_router(departments_router, prefix="/api", tags=["departments"])
 app.include_router(exchange_router, prefix="/api", tags=["exchange"])
+app.include_router(settings_router, prefix="/api", tags=["settings"])
