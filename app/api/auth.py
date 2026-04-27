@@ -30,13 +30,14 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
             key="access_token",
             value=f"Bearer {access_token}",
             httponly=True,
-            samesite="lax"
-        )
+            samesite="none",
+            secure=True,
+            )   
         return response
 
 
 @router.get("/logout")
 def logout():
     response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    response.delete_cookie("access_token")
+    response.delete_cookie("access_token", samesite="none", secure=True)
     return response
