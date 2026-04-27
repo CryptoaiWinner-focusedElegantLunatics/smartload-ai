@@ -25,7 +25,9 @@ export default function ComparePage() {
   const [fromCity, setFromCity] = useState("");
   const [toCity, setToCity] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [viewState, setViewState] = useState<"initial" | "loading" | "results">("initial");
+  const [viewState, setViewState] = useState<"initial" | "loading" | "results">(
+    "initial",
+  );
   const [data, setData] = useState<CompareData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
@@ -51,7 +53,7 @@ export default function ComparePage() {
     setError(null);
 
     try {
-      const url = `/api/exchange/compare?from_city=${encodeURIComponent(fromCity)}&to_city=${encodeURIComponent(toCity)}`;
+      const url = `/api/backend/api/exchange/compare?from_city=${encodeURIComponent(fromCity)}&to_city=${encodeURIComponent(toCity)}`;
       const res = await fetch(url);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -72,12 +74,18 @@ export default function ComparePage() {
 
   const formatPrice = (price: number | null) => {
     if (price == null) return "—";
-    return Number(price).toLocaleString("pl-PL", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return Number(price).toLocaleString("pl-PL", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
   };
 
   const getBestId = (list: Offer[]) => {
     if (!list || list.length === 0) return null;
-    return list.reduce((best, cur) => (cur.price > best.price ? cur : best), list[0]).id;
+    return list.reduce(
+      (best, cur) => (cur.price > best.price ? cur : best),
+      list[0],
+    ).id;
   };
 
   return (
@@ -419,71 +427,146 @@ export default function ComparePage() {
         }
       `}</style>
 
-      <div className="page-container" style={{ fontFamily: '"Inter", system-ui, sans-serif' }}>
+      <div
+        className="page-container"
+        style={{ fontFamily: '"Inter", system-ui, sans-serif' }}
+      >
         <Sidebar />
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          {/* Top Bar */}
-          <header style={{
-            height: 56,
-            flexShrink: 0,
-            background: isDark ? "#111111" : "#ffffff",
-            borderBottom: `1px solid ${isDark ? "#252525" : "#e2e8f0"}`,
+        <div
+          style={{
+            flex: 1,
             display: "flex",
-            alignItems: "center",
-            padding: "0 24px",
-            gap: 16,
-          }}>
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          {/* Top Bar */}
+          <header
+            style={{
+              height: 56,
+              flexShrink: 0,
+              background: isDark ? "#111111" : "#ffffff",
+              borderBottom: `1px solid ${isDark ? "#252525" : "#e2e8f0"}`,
+              display: "flex",
+              alignItems: "center",
+              padding: "0 24px",
+              gap: 16,
+            }}
+          >
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 600, color: isDark ? "#e8e8e8" : "#334155", margin: 0 }}>
+              <h2
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: isDark ? "#e8e8e8" : "#334155",
+                  margin: 0,
+                }}
+              >
                 Porównywarka Frachtu
               </h2>
-              <p style={{ fontSize: 12, color: isDark ? "#888888" : "#94a3b8", margin: 0 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: isDark ? "#888888" : "#94a3b8",
+                  margin: 0,
+                }}
+              >
                 Zestawienie ofert TimoCom i bazy wewnętrznej
               </p>
             </div>
-            <div style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              borderRadius: 999,
-              background: isDark ? "rgba(139,92,246,0.2)" : "#f5f3ff",
-              color: isDark ? "#a78bfa" : "#7c3aed",
-              border: `1px solid ${isDark ? "rgba(139,92,246,0.3)" : "#ddd6fe"}`,
-              fontWeight: 500,
-            }}>
+            <div
+              style={{
+                fontSize: 12,
+                padding: "4px 10px",
+                borderRadius: 999,
+                background: isDark ? "rgba(139,92,246,0.2)" : "#f5f3ff",
+                color: isDark ? "#a78bfa" : "#7c3aed",
+                border: `1px solid ${isDark ? "rgba(139,92,246,0.3)" : "#ddd6fe"}`,
+                fontWeight: 500,
+              }}
+            >
               ✨ Smart Selection
             </div>
           </header>
 
           <main style={{ flex: 1, overflowY: "auto", padding: "2rem 3rem" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", maxWidth: 1200, margin: "0 auto" }}>
-              
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1.5rem",
+                maxWidth: 1200,
+                margin: "0 auto",
+              }}
+            >
               {/* Header section */}
               <div>
-                <h1 style={{ fontFamily: "var(--font-headline)", fontSize: "clamp(24px, 3vw, 32px)", fontWeight: 700, letterSpacing: "-0.04em", color: isDark ? "#f1f5f9" : "#0f172a", margin: "0 0 4px 0" }}>
+                <h1
+                  style={{
+                    fontFamily: "var(--font-headline)",
+                    fontSize: "clamp(24px, 3vw, 32px)",
+                    fontWeight: 700,
+                    letterSpacing: "-0.04em",
+                    color: isDark ? "#f1f5f9" : "#0f172a",
+                    margin: "0 0 4px 0",
+                  }}
+                >
                   Porównywarka Frachtu
                 </h1>
-                <p style={{ fontSize: 12, color: isDark ? "#94a3b8" : "#64748b", margin: 0 }}>
-                  Zestawiaj oferty z giełdy TimoCom z Twoją bazą wewnętrzną — AI doradzi najlepszy wybór
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: isDark ? "#94a3b8" : "#64748b",
+                    margin: 0,
+                  }}
+                >
+                  Zestawiaj oferty z giełdy TimoCom z Twoją bazą wewnętrzną — AI
+                  doradzi najlepszy wybór
                 </p>
               </div>
 
               {/* Search Form */}
-              <div className="glass-card" style={{
-                borderRadius: 12,
-                padding: "1.5rem",
-                background: isDark ? "rgba(15,23,42,0.7)" : "rgba(255,255,255,0.85)",
-                backdropFilter: "blur(24px)",
-                border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}`
-              }}>
+              <div
+                className="glass-card"
+                style={{
+                  borderRadius: 12,
+                  padding: "1.5rem",
+                  background: isDark
+                    ? "rgba(15,23,42,0.7)"
+                    : "rgba(255,255,255,0.85)",
+                  backdropFilter: "blur(24px)",
+                  border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}`,
+                }}
+              >
                 <form className="compare-form" onSubmit={handleCompare}>
                   <div className="compare-field">
                     <label className="compare-label">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><circle cx="12" cy="12" r="10"/></svg>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#22c55e"
+                        strokeWidth="3"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                      </svg>
                       Miasto załadunku
                     </label>
                     <div className="input-wrap">
-                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <svg
+                        className="input-icon"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
                       <input
                         type="text"
                         className="compare-input"
@@ -497,11 +580,32 @@ export default function ComparePage() {
 
                   <div className="compare-field">
                     <label className="compare-label">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="3"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#ef4444"
+                        strokeWidth="3"
+                      >
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" y1="22" x2="4" y2="15" />
+                      </svg>
                       Miasto rozładunku
                     </label>
                     <div className="input-wrap">
-                      <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <svg
+                        className="input-icon"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
                       <input
                         type="text"
                         className="compare-input"
@@ -513,17 +617,39 @@ export default function ComparePage() {
                     </div>
                   </div>
 
-                  <button type="submit" disabled={isLoading} className="btn-compare">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="btn-compare"
+                  >
                     {isLoading ? (
                       <>
-                        <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                        <svg
+                          className="animate-spin"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M21 12a9 9 0 11-6.219-8.56" />
                         </svg>
                         Szukam…
                       </>
                     ) : (
                       <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                        >
+                          <circle cx="11" cy="11" r="8" />
+                          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
                         Porównaj
                       </>
                     )}
@@ -534,7 +660,18 @@ export default function ComparePage() {
               {/* Error Box */}
               {error && (
                 <div className="error-box">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
                   <span>{error}</span>
                 </div>
               )}
@@ -543,8 +680,17 @@ export default function ComparePage() {
               {viewState === "results" && data?.chat_response && (
                 <div className="ai-panel">
                   <div className="ai-avatar">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2">
-                      <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16v2M16 16v2"/>
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="2.2"
+                    >
+                      <rect x="3" y="11" width="18" height="10" rx="2" />
+                      <circle cx="12" cy="5" r="2" />
+                      <path d="M12 7v4M8 16v2M16 16v2" />
                     </svg>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -557,15 +703,24 @@ export default function ComparePage() {
               {/* Loading Skeleton */}
               {viewState === "loading" && (
                 <div>
-                  <div className="skeleton skel-ai" style={{ marginBottom: "1rem" }}></div>
+                  <div
+                    className="skeleton skel-ai"
+                    style={{ marginBottom: "1rem" }}
+                  ></div>
                   <div className="compare-columns">
                     <div>
-                      <div className="skeleton" style={{ height: 40, marginBottom: "0.75rem" }}></div>
+                      <div
+                        className="skeleton"
+                        style={{ height: 40, marginBottom: "0.75rem" }}
+                      ></div>
                       <div className="skeleton skel-card"></div>
                       <div className="skeleton skel-card"></div>
                     </div>
                     <div>
-                      <div className="skeleton" style={{ height: 40, marginBottom: "0.75rem" }}></div>
+                      <div
+                        className="skeleton"
+                        style={{ height: 40, marginBottom: "0.75rem" }}
+                      ></div>
                       <div className="skeleton skel-card"></div>
                       <div className="skeleton skel-card"></div>
                     </div>
@@ -577,11 +732,24 @@ export default function ComparePage() {
               {viewState === "initial" && !error && (
                 <div className="compare-hero">
                   <div className="hero-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2"><path d="M16 16s3-3 3-8V4h-7v4h-3V4H2v4c0 5 3 8 3 8"/><path d="M7 16v4h10v-4"/><path d="M12 8v8"/></svg>
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#6366f1"
+                      strokeWidth="2"
+                    >
+                      <path d="M16 16s3-3 3-8V4h-7v4h-3V4H2v4c0 5 3 8 3 8" />
+                      <path d="M7 16v4h10v-4" />
+                      <path d="M12 8v8" />
+                    </svg>
                   </div>
                   <div className="hero-title">Wyszukaj trasę do porównania</div>
                   <div className="hero-desc">
-                    Wprowadź miasta załadunku i rozładunku powyżej. System przeszuka giełdę TimoCom oraz bazą wewnętrzną i zaproponuje najlepszą ofertę.
+                    Wprowadź miasta załadunku i rozładunku powyżej. System
+                    przeszuka giełdę TimoCom oraz bazą wewnętrzną i zaproponuje
+                    najlepszą ofertę.
                   </div>
                 </div>
               )}
@@ -589,32 +757,59 @@ export default function ComparePage() {
               {/* Results Panel */}
               {viewState === "results" && data?.ui_data && (
                 <div className="compare-columns">
-                  
                   {/* TimoCom */}
                   <div className="compare-column">
                     <div className="column-header timo">
                       <div className="column-icon timo">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z"/></svg>
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z" />
+                        </svg>
                       </div>
                       <div>
                         <div className="column-title">Giełda TimoCom</div>
-                        <div style={{ fontSize: 10, color: "#64748b", fontWeight: 500 }}>Oferty z rynku spot</div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: "#64748b",
+                            fontWeight: 500,
+                          }}
+                        >
+                          Oferty z rynku spot
+                        </div>
                       </div>
-                      <span className="column-count timo">{data.ui_data.timocom_list.length}</span>
+                      <span className="column-count timo">
+                        {data.ui_data.timocom_list.length}
+                      </span>
                     </div>
-                    
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "1rem",
+                      }}
+                    >
                       {data.ui_data.timocom_list.length === 0 ? (
                         <div className="column-empty">
                           Brak ofert na tej trasie
                         </div>
                       ) : (
                         data.ui_data.timocom_list.map((offer) => (
-                          <OfferCard 
-                            key={offer.id} 
-                            offer={offer} 
-                            type="timo" 
-                            isBest={offer.id === getBestId(data.ui_data!.timocom_list)} 
+                          <OfferCard
+                            key={offer.id}
+                            offer={offer}
+                            type="timo"
+                            isBest={
+                              offer.id === getBestId(data.ui_data!.timocom_list)
+                            }
                             formatPrice={formatPrice}
                           />
                         ))
@@ -626,37 +821,64 @@ export default function ComparePage() {
                   <div className="compare-column">
                     <div className="column-header internal">
                       <div className="column-icon internal">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        >
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                          <polyline points="22,6 12,13 2,6" />
+                        </svg>
                       </div>
                       <div>
                         <div className="column-title">Baza Wewnętrzna</div>
-                        <div style={{ fontSize: 10, color: "#64748b", fontWeight: 500 }}>Oferty z maili i scraperów</div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: "#64748b",
+                            fontWeight: 500,
+                          }}
+                        >
+                          Oferty z maili i scraperów
+                        </div>
                       </div>
-                      <span className="column-count internal">{data.ui_data.internal_list.length}</span>
+                      <span className="column-count internal">
+                        {data.ui_data.internal_list.length}
+                      </span>
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "1rem",
+                      }}
+                    >
                       {data.ui_data.internal_list.length === 0 ? (
                         <div className="column-empty">
                           Brak ofert na tej trasie
                         </div>
                       ) : (
                         data.ui_data.internal_list.map((offer) => (
-                          <OfferCard 
-                            key={offer.id} 
-                            offer={offer} 
-                            type="internal" 
-                            isBest={offer.id === getBestId(data.ui_data!.internal_list)} 
+                          <OfferCard
+                            key={offer.id}
+                            offer={offer}
+                            type="internal"
+                            isBest={
+                              offer.id ===
+                              getBestId(data.ui_data!.internal_list)
+                            }
                             formatPrice={formatPrice}
                           />
                         ))
                       )}
                     </div>
                   </div>
-
                 </div>
               )}
-
             </div>
           </main>
         </div>
@@ -665,27 +887,55 @@ export default function ComparePage() {
   );
 }
 
-function OfferCard({ offer, type, isBest, formatPrice }: { 
-  offer: Offer, 
-  type: "timo" | "internal", 
-  isBest: boolean,
-  formatPrice: (p: number) => string 
+function OfferCard({
+  offer,
+  type,
+  isBest,
+  formatPrice,
+}: {
+  offer: Offer;
+  type: "timo" | "internal";
+  isBest: boolean;
+  formatPrice: (p: number) => string;
 }) {
   return (
     <div className={`offer-card ${isBest ? "best " + type : ""} anim-slide`}>
       {isBest && <span className={`best-badge ${type}`}>★ Najlepsza</span>}
-      <div className={`offer-source-tag ${type}`}>{offer.source || type.toUpperCase()}</div>
+      <div className={`offer-source-tag ${type}`}>
+        {offer.source || type.toUpperCase()}
+      </div>
       <div className="offer-price-row">
         <span className="offer-price">{formatPrice(offer.price)}</span>
         <span className="offer-currency">{offer.currency || "EUR"}</span>
       </div>
       <div className="offer-details">
         <span className="offer-chip">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"/><polyline points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <rect x="1" y="3" width="15" height="13" />
+            <polyline points="16 8 20 8 23 11 23 16 16 16" />
+            <circle cx="5.5" cy="18.5" r="2.5" />
+            <circle cx="18.5" cy="18.5" r="2.5" />
+          </svg>
           {offer.weight ? `${offer.weight} t` : "—"}
         </span>
         <span className="offer-chip">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
           {offer.origin || "?"} → {offer.destination || "?"}
         </span>
       </div>

@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
@@ -65,13 +66,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SmartLoad AI API", lifespan=lifespan)
 
+# ── CORS ──────────────────────────────────────────────────
+_raw_origins = [
+    "http://localhost:3000",
+    os.getenv("FRONTEND_URL", ""),   # ustaw w Railway: FRONTEND_URL=https://xxx.up.railway.app
+]
+origins = [o for o in _raw_origins if o]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# ──────────────────────────────────────────────────────────
 
 Path("static/docs").mkdir(parents=True, exist_ok=True)
 app.mount("/web", StaticFiles(directory="app/web"), name="web")
