@@ -20,6 +20,12 @@ def seed_data():
     return {"status": "Data seeded successfully."}
 
 
+@router.post("/seed-timocom")
+def seed_timocom():
+    from app.seeds.timocom_seeder import seed
+    return seed()
+
+
 @router.get("/create-superuser")
 def create_superuser():
     url = os.getenv("DATABASE_URL")
