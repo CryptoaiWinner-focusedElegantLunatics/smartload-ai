@@ -15,9 +15,15 @@ def check_db(session: Session = Depends(get_session)):
 
 @router.get("/seed-data")
 def seed_data():
-    from seed_db import seed_test_emails
+    from app.seeds.seed_db import seed_test_emails
     seed_test_emails()
     return {"status": "Data seeded successfully."}
+
+
+@router.post("/seed-timocom")
+def seed_timocom():
+    from app.seeds.timocom_seeder import seed
+    return seed()
 
 
 @router.get("/create-superuser")
@@ -29,7 +35,7 @@ def create_superuser():
         return {"error": "DATABASE_URL is not set in the environment."}
 
     try:
-        from seed_admin import create_superuser
+        from app.seeds.seed_admin import create_superuser
         create_superuser()
         return {"status": "Superuser created successfully."}
     except Exception as e:
