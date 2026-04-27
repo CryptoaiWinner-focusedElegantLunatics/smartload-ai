@@ -93,7 +93,8 @@ export default function ChatPage() {
       typeof window !== "undefined" && location.protocol === "https:"
         ? "wss"
         : "ws";
-    const ws = new WebSocket(`${proto}://${location.hostname}:8000/ws/chat`);
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000";
+    const ws = new WebSocket(`${wsUrl}/ws/chat`);
     wsRef.current = ws;
 
     ws.onopen = () => setWsStatus("online");
