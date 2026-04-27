@@ -40,3 +40,9 @@ def create_superuser():
         return {"status": "Superuser created successfully."}
     except Exception as e:
         return {"error": str(e), "database_url": url}
+
+@router.get("/seed-all")
+def seed_all():
+    from app.seeds.advanced_seeder import seed_everything
+    seed_everything()
+    return {"status": "Data seeded successfully."}
