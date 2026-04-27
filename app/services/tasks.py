@@ -6,6 +6,7 @@ from app.core.celery_app import celery_app
 from app.services.email_fetcher import fetch_latest_offers
 from app.core.database import engine
 from app.models.email_log import EmailLog
+from app.models.custom_category import CustomCategory
 from app.services.ai_triage import categorize_email_with_gemma, extract_data_from_full_context
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,9 @@ def process_emails_task(self, limit: Optional[int] = 50):
         new_emails_count = 0
 
         with Session(engine) as session:
+            custom_categories_db = session.exec(select(CustomCategory)).all()
+            custom_categories_names = [c.name for c in custom_categories_db]
+            
             for i, offer in enumerate(offers, 1):
                 existing_email = session.exec(select(EmailLog).where(EmailLog.uid == offer['uid'])).first()
                 
@@ -37,7 +41,7 @@ def process_emails_task(self, limit: Optional[int] = 50):
                     continue
                 
                 new_emails_count += 1
-                category = categorize_email_with_gemma(offer['subject'], offer['text'])
+                category = categorize_email_with_gemma(offer['subject'], offer['text'], custom_categories_names)
 
                 extracted_data = {}
                 if category in ["OFERTA", "ZAMOWIENIE", "DOKUMENT_CMR"]:

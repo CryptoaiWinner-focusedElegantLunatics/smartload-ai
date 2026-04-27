@@ -85,6 +85,7 @@ const STATUS_OPTIONS = [
 
 function MailPageInner() {
   const searchParams = useSearchParams();
+  const [isMounted, setIsMounted] = useState(false);
 
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -144,11 +145,17 @@ function MailPageInner() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const lastCheckedIdx = useRef(-1);
 
-  const [customCats, setCustomCats] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    return JSON.parse(localStorage.getItem("customCategories") || "[]");
-  });
+  const [customCats, setCustomCats] = useState<string[]>([]);
   const allCats = [...DEFAULT_CATS, ...customCats];
+
+  useEffect(() => {
+    fetch("/api/backend/api/custom-categories", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setCustomCats(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const [modal, setModal] = useState<Email | null>(null);
   const [catModal, setCatModal] = useState(false);
@@ -178,6 +185,10 @@ function MailPageInner() {
       setLoadState("empty");
     }
   }, []);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, [])
 
   useEffect(() => {
     loadEmails();
@@ -426,7 +437,7 @@ function MailPageInner() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ custom_categories: customCats }),
+            body: JSON.stringify({}),
           });
           const data = await r.json();
           if (data.usage) trackUsage(data.usage);
@@ -466,7 +477,7 @@ function MailPageInner() {
     localStorage.setItem("aiUsageTotal", JSON.stringify(stored));
   }
 
-  function saveCat() {
+  async function saveCat() {
     const cat = newCatInput
       .trim()
       .toUpperCase()
@@ -491,18 +502,36 @@ function MailPageInner() {
       });
       return;
     }
-    const next = [...customCats, cat];
-    setCustomCats(next);
-    localStorage.setItem("customCategories", JSON.stringify(next));
-    setCatModal(false);
-    setNewCatInput("");
-    showPopup({
-      type: "success",
-      title: "Dodano kategorię",
-      message: `Kategoria "${cat}" została dodana.`,
-      confirmText: "OK",
-      hideCancel: true,
-    });
+    
+    try {
+      const r = await fetch("/api/backend/api/custom-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: cat }),
+      });
+      if (!r.ok) throw new Error();
+      
+      const next = [...customCats, cat];
+      setCustomCats(next);
+      setCatModal(false);
+      setNewCatInput("");
+      showPopup({
+        type: "success",
+        title: "Dodano kategorię",
+        message: `Kategoria "${cat}" została dodana.`,
+        confirmText: "OK",
+        hideCancel: true,
+      });
+    } catch {
+      showPopup({
+        type: "error",
+        title: "Błąd",
+        message: "Nie udało się zapisać kategorii.",
+        confirmText: "OK",
+        hideCancel: true,
+      });
+    }
   }
 
   function CatPill({ cat, small = false }: { cat: string; small?: boolean }) {
@@ -976,7 +1005,7 @@ function MailPageInner() {
                   }}
                 >
                   <option value="">Wszystkie kategorie</option>
-                  {allCats.map((c) => (
+                  {isMounted && allCats.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>

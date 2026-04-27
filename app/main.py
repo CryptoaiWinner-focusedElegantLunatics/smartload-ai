@@ -9,6 +9,7 @@ from sqlalchemy import text
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.database import engine
+from app.models.custom_category import CustomCategory
 from app.scraper.runner import run_all_scrapers
 from app.services.tasks import process_emails_task
 from app.seeds.seed_firetms import seed_all
