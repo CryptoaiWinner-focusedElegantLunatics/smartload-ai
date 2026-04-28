@@ -49,3 +49,6 @@ pypdf
 # Testing
 pytest==8.1.1
 pytest-asyncio==0.23.6
+
+# PDF Generation
+weasyprint==61.2
