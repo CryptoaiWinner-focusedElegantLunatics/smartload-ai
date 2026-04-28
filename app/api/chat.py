@@ -82,18 +82,25 @@ class MessageOut(BaseModel):
 
 
 # ─── Helper: wyciągnij usera z cookie WebSocketa ─────────────────────────────
-def _get_user_from_ws_cookie(websocket: WebSocket) -> User | None:
-    """Odczytuje access_token z cookie WS handshake i zwraca usera."""
+def _get_user_from_ws_token(websocket: WebSocket) -> User | None:
+    """Odczytuje token z query params lub cookies i zwraca usera."""
     from jose import jwt as jose_jwt, JWTError
 
-    token_cookie = websocket.cookies.get("access_token")
-    if not token_cookie:
+    token = websocket.query_params.get("token")
+    if not token:
+        token_cookie = websocket.cookies.get("access_token")
+        if token_cookie:
+            scheme, _, token = token_cookie.partition(" ")
+            if scheme.lower() != "bearer" or not token:
+                token = None
+
+    if not token:
         return None
+        
+    if token.startswith("Bearer "):
+        token = token.replace("Bearer ", "")
 
     try:
-        scheme, _, token = token_cookie.partition(" ")
-        if scheme.lower() != "bearer" or not token:
-            return None
         payload = jose_jwt.decode(token, _get_secret(), algorithms=[ALGORITHM])
         username = payload.get("sub")
         if not username:
@@ -118,7 +125,7 @@ async def user_chat_ws(websocket: WebSocket):
     # ── Autoryzacja z cookie ──
     await websocket.accept()
 
-    user = _get_user_from_ws_cookie(websocket)
+    user = _get_user_from_ws_token(websocket)
     if not user:
         await websocket.send_text(json.dumps({"type": "error", "message": "Brak autoryzacji"}))
         await websocket.close(code=1008, reason="Brak autoryzacji")

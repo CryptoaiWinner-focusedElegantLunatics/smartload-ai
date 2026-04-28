@@ -27,24 +27,13 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         # Dodajemy rolę do payload JWT
         role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
         access_token = create_access_token(data={"sub": user.username, "role": role_str})
-        response = JSONResponse(content={"ok": True, "role": role_str})
-        response.set_cookie(
-            key="access_token",
-            value=f"Bearer {access_token}",
-            httponly=True,
-            samesite="none",
-            secure=True,
-        )
+        response = JSONResponse(content={"ok": True, "role": role_str, "token": access_token})
         return response
 
 
 @router.post("/api/logout")
 def logout():
     response = JSONResponse(content={"status": "success"})
-    response.delete_cookie(
-        key="access_token",
-        samesite="none",
-        secure=True,
     )
     return response
 
