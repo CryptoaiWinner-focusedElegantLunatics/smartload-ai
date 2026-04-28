@@ -85,9 +85,10 @@ class RoleChecker:
 
     def __call__(self, request: Request):
         user = get_current_user(request)
-        if user.role not in self.allowed_roles:
+        user_role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+        if user_role_str not in self.allowed_roles:
             raise HTTPException(
                 status_code=403,
-                detail=f"Brak uprawnień. Wymagana rola: {', '.join(self.allowed_roles)}. Twoja rola: {user.role}."
+                detail=f"Brak uprawnień. Wymagana rola: {', '.join(self.allowed_roles)}. Twoja rola: {user_role_str}."
             )
         return user

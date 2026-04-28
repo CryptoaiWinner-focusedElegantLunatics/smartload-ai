@@ -25,8 +25,9 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
                 content={"detail": "Nieprawidłowy login lub hasło."}
             )
         # Dodajemy rolę do payload JWT
-        access_token = create_access_token(data={"sub": user.username, "role": user.role})
-        response = JSONResponse(content={"ok": True, "role": user.role})
+        role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+        access_token = create_access_token(data={"sub": user.username, "role": role_str})
+        response = JSONResponse(content={"ok": True, "role": role_str})
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -51,8 +52,9 @@ def logout():
 @router.get("/api/me")
 def get_me(user: User = Depends(get_current_user)):
     """Zwraca profil zalogowanego użytkownika (username + rola)."""
+    role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
     return {
         "username": user.username,
-        "role": user.role,
+        "role": role_str,
         "vehicle_plate": user.vehicle_plate,
     }
