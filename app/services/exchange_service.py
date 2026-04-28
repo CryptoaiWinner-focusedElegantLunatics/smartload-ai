@@ -13,6 +13,7 @@ from sqlmodel import Session, select
 from requests.auth import HTTPBasicAuth
 
 from app.models.load import Load
+from app.models.email_log import EmailLog
 from app.models.offer import (
     CreateOfferDto,
     CreateOfferResponse,
@@ -314,16 +315,49 @@ class OfferAggregator:
     def __init__(self):
         self.timocom = TimoComAdapter()
 
-    def get_comparison(self, session: Session, from_city: str, to_city: str, from_country: str = "PL", to_country: str = "DE"):
+    def get_comparison(self, session: Session, from_city: str, to_city: str, from_country: Optional[str] = None, to_country: Optional[str] = None):
         """Pobiera dane z bazy (scrapers/emails) ORAZ giełdy TimoCom i sprowadza je do jednego formatu"""
         
-        # 1. TIMOCOM
-        raw_timo = self.timocom.search_loads(from_country, from_city, to_country, to_city)
-        timo_offers = self._format_timo_data(raw_timo, from_city, to_city)
+        # Wykrywamy kraje z City stringów (np. "Warszawa, PL") jeśli nie podano wprost
+        actual_from_country = from_country or _extract_country(from_city) or "PL"
+        actual_to_country = to_country or _extract_country(to_city) or "DE"
+        
+        # Oczyszczamy nazwy miast do wyszukiwania w bazie (wywalamy ", PL" itp)
+        search_from_city = _extract_city(from_city) or from_city
+        search_to_city = _extract_city(to_city) or to_city
 
-        # 2. WEWNĘTRZNA BAZA DANYCH (używa Twojej funkcji get_raw_offers!)
-        raw_internal = get_raw_offers(session=session, limit=50, origin=from_city, destination=to_city)
-        internal_offers = self._format_internal_data(raw_internal, from_city, to_city)
+        # 1. TIMOCOM API (Sandbox/Live)
+        raw_timo_api = self.timocom.search_loads(actual_from_country, search_from_city, actual_to_country, search_to_city)
+        timo_offers = self._format_timo_data(raw_timo_api, search_from_city, search_to_city)
+
+        # 2. WEWNĘTRZNA BAZA DANYCH (Load table)
+        raw_db = get_raw_offers(session=session, limit=50, origin=search_from_city, destination=search_to_city)
+        
+        internal_offers = []
+        db_timo_count = 0
+        
+        for item in raw_db:
+            formatted = self._format_internal_data([item], search_from_city, search_to_city)[0]
+            
+            # Jeśli w bazie mamy coś co jest z TimoCom (np. ze scrapera), wrzucamy do lewej kolumny
+            if formatted["source"].upper() == "TIMOCOM":
+                # Unikamy duplikatów jeśli ID by się powtarzało (mało prawdopodobne przy różnych źródłach)
+                if not any(o["id"] == formatted["id"] for o in timo_offers):
+                    timo_offers.append(formatted)
+                    db_timo_count += 1
+            else:
+                internal_offers.append(formatted)
+
+        # 2b. EMAILE (z bazy EmailLog)
+        emails_query = select(EmailLog).where(
+            EmailLog.loading_city.ilike(f"%{search_from_city}%"),
+            EmailLog.unloading_city.ilike(f"%{search_to_city}%")
+        )
+        raw_emails = session.exec(emails_query).all()
+        email_offers = self._format_email_data(raw_emails, search_from_city, search_to_city)
+        
+        # Łączymy bazę wewnętrzną z mailami
+        internal_offers.extend(email_offers)
 
         # 3. ZNAJDYWANIE NAJLEPSZYCH (najwyższa cena)
         best_timo = max(timo_offers, key=lambda x: x['price'], default=None) if timo_offers else None
@@ -352,6 +386,21 @@ class OfferAggregator:
                 "weight": item.get("weight_t", 0.0),
                 "price": price_info.get("amount", 0.0),
                 "currency": price_info.get("currency", "EUR")
+            })
+        return formatted
+
+    def _format_email_data(self, raw_emails, from_city, to_city):
+        formatted = []
+        for em in raw_emails:
+            weight_t = round((em.weight_kg or 0) / 1000, 2)
+            formatted.append({
+                "id": f"email-{em.id}",
+                "source": "EMAIL",
+                "origin": from_city,
+                "destination": to_city,
+                "weight": weight_t,
+                "price": em.price or 0.0,
+                "currency": em.currency or "EUR"
             })
         return formatted
 
