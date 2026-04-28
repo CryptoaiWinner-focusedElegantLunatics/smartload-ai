@@ -227,8 +227,7 @@ export default function DashboardPage() {
         .total-base-row { display:flex; align-items:baseline; gap:1rem; }
         .total-base-number { font-family:var(--font-headline); font-size:64px; font-weight:700; color:var(--color-text-primary); line-height:1; letter-spacing:-0.04em; }
         .total-base-sublabel { font-size:12px; color:var(--color-text-muted); font-weight:500; }
-        .db-icon-bg { position:absolute; right:-24px; bottom:-24px; opacity:0.1; transition:transform 0.7s ease; font-size:120px; color:var(--color-primary); }
-        .total-base-card:hover .db-icon-bg { transform:rotate(-12deg); }
+        .db-icon-bg { position:absolute; right:-24px; bottom:-24px; opacity:0.1; transition:transform 0.7s ease; font-size:120px; color:var(--color-primary); cursor:default; user-select:none; }        .total-base-card:hover .db-icon-bg { transform:rotate(-12deg); }
         .chart-card { border-radius:8px; padding:2.5rem; display:flex; flex-direction:column; }
         .chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2.5rem; }
         .chart-title { font-family:var(--font-headline); font-size:22px; font-weight:700; color:var(--color-text-primary); letter-spacing:-0.02em; }
@@ -323,20 +322,6 @@ export default function DashboardPage() {
                 Centrum zarządzania SmartLoad AI
               </p>
             </div>
-            <div
-              style={{
-                fontSize: 12,
-                padding: "4px 10px",
-                borderRadius: 999,
-                background: isDark ? "rgba(37,99,235,0.2)" : "#eff6ff",
-                color: isDark ? "#60a5fa" : "#2563eb",
-                border: `1px solid ${isDark ? "rgba(37,99,235,0.3)" : "#bfdbfe"}`,
-                fontWeight: 500,
-                whiteSpace: "nowrap",
-              }}
-            >
-              🚛 TSL
-            </div>
           </header>
 
           {/* Main content */}
@@ -428,9 +413,8 @@ export default function DashboardPage() {
                   </div>
                   <h2 className="module-title">Komunikator</h2>
                   <p className="module-desc">
-                    Bezpośrednie połączenie z Twoją flotą. Automatyczne
-                    tłumaczenia komunikatów i geolokalizacja w czasie
-                    rzeczywistym.
+                    Asystent AI odpowiada na pytania, dobiera ładunki i prowadzi
+                    przez formalności - wszystko w jednym oknie czatu.
                   </p>
                   <span className="module-cta">
                     Otwórz czat{" "}
@@ -464,7 +448,7 @@ export default function DashboardPage() {
                         barRef: barOferta,
                         statRef: refOferta,
                         trendClass: "stat-trend-pos",
-                        trend: "+12%",
+                        trend: "New",
                       },
                       {
                         key: "ZAMOWIENIE",

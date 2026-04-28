@@ -106,9 +106,7 @@ export default function LoginPage() {
             <div className="form-group">
               <label htmlFor="password">
                 Hasło
-                <a href="#" className="forgot-link">
-                  Zapomniałeś hasła?
-                </a>
+                <a className="forgot-link">Zapomniałeś hasła?</a>
               </label>
               <input
                 id="password"
@@ -131,7 +129,7 @@ export default function LoginPage() {
           </form>
 
           <p className="login-register">
-            Nie masz konta? <a href="#">Skontaktuj się z nami</a>
+            Nie masz konta? <a className="forgot-link">Skontaktuj się z nami</a>
           </p>
         </div>
       </div>

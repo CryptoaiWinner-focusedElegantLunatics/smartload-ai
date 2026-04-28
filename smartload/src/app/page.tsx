@@ -10,10 +10,10 @@ export default function LandingPage() {
         <div className="logo">SmartLoad AI</div>
         <ul className="nav-links">
           <li>
-            <a href="#funkcje">Funkcje</a>
+            <a href="#platforma">Platforma</a>
           </li>
           <li>
-            <a href="#platforma">Platforma</a>
+            <a href="#funkcje">Funkcje</a>
           </li>
           <li>
             <a href="#dzien">Dzień z AI</a>
@@ -92,16 +92,17 @@ export default function LandingPage() {
       <section className="intelligence" id="funkcje">
         <h2 className="section-title">Inteligencja, która pracuje za Ciebie</h2>
         <div className="features-grid">
-          <div className="feature-card featured">
-            <div className="feature-icon">🧠</div>
+          <div className="feature-card">
+            <img src="/web/Icon.svg" alt="" />
             <h3>Analiza Semantyczna Maili</h3>
             <p>
               AI interpretuje zapytania mailowe, wyciągając kluczowe dane:
               wymiary, wagę, rodzaj nadwozia i terminy.
             </p>
           </div>
-          <div className="feature-card">
-            <div className="feature-icon">🔗</div>
+          <div className="feature-card featured">
+            <img src="/web/Icon2.svg" alt="" />
+
             <h3>Agregacja Giełd Ładunków</h3>
             <p>
               Łączymy oferty z wielu źródeł w jeden, czytelny strumień danych
@@ -111,7 +112,8 @@ export default function LandingPage() {
         </div>
         <div className="features-grid-bottom">
           <div className="feature-card">
-            <div className="feature-icon">🗺️</div>
+            <img src="/web/Icon3.svg" alt="" />
+
             <h3>Optymalizacja Tras</h3>
             <p>
               System sugeruje doładunki i optymalne trasy przejazdu w oparciu o
@@ -119,7 +121,8 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon">📧</div>
+            <img src="/web/Icon4.svg" alt="" />
+
             <h3>Automatyczny Monitoring</h3>
             <p>
               Automatyczne pobieranie ofert z wiadomości e-mail i giełd
@@ -127,7 +130,8 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon">🛡️</div>
+            <img src="/web/Icon5.svg" alt="" />
+
             <h3>Weryfikacja Kontrahentów</h3>
             <p>
               Automatyczne sprawdzanie dokumentów i reputacji firm w bazach
@@ -146,7 +150,10 @@ export default function LandingPage() {
             </h2>
             <div className="benefits-grid">
               <div className="benefit-item">
-                <div className="benefit-icon">⚡</div>
+                <div className="benefit-icon">
+                  {" "}
+                  <img src="/web/Icon8.svg" alt="" />
+                </div>
                 <div className="benefit-content">
                   <h3>Oszczędność czasu</h3>
                   <p>
@@ -156,7 +163,10 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="benefit-item">
-                <div className="benefit-icon">✓</div>
+                <div className="benefit-icon">
+                  {" "}
+                  <img src="./web/Icon8.svg" alt="" />
+                </div>
                 <div className="benefit-content">
                   <h3>Zero błędów</h3>
                   <p>
@@ -166,7 +176,10 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="benefit-item">
-                <div className="benefit-icon">🚀</div>
+                <div className="benefit-icon">
+                  {" "}
+                  <img src="/web/Icon6.svg" alt="" />
+                </div>
                 <div className="benefit-content">
                   <h3>Przewaga konkurencyjna</h3>
                   <p>
@@ -191,19 +204,19 @@ export default function LandingPage() {
                 [08:14:32] System uruchomiony
               </div>
               <div className="terminal-line success">
-                [08:14:33] ✓ Połączono z giełdami ładunków
+                [08:14:33] Połączono z giełdami ładunków
               </div>
               <div className="terminal-line warning">
-                [08:14:45] ⚡ Nowy mail: "Ładunek DE→PL, 24t"
+                [08:14:45] Nowy mail: "Ładunek DE→PL, 24t"
               </div>
               <div className="terminal-line success">
-                [08:14:46] ✓ Ekstrakcja danych: 98% pewności
+                [08:14:46] Ekstrakcja danych: 98% pewności
               </div>
               <div className="terminal-line timestamp">
                 [08:14:47] Szukam pasujących ofert...
               </div>
               <div className="terminal-line success">
-                [08:14:48] ✓ Znaleziono 3 optymalne doładunki
+                [08:14:48] Znaleziono 3 optymalne doładunki
               </div>
               <div className="terminal-line highlight">
                 → Oszczędność: 340 km trasy
@@ -229,10 +242,10 @@ export default function LandingPage() {
             <h4>SmartLoad AI</h4>
             <ul>
               <li>
-                <a href="#funkcje">Funkcje</a>
+                <a href="#platforma">Platforma</a>
               </li>
               <li>
-                <a href="#platforma">Platforma</a>
+                <a href="#funkcje">Funkcje</a>
               </li>
               <li>
                 <a href="#dzien">Dzień z AI</a>
@@ -271,7 +284,7 @@ export default function LandingPage() {
         <div className="footer-bottom">
           <div className="footer-logo">SmartLoad AI</div>
           <div className="footer-copy">
-            © 2025 SmartLoad AI. Wszelkie prawa zastrzeżone.
+            © 2026 SmartLoad AI. Wszelkie prawa zastrzeżone.
           </div>
         </div>
       </footer>

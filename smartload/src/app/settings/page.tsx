@@ -512,7 +512,22 @@ function SettingsPageInner() {
                         }}
                       >
                         <strong style={{ color: cPrimary }}>
-                          💡 Gmail wymaga hasła do aplikacji
+                          <svg
+                            width="23"
+                            height="23"
+                            fill="none"
+                            stroke={cPrimary}
+                            strokeWidth="2"
+                            style={{
+                              display: "inline",
+                              verticalAlign: "middle",
+                            }}
+                          >
+                            <circle cx="12" cy="8" r="4" />
+                            <line x1="12" y1="12" x2="12" y2="16" />
+                            <line x1="12" y1="19" x2="12.01" y2="19" />
+                          </svg>
+                          Gmail wymaga hasła do aplikacji{" "}
                         </strong>
                         <br />
                         Zwykłe hasło nie zadziała jeśli masz 2FA. Wejdź na{" "}
@@ -606,7 +621,25 @@ function SettingsPageInner() {
                           opacity: saving ? 0.8 : 1,
                         }}
                       >
-                        {saving ? "Zapisywanie…" : "💾 Zapisz ustawienia"}
+                        {saving ? (
+                          "Zapisywanie…"
+                        ) : (
+                          <>
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+                              <polyline points="17 21 17 13 7 13 7 21" />
+                              <polyline points="7 3 7 8 15 8" />
+                            </svg>
+                            Zapisz ustawienia
+                          </>
+                        )}{" "}
                       </button>
                     </div>
                   </div>
@@ -645,7 +678,22 @@ function SettingsPageInner() {
                   }}
                 >
                   <div>
-                    📁 Ustawienia są zapisywane w bazie danych aplikacji (tabela{" "}
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={cMuted}
+                      strokeWidth="2"
+                      style={{
+                        display: "inline",
+                        marginRight: 6,
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                    </svg>{" "}
+                    Ustawienia są zapisywane w bazie danych aplikacji (tabela{" "}
                     <code
                       style={{
                         background: cHover,
@@ -659,12 +707,44 @@ function SettingsPageInner() {
                     ).
                   </div>
                   <div>
-                    🔒 Hasło jest przechowywane w postaci{" "}
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={cMuted}
+                      strokeWidth="2"
+                      style={{
+                        display: "inline",
+                        marginRight: 6,
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0110 0v4" />
+                    </svg>{" "}
+                    Hasło jest przechowywane w postaci{" "}
                     <strong>zaszyfrowanej</strong> (AES-256).
                   </div>
                   <div>
-                    ⚙️ Jeśli ustawienia nie są zapisane, aplikacja używa
-                    wartości z pliku{" "}
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={cMuted}
+                      strokeWidth="2"
+                      style={{
+                        display: "inline",
+                        marginRight: 6,
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+                    </svg>{" "}
+                    Jeśli ustawienia nie są zapisane, aplikacja używa wartości z
+                    pliku{" "}
                     <code
                       style={{
                         background: cHover,

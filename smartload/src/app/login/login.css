@@ -183,6 +183,7 @@
   font-size: 0.85rem;
   color: #0f4dd9;
   text-decoration: none;
+  cursor: not-allowed;
 }
 
 .forgot-link:hover {
