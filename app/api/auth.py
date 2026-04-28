@@ -34,6 +34,10 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 @router.post("/api/logout")
 def logout():
     response = JSONResponse(content={"status": "success"})
+    response.delete_cookie(
+        key="access_token",
+        samesite="none",
+        secure=True,
     )
     return response
 
