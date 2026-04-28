@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import Sidebar from "../components/Sidebar";
 import DOMPurify from "dompurify";
 
-
 interface Email {
   id: number;
   sender?: string;
@@ -188,7 +187,7 @@ function MailPageInner() {
 
   useEffect(() => {
     setIsMounted(true);
-  }, [])
+  }, []);
 
   useEffect(() => {
     loadEmails();
@@ -470,7 +469,7 @@ function MailPageInner() {
   }) {
     const stored = JSON.parse(
       localStorage.getItem("aiUsageTotal") ||
-      '{"prompt_tokens":0,"completion_tokens":0}',
+        '{"prompt_tokens":0,"completion_tokens":0}',
     );
     stored.prompt_tokens += usage.prompt_tokens || 0;
     stored.completion_tokens += usage.completion_tokens || 0;
@@ -760,19 +759,55 @@ function MailPageInner() {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "6px 12px",
+                padding: "7px 14px",
                 borderRadius: 8,
-                background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                background: scanning
+                  ? "linear-gradient(135deg, #6d28d9, #5b21b6)"
+                  : "linear-gradient(135deg, #7c3aed, #6d28d9)",
                 color: "#fff",
                 border: "none",
-                cursor: "pointer",
+                cursor: scanning ? "not-allowed" : "pointer",
                 fontSize: 12,
                 fontWeight: 700,
-                opacity: scanning ? 0.7 : 1,
-                boxShadow: "0 2px 8px rgba(124,58,237,0.3)",
+                opacity: scanning ? 0.75 : 1,
+                boxShadow: scanning
+                  ? "none"
+                  : "0 2px 8px rgba(124,58,237,0.35)",
+                transition: "all 0.2s",
               }}
             >
-              {scanning ? "⏳ Skanowanie…" : "⚡ Skanuj INNE"}
+              {scanning ? (
+                <>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{ animation: "_spin 0.7s linear infinite" }}
+                  >
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  </svg>
+                  Skanowanie…
+                </>
+              ) : (
+                <>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                    <path d="M11 8v6M8 11h6" />
+                  </svg>
+                  Skanuj INNE
+                </>
+              )}
             </button>
           </header>
 
@@ -781,12 +816,12 @@ function MailPageInner() {
             <div
               style={{
                 flexShrink: 0,
-                background: isDark ? "#1a0f0f" : "#fff5f5",
-                borderBottom: "1px solid #fca5a5",
-                padding: "0.6rem 1.5rem",
+                background: "linear-gradient(90deg, #7f1d1d 0%, #991b1b 100%)",
+                borderBottom: "2px solid #ef4444",
+                padding: "0.5rem 1.5rem",
                 display: "flex",
                 alignItems: "center",
-                gap: "1rem",
+                gap: "0.75rem",
               }}
             >
               <svg
@@ -794,7 +829,7 @@ function MailPageInner() {
                 height="15"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#ef4444"
+                stroke="#fca5a5"
                 strokeWidth="2"
               >
                 <polyline points="3 6 5 6 21 6" />
@@ -805,27 +840,53 @@ function MailPageInner() {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: "#ef4444",
+                  color: "#fecaca",
                   flex: 1,
                 }}
               >
-                Tryb usuwania — kliknij maile do zaznaczenia
-                {selectedIds.size > 0 && ` (${selectedIds.size} zaznaczonych)`}
+                Tryb usuwania aktywny
+                {selectedIds.size > 0 && (
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      background: "rgba(255,255,255,0.15)",
+                      padding: "1px 8px",
+                      borderRadius: 100,
+                    }}
+                  >
+                    {selectedIds.size} zaznaczonych
+                  </span>
+                )}
               </span>
               {selectedIds.size > 0 && (
                 <button
                   onClick={deleteSelected}
                   style={{
-                    padding: "0.35rem 0.875rem",
+                    padding: "0.35rem 1rem",
                     borderRadius: 6,
-                    border: "none",
+                    border: "1px solid rgba(255,255,255,0.3)",
                     background: "#dc2626",
                     color: "#fff",
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
                 >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M9 6V4h6v2" />
+                  </svg>
                   Usuń {selectedIds.size}
                 </button>
               )}
@@ -834,15 +895,15 @@ function MailPageInner() {
                 style={{
                   padding: "0.35rem 0.875rem",
                   borderRadius: 6,
-                  border: "1px solid #fca5a5",
-                  background: "transparent",
-                  color: "#ef4444",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "rgba(255,255,255,0.1)",
+                  color: "#fecaca",
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
-                Anuluj
+                Wyjdź
               </button>
             </div>
           )}
@@ -947,42 +1008,73 @@ function MailPageInner() {
 
               {/* Category filter */}
               <div style={{ minWidth: 200 }}>
-                <div
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.2em",
-                    color: cFaint,
-                    marginBottom: 4,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span>Kategoria AI</span>
-                  <button
-                    onClick={() => {
-                      setNewCatInput("");
-                      setCatModal(true);
-                    }}
+                <div style={{ marginBottom: 6 }}>
+                  <div
                     style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 4,
-                      border: `1px solid ${cBorder}`,
-                      background: "transparent",
-                      color: cFaint,
-                      cursor: "pointer",
-                      fontSize: 14,
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: 0,
+                      // alignItems: "center",
+                      justifyContent: "space-between",
                     }}
                   >
-                    +
-                  </button>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.2em",
+                        color: cFaint,
+                        display: "flex",
+                        // alignItems: "center",
+                        marginTop: 20,
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      Kategoria AI
+                    </span>
+                    <button
+                      onClick={() => {
+                        setNewCatInput("");
+                        setCatModal(true);
+                      }}
+                      title="Dodaj kategorię"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 4,
+                        padding: "3px 9px",
+                        borderRadius: 6,
+                        border: `1px solid ${cPrimary}`,
+                        background: "rgba(59,130,246,0.1)",
+                        color: cPrimary,
+                        cursor: "pointer",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background =
+                          "rgba(59,130,246,0.2)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background =
+                          "rgba(59,130,246,0.1)")
+                      }
+                    >
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      Dodaj
+                    </button>
+                  </div>
                 </div>
                 <select
                   className="filter-select"
@@ -1005,11 +1097,12 @@ function MailPageInner() {
                   }}
                 >
                   <option value="">Wszystkie kategorie</option>
-                  {isMounted && allCats.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
+                  {isMounted &&
+                    allCats.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -1910,10 +2003,11 @@ function MailPageInner() {
                   color: cMuted,
                 }}
                 dangerouslySetInnerHTML={{
-                  __html: modal.body ? DOMPurify.sanitize(modal.body) : "(brak treści)",
+                  __html: modal.body
+                    ? DOMPurify.sanitize(modal.body)
+                    : "(brak treści)",
                 }}
               />
-
             </div>
             <div
               style={{
@@ -2299,14 +2393,14 @@ function MailPageInner() {
                           cursor: "pointer",
                         }}
                         onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = isDark
-                          ? "#333"
-                          : "#e2e8f0")
+                          (e.currentTarget.style.background = isDark
+                            ? "#333"
+                            : "#e2e8f0")
                         }
                         onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = isDark
-                          ? "#2a2a2a"
-                          : "#f1f5f9")
+                          (e.currentTarget.style.background = isDark
+                            ? "#2a2a2a"
+                            : "#f1f5f9")
                         }
                       >
                         {popup.cancelText || "Anuluj"}

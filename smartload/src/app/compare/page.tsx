@@ -475,19 +475,6 @@ export default function ComparePage() {
                 Zestawienie ofert TimoCom i bazy wewnętrznej
               </p>
             </div>
-            <div
-              style={{
-                fontSize: 12,
-                padding: "4px 10px",
-                borderRadius: 999,
-                background: isDark ? "rgba(139,92,246,0.2)" : "#f5f3ff",
-                color: isDark ? "#a78bfa" : "#7c3aed",
-                border: `1px solid ${isDark ? "rgba(139,92,246,0.3)" : "#ddd6fe"}`,
-                fontWeight: 500,
-              }}
-            >
-              ✨ Smart Selection
-            </div>
           </header>
 
           <main style={{ flex: 1, overflowY: "auto", padding: "2rem 3rem" }}>

@@ -190,15 +190,35 @@ export default function ChatPage() {
     offline: "Rozłączono — ponawiam...",
     connecting: "Łączenie...",
   };
- function fixLinks(html: string) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-  return html.replace(
-    /href="\/static\//g,
-    `href="${apiUrl}/static/`,
-  );
-}
+  function fixLinks(html: string) {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    return html.replace(/href="\/static\//g, `href="${apiUrl}/static/`);
+  }
   const dotColor = statusColors[wsStatus] ?? statusColors.connecting;
   const statusLabel = statusLabels[wsStatus] ?? "Łączenie...";
+
+  function TruckIcon({
+    size = 18,
+    color = "currentColor",
+  }: {
+    size?: number;
+    color?: string;
+  }) {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+      </svg>
+    );
+  }
 
   return (
     <>
@@ -241,47 +261,6 @@ export default function ChatPage() {
           }}
         >
           {/* ── Top bar ── */}
-          <header
-            style={{
-              height: 56,
-              flexShrink: 0,
-              background: cSurface,
-              borderBottom: `1px solid ${cBorder}`,
-              display: "flex",
-              alignItems: "center",
-              padding: "0 24px",
-              gap: 16,
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: cText,
-                  margin: 0,
-                }}
-              >
-                Komunikator Kierowcy
-              </h2>
-              <p style={{ fontSize: 12, color: cMuted, margin: 0 }}>
-                Asystent spedycyjny AI w czasie rzeczywistym
-              </p>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: dotColor,
-                  transition: "background .3s",
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontSize: 11, color: cMuted }}>{statusLabel}</span>
-            </div>
-          </header>
 
           {/* ── AI agent bar ── */}
           <div
@@ -333,19 +312,6 @@ export default function ChatPage() {
               </div>
               <div style={{ fontSize: 11, color: cFaint }}>{statusLabel}</div>
             </div>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "3px 10px",
-                borderRadius: 100,
-                background: isDark ? "rgba(59,130,246,0.12)" : "#dbeafe",
-                color: isDark ? "#60a5fa" : "#2563eb",
-                border: `1px solid ${isDark ? "rgba(59,130,246,0.25)" : "#bfdbfe"}`,
-              }}
-            >
-              🚛 TSL
-            </span>
           </div>
 
           {/* ── Messages ── */}
@@ -410,7 +376,6 @@ export default function ChatPage() {
                         width: 32,
                         height: 32,
                         borderRadius: 10,
-                        background: isDark ? "#1e1e1e" : "#e2e8f0",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -418,7 +383,10 @@ export default function ChatPage() {
                         flexShrink: 0,
                       }}
                     >
-                      🚛
+                      <TruckIcon
+                        size={24}
+                        color={isDark ? "#60a5fa" : "#3b82f6"}
+                      />
                     </div>
                   </div>
                 ) : msg.offerCard ? (
@@ -771,7 +739,7 @@ export default function ChatPage() {
             <div
               style={{
                 display: "flex",
-                alignItems: "flex-end",
+                alignItems: "center",
                 gap: 10,
                 maxWidth: 860,
                 margin: "0 auto",
@@ -783,6 +751,8 @@ export default function ChatPage() {
                   flex: 1,
                   background: cBg,
                   border: `1px solid ${cBorder}`,
+                  display: "flex",
+                  alignItems: "center",
                   borderRadius: 18,
                   padding: "10px 16px",
                   transition: "border-color .2s, box-shadow .2s",
@@ -801,10 +771,11 @@ export default function ChatPage() {
                       Math.min(e.target.scrollHeight, 128) + "px";
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && e.ctrlKey) {
+                    if (e.key === "Enter" && !e.ctrlKey && !e.shiftKey) {
                       e.preventDefault();
                       sendMessage();
                     }
+                    // Ctrl+Enter lub Shift+Enter → nowa linia (domyślne zachowanie textarea)
                   }}
                   style={{
                     width: "100%",
@@ -866,7 +837,7 @@ export default function ChatPage() {
             </div>
             <div style={{ textAlign: "center", marginTop: 6 }}>
               <span style={{ fontSize: 10, color: cFaint }}>
-                Enter — nowa linia &nbsp;·&nbsp; Ctrl+Enter — wyślij
+                Enter — wyślij &nbsp;·&nbsp; Shift+Enter — nowa linia
               </span>
             </div>
           </div>
