@@ -466,17 +466,18 @@ export default function ChatPage() {
                 <div style={{ fontSize:14, fontWeight:600 }}>Napisz pierwszą wiadomość do {activeContact?.username}</div>
               </div>
             ) : (
-              humanMessages.map(msg => {
-                const mine = msg.sender_id===myId;
+                  humanMessages.map(msg => {
+                const isMe = msg.sender_id === myId;
                 return (
-                  <div key={msg.id} className={mine?"bbr":"bbl"} style={{ display:"flex", justifyContent:mine?"flex-end":"flex-start", gap:8, alignItems:"flex-end" }}>
-                    {!mine && <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#f59e0b,#d97706)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:10, fontWeight:800, flexShrink:0 }}>{activeContact?.username.slice(0,2).toUpperCase()}</div>}
-                    <div style={{ maxWidth:"72%" }}>
-                      <div style={{ background:mine?cPrimary:cCard, border:!mine?`1px solid ${cBorder}`:"none", borderRadius:mine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px" }}>
-                        <p style={{ margin:0, fontSize:13, color:mine?"#fff":cText, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{msg.content}</p>
+                  <div key={msg.id} className={isMe ? "bbr" : "bbl"} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}>
+                    {!isMe && <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#f59e0b,#d97706)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 800, flexShrink: 0 }}>{activeContact?.username.slice(0, 2).toUpperCase()}</div>}
+                    <div style={{ maxWidth: "72%" }}>
+                      <div style={{ background: isMe ? cPrimary : cCard, border: !isMe ? `1px solid ${cBorder}` : "none", borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "10px 14px" }}>
+                        <p style={{ margin: 0, fontSize: 13, color: isMe ? "#fff" : cText, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{msg.content}</p>
+                        <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '4px', color: isMe ? '#fff' : cFaint }}>[Od: {msg.sender_id}]</div>
                       </div>
-                      <div style={{ fontSize:10, color:cFaint, marginTop:2, textAlign:mine?"right":"left", padding:"0 4px" }}>
-                        {mine?"Ty":activeContact?.username} · {new Date(msg.timestamp).toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
+                      <div style={{ fontSize: 10, color: cFaint, marginTop: 2, textAlign: isMe ? "right" : "left", padding: "0 4px" }}>
+                        {isMe ? "Ty" : activeContact?.username} · {new Date(msg.timestamp).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
                   </div>
