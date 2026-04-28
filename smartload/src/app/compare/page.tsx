@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
+import AssignDriverModal from "../components/AssignDriverModal";
+import { useAuth } from "../components/AuthContext";
 
 interface Offer {
   id: string;
@@ -31,6 +33,9 @@ export default function ComparePage() {
   const [data, setData] = useState<CompareData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
+  const [assignOffer, setAssignOffer] = useState<Offer | null>(null);
+  const { role } = useAuth();
+  const canAssign = role === "ADMIN" || role === "SPEDYTOR";
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -798,6 +803,7 @@ export default function ComparePage() {
                               offer.id === getBestId(data.ui_data!.timocom_list)
                             }
                             formatPrice={formatPrice}
+                            onAssign={canAssign ? () => setAssignOffer(offer) : undefined}
                           />
                         ))
                       )}
@@ -859,6 +865,7 @@ export default function ComparePage() {
                               getBestId(data.ui_data!.internal_list)
                             }
                             formatPrice={formatPrice}
+                            onAssign={canAssign ? () => setAssignOffer(offer) : undefined}
                           />
                         ))
                       )}
@@ -870,6 +877,19 @@ export default function ComparePage() {
           </main>
         </div>
       </div>
+
+      {/* Modal przypisania trasy */}
+      {assignOffer && canAssign && (
+        <AssignDriverModal
+          loadingCity={assignOffer.origin ?? fromCity}
+          unloadingCity={assignOffer.destination ?? toCity}
+          weightKg={(assignOffer.weight ?? 0) * 1000}
+          price={assignOffer.price}
+          sourceId={assignOffer.id}
+          onClose={() => setAssignOffer(null)}
+          onSuccess={() => setAssignOffer(null)}
+        />
+      )}
     </>
   );
 }
@@ -879,11 +899,13 @@ function OfferCard({
   type,
   isBest,
   formatPrice,
+  onAssign,
 }: {
   offer: Offer;
   type: "timo" | "internal";
   isBest: boolean;
   formatPrice: (p: number) => string;
+  onAssign?: () => void;
 }) {
   return (
     <div className={`offer-card ${isBest ? "best " + type : ""} anim-slide`}>
@@ -897,14 +919,7 @@ function OfferCard({
       </div>
       <div className="offer-details">
         <span className="offer-chip">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="1" y="3" width="15" height="13" />
             <polyline points="16 8 20 8 23 11 23 16 16 16" />
             <circle cx="5.5" cy="18.5" r="2.5" />
@@ -913,19 +928,43 @@ function OfferCard({
           {offer.weight ? `${offer.weight} t` : "—"}
         </span>
         <span className="offer-chip">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M9 18l6-6-6-6" />
           </svg>
           {offer.origin || "?"} → {offer.destination || "?"}
         </span>
       </div>
+      {onAssign && (
+        <button
+          onClick={onAssign}
+          style={{
+            marginTop: 12,
+            width: "100%",
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "none",
+            background: "linear-gradient(135deg, #3b82f6, #6366f1)",
+            color: "#fff",
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            transition: "opacity 0.2s",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+          </svg>
+          Przypisz Kierowcę
+        </button>
+      )}
     </div>
   );
 }

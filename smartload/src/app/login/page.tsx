@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "../components/AuthContext";
 import "./login.css";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshAuth } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -32,6 +34,8 @@ export default function LoginPage() {
 
       // Backend robi redirect 302 przy sukcesie
       if (res.ok) {
+        // Czekamy na odświeżenie globalnego stanu autoryzacji (pobranie roli itp.)
+        await refreshAuth();
         router.push("/dashboard");
       } else {
         const data = await res.json().catch(() => ({}));

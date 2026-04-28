@@ -13,6 +13,7 @@ class User(SQLModel, table=True):
     """Model użytkownika systemu SmartLoad AI."""
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
+    email: Optional[str] = Field(default=None, unique=True, index=True)
     hashed_password: str
     role: str = Field(default=UserRole.SPEDYTOR)
     vehicle_plate: Optional[str] = Field(default=None)

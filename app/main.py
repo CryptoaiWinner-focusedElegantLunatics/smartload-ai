@@ -10,6 +10,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.database import engine
 from app.models.custom_category import CustomCategory
+from app.models.assigned_route import AssignedRoute  # noqa: F401 — needed for create_all
+from app.models.chat_message import ChatMessage  # noqa: F401 — needed for create_all
 from app.scraper.runner import run_all_scrapers
 from app.services.tasks import process_emails_task
 from app.seeds.seed_firetms import seed_all
@@ -28,6 +30,9 @@ from app.api.orders import router as orders_router
 from app.api.departments import router as departments_router
 from app.api.exchange import router as exchange_router
 from app.api.settings import router as settings_router
+from app.api.routes import router as routes_router
+from app.api.chat import router as chat_router
+from app.api.dashboard import router as dashboard_router
 
 scheduler = AsyncIOScheduler()
 
@@ -124,3 +129,6 @@ app.include_router(orders_router, prefix="/api", tags=["orders"])
 app.include_router(departments_router, prefix="/api", tags=["departments"])
 app.include_router(exchange_router, prefix="/api", tags=["exchange"])
 app.include_router(settings_router, prefix="/api", tags=["settings"])
+app.include_router(routes_router)
+app.include_router(chat_router)
+app.include_router(dashboard_router)

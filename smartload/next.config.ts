@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         source: "/static/:path*",
         destination: `${backendUrl}/static/:path*`,
       },
+      // WebSocket proxy — Next.js dev server przekazuje nagłówki Upgrade automatycznie
+      {
+        source: "/ws/:path*",
+        destination: `${backendUrl}/ws/:path*`,
+      },
     ];
   },
 };

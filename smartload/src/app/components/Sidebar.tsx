@@ -9,7 +9,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const { role, username } = useAuth();
+  const { role, username, logout } = useAuth();
 
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -43,8 +43,22 @@ export default function Sidebar() {
   }
 
   async function handleLogout() {
-    await fetch("/api/backend/logout", { credentials: "include" });
-    router.push("/login");
+    try {
+      const response = await fetch("/api/backend/api/logout", { 
+        method: "POST",
+        credentials: "include" 
+      });
+      
+      if (response.ok) {
+        logout();
+        router.push("/login");
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Nawet jeśli fetch zawiedzie, czyścimy stan lokalny i przekierowujemy
+      logout();
+      router.push("/login");
+    }
   }
 
   // Definicje wszystkich możliwych pozycji nawigacji
@@ -97,7 +111,7 @@ export default function Sidebar() {
       ),
     },
     {
-      href: "/trasy",
+      href: "/my-routes",
       label: "Moje Trasy",
       gradient: "linear-gradient(135deg, #fb7185, #e11d48)",
       roles: ["KIEROWCA"],

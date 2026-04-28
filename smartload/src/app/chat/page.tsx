@@ -2,847 +2,645 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
+import { useAuth } from "../components/AuthContext";
+import { useChatWebSocket, ChatMsg } from "../hooks/useChatWebSocket";
 
 // ── Types ──
-interface OfferData {
-  id: string;
-  weight: string;
-  price: string;
-  route_from: string;
-  route_to: string;
-}
+interface Contact { id: number; username: string; role: string; }
 
-interface WsMessage {
-  type: "offer_card" | "text";
-  message: string;
-  offer?: OfferData;
+interface OfferCard {
+  id: string; route_from: string; route_to: string;
+  price: string; weight: string;
 }
-
-interface ChatMessage {
+interface AiMsg {
   id: number;
-  role: "ai" | "driver";
+  role: "ai" | "user";
   text: string;
   time: string;
-  offerCard?: WsMessage;
+  offerCards?: OfferCard[];
+  selectedOfferIdx?: number;       // która karta jest wybrana
   offerState?: "pending" | "accepted" | "rejected";
+  isHtml?: boolean;
 }
 
-// ── Main component ──
-export default function ChatPage() {
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const saved = localStorage.getItem("theme");
-    if (saved === "dark") return true;
-    if (saved === "light") return false;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
+function now() {
+  return new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+}
 
+// ── Parse AI response ──
+function parseAiResponse(raw: string): { text: string; offerCards?: OfferCard[]; isHtml?: boolean } {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      const p = JSON.parse(trimmed);
+      if (p.type === "offer_card") {
+        // Tablica "offers" (nowa) lub "offer" (stary fallback)
+        const cards: OfferCard[] = p.offers ?? (p.offer ? [p.offer] : []);
+        return { text: p.message || "Znalazłem oferty!", offerCards: cards.length > 0 ? cards : undefined };
+      }
+    } catch { /* not JSON */ }
+  }
+  const isHtml = /<[a-z]/.test(trimmed);
+  return { text: trimmed, isHtml };
+}
+
+export default function ChatPage() {
+  const { role } = useAuth();
+  const [myId, setMyId] = useState<number | null>(null);
+
+  const [isDark, setIsDark] = useState(true);
   useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setIsDark(document.documentElement.classList.contains("dark")),
-    );
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
+    const u = () => setIsDark(document.documentElement.classList.contains("dark"));
+    u();
+    const obs = new MutationObserver(u);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => obs.disconnect();
   }, []);
 
-  // CSS vars
-  const cBorder = isDark ? "#252525" : "#e2e8f0";
   const cBg = isDark ? "#0a0a0a" : "#f8fafc";
   const cSurface = isDark ? "#111111" : "#ffffff";
+  const cBorder = isDark ? "#252525" : "#e2e8f0";
   const cCard = isDark ? "#161616" : "#ffffff";
-  const cHover = isDark ? "#191919" : "#f1f5f9";
   const cText = isDark ? "#e8e8e8" : "#0f172a";
-  const cMuted = isDark ? "#888888" : "#64748b";
-  const cFaint = isDark ? "#555555" : "#94a3b8";
+  const cFaint = isDark ? "#555" : "#94a3b8";
   const cPrimary = "#3b82f6";
 
-  // State
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 0,
-      role: "ai",
-      time: now(),
-      text: "Cześć! 👋 Jestem Twoim asystentem spedycyjnym SmartLoad.\nPowiedz mi, w jakiej okolicy jesteś lub skąd szukasz ładunku — a ja sprawdzę co mamy dla Ciebie! 🚛",
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [wsStatus, setWsStatus] = useState<
-    "connecting" | "online" | "error" | "offline"
-  >("connecting");
-  const [isTyping, setIsTyping] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const msgId = useRef(1);
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── Contacts ──
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | "ai">("ai");
+  useEffect(() => {
+    fetch("/api/backend/api/chat/contacts", { credentials: "include" })
+      .then(r => r.ok ? r.json() : []).then(setContacts).catch(() => {});
+  }, []);
 
-  function now() {
-    return new Date().toLocaleTimeString("pl-PL", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
+  // ── Human WS (cookie-based, no token needed) ──
+  const [humanMessages, setHumanMessages] = useState<ChatMsg[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
-  // ── WebSocket ──
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-    const proto =
-      typeof window !== "undefined" && location.protocol === "https:"
-        ? "wss"
-        : "ws";
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000";
-    const ws = new WebSocket(`${wsUrl}/ws/chat`);
-    wsRef.current = ws;
+  // Ref śledzenia aktywnego contacta — pozwala uniknąć stale closure w onIncoming
+  const currentContactIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    currentContactIdRef.current = selectedContact !== "ai"
+      ? (selectedContact as Contact).id
+      : null;
+  }, [selectedContact]);
 
-    ws.onopen = () => setWsStatus("online");
-    ws.onmessage = (event) => {
-      setIsTyping(false);
-      let parsed: WsMessage | null = null;
-      try {
-        parsed = JSON.parse(event.data);
-      } catch {}
+  // onIncoming: dodaje wiadomość TYLKO jeśli pasuje do aktywnej rozmowy
+  // Zależy od ref (nie od stanu) więc nie ma stale closure
+  const onIncoming = useCallback((msg: ChatMsg) => {
+    const cid = currentContactIdRef.current;
+    if (!cid) return;
+    if (msg.sender_id !== cid && msg.receiver_id !== cid) return;
+    setHumanMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
+  }, []);
 
-      if (parsed?.type === "offer_card") {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: msgId.current++,
-            role: "ai",
-            text: parsed!.message,
-            time: now(),
-            offerCard: parsed!,
-            offerState: "pending",
-          },
-        ]);
-      } else {
-        const text =
-          typeof event.data === "string" ? event.data : parsed?.message || "";
-        setMessages((prev) => [
-          ...prev,
-          { id: msgId.current++, role: "ai", text, time: now() },
-        ]);
-      }
+  const { status: wsStatus, sendMessage: wsSend } = useChatWebSocket({
+    onConnected: setMyId,
+    onMessage: onIncoming,
+  });
+
+  useEffect(() => {
+    if (selectedContact === "ai") { setHumanMessages([]); return; }
+    const c = selectedContact as Contact;
+    setHistoryLoading(true);
+    setHumanMessages([]);
+    fetch(`/api/backend/api/chat/history/${c.id}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : []).then(setHumanMessages).catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  }, [selectedContact]);
+
+  // ── AI WS ──
+  const [aiMessages, setAiMessages] = useState<AiMsg[]>([{
+    id: 0, role: "ai", time: now(),
+    text: "Cześć! 👋 Jestem Twoim asystentem SmartLoad AI.\nPowiedz mi skąd szukasz ładunku — sprawdzę co mamy! 🚛",
+  }]);
+  const [aiTyping, setAiTyping] = useState(false);
+  const aiWsRef = useRef<WebSocket | null>(null);
+  const aiMsgId = useRef(1);
+
+  const connectAiWs = useCallback(() => {
+    const ws = aiWsRef.current;
+    // Nie twórz nowego połączenia jeśli poprzednie jest w toku lub otwarte
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+    const wsUrl = "ws://localhost:8000/ws/chat";
+    const newWs = new WebSocket(wsUrl);
+    aiWsRef.current = newWs;
+
+    newWs.onopen = () => console.log("[AI WS] connected ✓");
+    newWs.onmessage = (e) => {
+      setAiTyping(false);
+      const { text, offerCards, isHtml } = parseAiResponse(e.data);
+      setAiMessages(prev => [...prev, {
+        id: aiMsgId.current++, role: "ai", text, time: now(),
+        offerCards,
+        offerState: offerCards ? "pending" : undefined,
+        isHtml,
+      }]);
     };
-    ws.onerror = () => setWsStatus("error");
-    ws.onclose = () => {
-      setWsStatus("offline");
-      reconnectTimer.current = setTimeout(connect, 3000);
+    newWs.onclose = (e) => {
+      console.log(`[AI WS] closed (code=${e.code}), reconnect in 5s...`);
+      setTimeout(connectAiWs, 5000);
+    };
+    newWs.onerror = () => {
+      // WS error events zawsze logują się jako pusty {} - to normalne
+      console.warn("[AI WS] connection error — backend niedostępny?");
     };
   }, []);
 
-  useEffect(() => {
-    connect();
-    return () => {
-      wsRef.current?.close();
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-    };
-  }, [connect]);
+  useEffect(() => { connectAiWs(); return () => aiWsRef.current?.close(); }, [connectAiWs]);
 
-  // ── Auto-scroll ──
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  // ── Dialog przypisania trasy ──
+  interface AssignDialog {
+    msgId: number;
+    card: OfferCard;
+    step: "ask" | "input" | "loading" | "done" | "error";
+    driverQuery: string;
+    errorMsg?: string;
+  }
+  const [assignDialog, setAssignDialog] = useState<AssignDialog | null>(null);
 
-  // ── Send ──
-  function sendMessage(forcedText?: string) {
-    const text = forcedText || input.trim();
-    if (!text || wsRef.current?.readyState !== WebSocket.OPEN) return;
-    setMessages((prev) => [
-      ...prev,
-      { id: msgId.current++, role: "driver", text, time: now() },
-    ]);
-    wsRef.current.send(text);
-    if (!forcedText) {
-      setInput("");
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
-      }
+  // Lista kierowców do autocomplete
+  interface DriverOption { id: number; username: string; email: string | null; vehicle_plate: string | null; }
+  const [driverList, setDriverList] = useState<DriverOption[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Załaduj kierowców gdy dialog przechodzi do kroku "input"
+  useEffect(() => {
+    if (assignDialog?.step === "input" && driverList.length === 0) {
+      fetch("/api/backend/api/drivers", { credentials: "include" })
+        .then(r => r.ok ? r.json() : [])
+        .then(setDriverList)
+        .catch(() => {});
     }
-    setIsTyping(true);
+  }, [assignDialog?.step]);
+
+  const filteredDrivers = driverList.filter(d => {
+    const q = assignDialog?.driverQuery?.toLowerCase() ?? "";
+    if (q.length < 2) return false;
+    return d.username.toLowerCase().includes(q) || (d.email ?? "").toLowerCase().includes(q);
+  });
+
+  function acceptOffer(msgId: number) {
+    const msg = aiMessages.find(m => m.id === msgId);
+    const idx = msg?.selectedOfferIdx ?? 0;
+    const card = msg?.offerCards?.[idx];
+    setAiMessages(prev => prev.map(m => m.id === msgId ? { ...m, offerState: "accepted" } : m));
+
+    if (role === "ADMIN" || role === "SPEDYTOR") {
+      // Spedytor/Admin nie podaje rejestracji — pokazujemy pożegnanie i dialog przypisania
+      setAiMessages(prev => [...prev, {
+        id: aiMsgId.current++,
+        role: "ai",
+        text: `Świetnie! ✅ Oferta <b>${card?.route_from ?? "?"} → ${card?.route_to ?? "?"}</b> została zarezerwowana.<br>Dziękujemy za współpracę i zapraszamy do kolejnych zleceń! 🤝`,
+        time: now(),
+        isHtml: true,
+      }]);
+      if (card) {
+        setAssignDialog({ msgId, card, step: "ask", driverQuery: "" });
+      }
+    } else {
+      // Kierowca — stary flow: AI pyta o tablicę rejestracyjną do CMR
+      sendAi(`Przyjmuję ofertę ${card?.id ?? ""}, biorę to`);
+    }
   }
 
-  function acceptOffer(msgId_: number) {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === msgId_ ? { ...m, offerState: "accepted" } : m)),
-    );
-    sendMessage("Przyjmuję, biorę to");
-  }
-  function rejectOffer(msgId_: number) {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === msgId_ ? { ...m, offerState: "rejected" } : m)),
-    );
-    sendMessage("Nie, szukaj następnej");
+  async function doAssign() {
+    if (!assignDialog) return;
+    const { card, driverQuery } = assignDialog;
+    setAssignDialog(d => d ? { ...d, step: "loading" } : null);
+
+    // Parsuj wagę i cenę z string (np. "24000 kg" → 24000)
+    const weight = parseFloat(card.weight) || 0;
+    const price = parseFloat(card.price) || 0;
+
+    try {
+      const res = await fetch("/api/backend/api/routes/assign-by-email", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          driver_email: driverQuery.trim(),
+          loading_city: card.route_from,
+          unloading_city: card.route_to,
+          weight_kg: weight,
+          price,
+          source_id: card.id,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Błąd ${res.status}`);
+      }
+      setAssignDialog(d => d ? { ...d, step: "done" } : null);
+      setTimeout(() => setAssignDialog(null), 3000);
+    } catch (e: unknown) {
+      setAssignDialog(d => d ? { ...d, step: "error", errorMsg: e instanceof Error ? e.message : "Błąd" } : null);
+    }
   }
 
-  // ── Status helpers ──
-  const statusColors: Record<string, string> = {
-    online: "#22c55e",
-    error: "#ef4444",
-    offline: isDark ? "#555" : "#94a3b8",
-    connecting: isDark ? "#555" : "#94a3b8",
-  };
-  const statusLabels: Record<string, string> = {
-    online: "Połączony · gotowy",
-    error: "Błąd połączenia",
-    offline: "Rozłączono — ponawiam...",
-    connecting: "Łączenie...",
-  };
-  function fixLinks(html: string) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-    return html.replace(/href="\/static\//g, `href="${apiUrl}/static/`);
+  function rejectOffer(msgId: number) {
+    setAiMessages(prev => prev.map(m => m.id === msgId ? { ...m, offerState: "rejected" } : m));
+    sendAi("Nie, szukaj następnej");
   }
-  const dotColor = statusColors[wsStatus] ?? statusColors.connecting;
-  const statusLabel = statusLabels[wsStatus] ?? "Łączenie...";
 
-  function TruckIcon({
-    size = 18,
-    color = "currentColor",
-  }: {
-    size?: number;
-    color?: string;
+  function selectOffer(msgId: number, idx: number) {
+    setAiMessages(prev => prev.map(m =>
+      m.id === msgId ? { ...m, selectedOfferIdx: idx } : m
+    ));
+  }
+
+  // ── Input ──
+  const [input, setInput] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages, humanMessages, aiTyping]);
+
+  function sendAi(text: string) {
+    const ws = aiWsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) { connectAiWs(); return; }
+    setAiMessages(prev => [...prev, { id: aiMsgId.current++, role: "user", text, time: now() }]);
+    ws.send(text);
+    setAiTyping(true);
+  }
+
+  function sendMsg() {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+
+    if (selectedContact === "ai") {
+      sendAi(text);
+    } else {
+      const c = selectedContact as Contact;
+      // NIE dodajemy optimistic update - czekamy na echo "sent" z serwera
+      // (echo zawiera prawdziwe DB id, które przetrwa F5)
+      wsSend(c.id, text);
+    }
+  }
+
+  const isHuman = selectedContact !== "ai";
+  const activeContact = isHuman ? (selectedContact as Contact) : null;
+
+  // ── OfferCardUI ──
+  function OfferCardUI({ card, selected, onSelect }: {
+    card: OfferCard;
+    selected: boolean;
+    onSelect?: () => void;
   }) {
     return (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <div
+        onClick={onSelect}
+        style={{
+          background: selected ? (isDark ? "rgba(59,130,246,0.1)" : "#eff6ff") : (isDark ? "#0d0d0d" : "#f8fafc"),
+          border: selected ? "1.5px solid #3b82f6" : `1px solid ${cBorder}`,
+          borderRadius: 12, padding: "12px 14px", marginBottom: 6,
+          cursor: onSelect ? "pointer" : "default",
+          transition: "all 0.15s",
+        }}
       >
-        <path d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-      </svg>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 13, color: cText }}>Ładunek {card.id}</div>
+            <div style={{ fontSize: 11, color: cFaint, marginTop: 1 }}>{card.weight}</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: cPrimary }}>{card.price}</div>
+            {onSelect && (
+              <div
+                style={{
+                  fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em",
+                  padding: "3px 10px", borderRadius: 100, border: selected ? "none" : `1px solid ${cBorder}`,
+                  background: selected ? "#3b82f6" : "transparent",
+                  color: selected ? "#fff" : cFaint,
+                  transition: "all 0.15s",
+                }}
+              >
+                {selected ? "✓ Wybrana" : "Wybierz"}
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em", color: cFaint, marginBottom: 2 }}>Załadunek</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: cText }}>📍 {card.route_from}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em", color: cFaint, marginBottom: 2 }}>Rozładunek</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: cText }}>🏁 {card.route_to}</div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
     <>
       <style>{`
-        @keyframes _spin { to { transform: rotate(360deg); } }
-        @keyframes slideInLeft  { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
-        @keyframes slideInRight { from { opacity:0; transform:translateX(12px);  } to { opacity:1; transform:translateX(0); } }
-        @keyframes blink { 0%,80%,100% { opacity:.2; transform:scale(.8); } 40% { opacity:1; transform:scale(1); } }
-        @keyframes offerPulse { 0%,100% { box-shadow:0 0 0 0 rgba(59,130,246,.4); } 50% { box-shadow:0 0 0 6px rgba(59,130,246,0); } }
-        .bubble-ai     { animation: slideInLeft  .22s ease; }
-        .bubble-driver { animation: slideInRight .22s ease; }
-        .typing-dot { width:7px; height:7px; border-radius:50%; background:${cFaint}; display:inline-block; animation:blink 1.2s infinite; }
-        .typing-dot:nth-child(2) { animation-delay:.2s; }
-        .typing-dot:nth-child(3) { animation-delay:.4s; }
-        .btn-accept-pulse { animation: offerPulse 2s infinite; }
-        #chatMessages::-webkit-scrollbar { width:5px; }
-        #chatMessages::-webkit-scrollbar-track { background:transparent; }
-        #chatMessages::-webkit-scrollbar-thumb { background:${cFaint}; border-radius:3px; }
-        .chat-textarea:focus { outline:none; }
-        .chat-input-wrap:focus-within { border-color:${cPrimary}; box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
+        @keyframes slideInL{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes slideInR{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes blink{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+        @keyframes offerPulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.4)}50%{box-shadow:0 0 0 6px rgba(59,130,246,0)}}
+        .bbl{animation:slideInL .2s ease}.bbr{animation:slideInR .2s ease}
+        .td1{animation:blink 1.2s infinite}.td2{animation:blink 1.2s .2s infinite}.td3{animation:blink 1.2s .4s infinite}
+        .contact-btn:hover{background:${isDark?"#191919":"#f1f5f9"}!important}
+        #chatScroll::-webkit-scrollbar{width:4px}
+        #chatScroll::-webkit-scrollbar-thumb{background:${cFaint};border-radius:2px}
+        textarea{resize:none;outline:none;background:transparent;border:none;font-family:inherit}
+        .offer-pulse{animation:offerPulse 2s infinite}
       `}</style>
 
-      <div
-        style={{
-          display: "flex",
-          height: "100vh",
-          overflow: "hidden",
-          background: cBg,
-          fontFamily: '"Inter", system-ui, sans-serif',
-        }}
-      >
+      <div style={{ display:"flex", height:"100vh", overflow:"hidden", background:cBg, fontFamily:'"Inter",system-ui,sans-serif' }}>
         <Sidebar />
 
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
-          {/* ── Top bar ── */}
-
-          {/* ── AI agent bar ── */}
-          <div
-            style={{
-              flexShrink: 0,
-              background: cSurface,
-              borderBottom: `1px solid ${cBorder}`,
-              padding: "10px 24px",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  background: "linear-gradient(135deg,#3b82f6,#7c3aed)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize: 13,
-                  boxShadow: "0 4px 12px rgba(59,130,246,.3)",
-                }}
-              >
-                AI
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: -2,
-                  right: -2,
-                  width: 12,
-                  height: 12,
-                  borderRadius: "50%",
-                  background: dotColor,
-                  border: `2px solid ${cSurface}`,
-                  transition: "background .3s",
-                }}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: cText }}>
-                SmartLoad Spedytor AI
-              </div>
-              <div style={{ fontSize: 11, color: cFaint }}>{statusLabel}</div>
+        {/* Contacts */}
+        <div style={{ width:256, flexShrink:0, background:cSurface, borderRight:`1px solid ${cBorder}`, display:"flex", flexDirection:"column" }}>
+          <div style={{ padding:"14px 16px 10px", borderBottom:`1px solid ${cBorder}` }}>
+            <div style={{ fontSize:10, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.15em", color:cFaint, marginBottom:6 }}>Komunikator</div>
+            <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color: wsStatus==="online"?"#22c55e":cFaint }}>
+              <span style={{ width:6, height:6, borderRadius:"50%", background: wsStatus==="online"?"#22c55e":cFaint }} />
+              {wsStatus==="online"?"P2P Online":wsStatus==="connecting"?"Łączenie…":"Offline"}
             </div>
           </div>
-
-          {/* ── Messages ── */}
-          <div
-            id="chatMessages"
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "1.25rem 1.5rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-              background: cBg,
-            }}
-          >
-            {messages.map((msg) => (
-              <div key={msg.id}>
-                {msg.role === "driver" ? (
-                  <div
-                    className="bubble-driver"
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-end",
-                      justifyContent: "flex-end",
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ maxWidth: "75%" }}>
-                      <div
-                        style={{
-                          background: cPrimary,
-                          borderRadius: "18px 18px 4px 18px",
-                          padding: "10px 16px",
-                          boxShadow: "0 4px 12px rgba(59,130,246,.25)",
-                        }}
-                      >
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: 13,
-                            color: "#fff",
-                            lineHeight: 1.6,
-                          }}
-                        >
-                          {msg.text}
-                        </p>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: cFaint,
-                          marginTop: 3,
-                          textAlign: "right",
-                          marginRight: 4,
-                        }}
-                      >
-                        Ty · {msg.time}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 17,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <TruckIcon
-                        size={24}
-                        color={isDark ? "#60a5fa" : "#3b82f6"}
-                      />
-                    </div>
+          <div style={{ flex:1, overflowY:"auto", padding:"6px 0" }}>
+            <button className="contact-btn" onClick={() => setSelectedContact("ai")} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 14px", border:"none", cursor:"pointer", textAlign:"left", background: selectedContact==="ai"?(isDark?"#1a1a2e":"#eff6ff"):"transparent", borderLeft: selectedContact==="ai"?"3px solid #3b82f6":"3px solid transparent", transition:"all 0.15s" }}>
+              <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#3b82f6,#7c3aed)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:800 }}>AI</div>
+              <div><div style={{ fontSize:13, fontWeight:700, color:cText }}>Doradca AI</div><div style={{ fontSize:11, color:cFaint }}>Asystent spedycyjny</div></div>
+            </button>
+            {contacts.length>0 && <div style={{ padding:"10px 14px 4px", fontSize:10, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.15em", color:cFaint }}>Kontakty ({contacts.length})</div>}
+            {contacts.map(c => {
+              const active = isHuman && (selectedContact as Contact).id===c.id;
+              return (
+                <button key={c.id} className="contact-btn" onClick={() => setSelectedContact(c)} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 14px", border:"none", cursor:"pointer", textAlign:"left", background: active?(isDark?"#1a1a2e":"#eff6ff"):"transparent", borderLeft: active?"3px solid #f59e0b":"3px solid transparent", transition:"all 0.15s" }}>
+                  <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#f59e0b,#d97706)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:800 }}>{c.username.slice(0,2).toUpperCase()}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:cText, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.username}</div>
+                    <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", color:"#f59e0b" }}>{c.role}</div>
                   </div>
-                ) : msg.offerCard ? (
-                  /* ── Offer card ── */
-                  <div
-                    className="bubble-ai"
-                    style={{ display: "flex", alignItems: "flex-end", gap: 10 }}
-                  >
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 10,
-                        background: "linear-gradient(135deg,#3b82f6,#7c3aed)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#fff",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        flexShrink: 0,
-                      }}
-                    >
-                      AI
-                    </div>
-                    <div style={{ maxWidth: "85%" }}>
-                      <div
-                        style={{
-                          background: cCard,
-                          border: `1px solid ${cBorder}`,
-                          borderRadius: "18px 18px 18px 4px",
-                          padding: "14px 16px",
-                          boxShadow: "0 2px 8px rgba(0,0,0,.06)",
-                        }}
-                      >
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: 13,
-                            color: cText,
-                            lineHeight: 1.6,
-                          }}
-                          dangerouslySetInnerHTML={{
-                            __html: fixLinks(msg.text),
-                          }}
-                        />
-                        {msg.offerCard.offer && (
-                          <div
-                            style={{
-                              background: isDark ? "#0d0d0d" : "#f8fafc",
-                              border: `1px solid ${cBorder}`,
-                              borderRadius: 12,
-                              padding: "14px 16px",
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                                marginBottom: 12,
-                              }}
-                            >
-                              <div>
-                                <div
-                                  style={{
-                                    fontWeight: 800,
-                                    fontSize: 13,
-                                    color: cText,
-                                  }}
-                                >
-                                  Ładunek {msg.offerCard.offer.id}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: 11,
-                                    color: cFaint,
-                                    marginTop: 2,
-                                  }}
-                                >
-                                  {msg.offerCard.offer.weight}
-                                </div>
-                              </div>
-                              <div
-                                style={{
-                                  fontWeight: 800,
-                                  fontSize: 15,
-                                  color: cPrimary,
-                                }}
-                              >
-                                {msg.offerCard.offer.price}
-                              </div>
-                            </div>
-                            <div
-                              style={{
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                gap: 12,
-                                marginBottom: 14,
-                              }}
-                            >
-                              <div>
-                                <div
-                                  style={{
-                                    fontSize: 9,
-                                    fontWeight: 800,
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.15em",
-                                    color: cFaint,
-                                    marginBottom: 3,
-                                  }}
-                                >
-                                  Załadunek
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    color: cText,
-                                  }}
-                                >
-                                  📍 {msg.offerCard.offer.route_from}
-                                </div>
-                              </div>
-                              <div>
-                                <div
-                                  style={{
-                                    fontSize: 9,
-                                    fontWeight: 800,
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.15em",
-                                    color: cFaint,
-                                    marginBottom: 3,
-                                  }}
-                                >
-                                  Rozładunek
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    color: cText,
-                                  }}
-                                >
-                                  🏁 {msg.offerCard.offer.route_to}
-                                </div>
-                              </div>
-                            </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-                            {/* Buttons */}
+        {/* Chat window */}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          {/* Header */}
+          <div style={{ flexShrink:0, background:cSurface, borderBottom:`1px solid ${cBorder}`, padding:"11px 22px", display:"flex", alignItems:"center", gap:12 }}>
+            {selectedContact==="ai" ? (
+              <>
+                <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#3b82f6,#7c3aed)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:13 }}>AI</div>
+                <div><div style={{ fontSize:14, fontWeight:700, color:cText }}>SmartLoad Spedytor AI</div><div style={{ fontSize:11, color:cFaint }}>Asystent — szuka ładunków</div></div>
+              </>
+            ) : activeContact ? (
+              <>
+                <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#f59e0b,#d97706)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:16 }}>{activeContact.username.slice(0,2).toUpperCase()}</div>
+                <div><div style={{ fontSize:14, fontWeight:700, color:cText }}>{activeContact.username}</div><div style={{ fontSize:11, color:"#f59e0b", fontWeight:700, textTransform:"uppercase" }}>{activeContact.role}</div></div>
+              </>
+            ) : null}
+          </div>
+
+          {/* Messages */}
+          <div id="chatScroll" style={{ flex:1, overflowY:"auto", padding:"1.25rem 1.5rem", display:"flex", flexDirection:"column", gap:"0.75rem", background:cBg }}>
+            {selectedContact==="ai" ? (
+              <>
+                {aiMessages.map(msg => (
+                  <div key={msg.id} className={msg.role==="user"?"bbr":"bbl"} style={{ display:"flex", justifyContent:msg.role==="user"?"flex-end":"flex-start", gap:8, alignItems:"flex-end" }}>
+                    {msg.role==="ai" && <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#3b82f6,#7c3aed)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:9, fontWeight:800, flexShrink:0 }}>AI</div>}
+                    <div style={{ maxWidth:"80%" }}>
+                      <div style={{ background:msg.role==="user"?cPrimary:cCard, border:msg.role==="ai"?`1px solid ${cBorder}`:"none", borderRadius:msg.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px" }}>
+                        {msg.offerCards && msg.offerCards.length > 0 ? (
+                          <>
+                            <p style={{ margin:"0 0 10px", fontSize:13, color:cText, lineHeight:1.6 }} dangerouslySetInnerHTML={{ __html: msg.text }} />
+                            {msg.offerCards.map((card, idx) => (
+                              <OfferCardUI
+                                key={idx}
+                                card={card}
+                                selected={msg.selectedOfferIdx === idx}
+                                onSelect={msg.offerState === "pending" ? () => selectOffer(msg.id, idx) : undefined}
+                              />
+                            ))}
                             {msg.offerState === "pending" && (
-                              <div style={{ display: "flex", gap: 8 }}>
-                                <button
-                                  className="btn-accept-pulse"
-                                  onClick={() => acceptOffer(msg.id)}
-                                  style={{
-                                    flex: 1,
-                                    background: cPrimary,
-                                    color: "#fff",
-                                    border: "none",
-                                    borderRadius: 10,
-                                    padding: "10px 0",
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  ✅ Przyjmij i bookuj
-                                </button>
-                                <button
-                                  onClick={() => rejectOffer(msg.id)}
-                                  style={{
-                                    flex: 1,
-                                    background: "transparent",
-                                    color: cMuted,
-                                    border: `1px solid ${cBorder}`,
-                                    borderRadius: 10,
-                                    padding: "10px 0",
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  ❌ Odrzuć
-                                </button>
-                              </div>
+                              msg.selectedOfferIdx === undefined ? (
+                                <p style={{ fontSize: 11, color: cFaint, margin: "8px 0 0", textAlign: "center", fontStyle: "italic" }}>
+                                  ☝️ Kliknij w ofertę, żeby ją wybrać
+                                </p>
+                              ) : (
+                                <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                                  <button className="offer-pulse" onClick={() => acceptOffer(msg.id)} style={{ flex:1, background:cPrimary, color:"#fff", border:"none", borderRadius:10, padding:"9px 0", fontSize:12, fontWeight:700, cursor:"pointer" }}>✅ Przyjmij i bookuj</button>
+                                  <button onClick={() => rejectOffer(msg.id)} style={{ flex:1, background:"transparent", color:cFaint, border:`1px solid ${cBorder}`, borderRadius:10, padding:"9px 0", fontSize:12, fontWeight:700, cursor:"pointer" }}>❌ Odrzuć</button>
+                                </div>
+                              )
                             )}
-                            {msg.offerState === "accepted" && (
-                              <div
-                                style={{
-                                  textAlign: "center",
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  color: "#22c55e",
-                                  padding: "10px 0",
-                                  background: isDark
-                                    ? "rgba(34,197,94,0.1)"
-                                    : "#f0fdf4",
-                                  border: "1px solid rgba(34,197,94,0.3)",
-                                  borderRadius: 10,
-                                }}
-                              >
-                                ✅ Zaakceptowano — rezerwuję trasę...
-                              </div>
-                            )}
-                            {msg.offerState === "rejected" && (
-                              <div
-                                style={{
-                                  textAlign: "center",
-                                  fontSize: 12,
-                                  fontWeight: 600,
-                                  color: cFaint,
-                                  padding: "10px 0",
-                                  background: isDark ? "#111" : "#f8fafc",
-                                  border: `1px solid ${cBorder}`,
-                                  borderRadius: 10,
-                                }}
-                              >
-                                ❌ Odrzucono — szukam kolejnej oferty...
-                              </div>
-                            )}
-                          </div>
+                            {msg.offerState==="accepted" && <div style={{ textAlign:"center", fontSize:12, fontWeight:700, color:"#22c55e", padding:"9px 0", background:isDark?"rgba(34,197,94,0.1)":"#f0fdf4", border:"1px solid rgba(34,197,94,0.3)", borderRadius:10, marginTop:8 }}>✅ Zaakceptowano!</div>}
+                            {msg.offerState==="rejected" && <div style={{ textAlign:"center", fontSize:12, fontWeight:600, color:cFaint, padding:"9px 0", background:isDark?"#111":cBg, border:`1px solid ${cBorder}`, borderRadius:10, marginTop:8 }}>❌ Odrzucono</div>}
+                          </>
+                        ) : msg.isHtml ? (
+                          <p style={{ margin:0, fontSize:13, color:msg.role==="user"?"#fff":cText, lineHeight:1.6 }} dangerouslySetInnerHTML={{ __html: msg.text }} />
+                        ) : (
+                          <p style={{ margin:0, fontSize:13, color:msg.role==="user"?"#fff":cText, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{msg.text}</p>
                         )}
                       </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: cFaint,
-                          marginTop: 3,
-                          marginLeft: 4,
-                        }}
-                      >
-                        SmartLoad AI · {msg.time}
+                      <div style={{ fontSize:10, color:cFaint, marginTop:2, textAlign:msg.role==="user"?"right":"left", padding:"0 4px" }}>
+                        {msg.role==="user"?`Ty · ${msg.time}`:`SmartLoad AI · ${msg.time}`}
                       </div>
                     </div>
                   </div>
-                ) : (
-                  /* ── Normal AI message ── */
-                  <div
-                    className="bubble-ai"
-                    style={{ display: "flex", alignItems: "flex-end", gap: 10 }}
-                  >
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 10,
-                        background: "linear-gradient(135deg,#3b82f6,#7c3aed)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#fff",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        flexShrink: 0,
-                      }}
-                    >
-                      AI
-                    </div>
-                    <div style={{ maxWidth: "75%" }}>
-                      <div
-                        style={{
-                          background: cCard,
-                          border: `1px solid ${cBorder}`,
-                          borderRadius: "18px 18px 18px 4px",
-                          padding: "10px 16px",
-                          boxShadow: "0 2px 8px rgba(0,0,0,.06)",
-                        }}
-                      >
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: 13,
-                            color: cText,
-                            lineHeight: 1.6,
-                          }}
-                          dangerouslySetInnerHTML={{
-                            __html: fixLinks(msg.text),
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: cFaint,
-                          marginTop: 3,
-                          marginLeft: 4,
-                        }}
-                      >
-                        SmartLoad AI · {msg.time}
-                      </div>
+                ))}
+                {aiTyping && (
+                  <div className="bbl" style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
+                    <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#3b82f6,#7c3aed)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:9, fontWeight:800 }}>AI</div>
+                    <div style={{ background:cCard, border:`1px solid ${cBorder}`, borderRadius:"18px 18px 18px 4px", padding:"12px 16px", display:"flex", gap:4, alignItems:"center" }}>
+                      {[1,2,3].map(i => <span key={i} className={`td${i}`} style={{ width:6, height:6, borderRadius:"50%", background:cFaint, display:"inline-block" }} />)}
                     </div>
                   </div>
                 )}
+              </>
+            ) : historyLoading ? (
+              <div style={{ textAlign:"center", padding:"3rem", color:cFaint, fontSize:13 }}>Ładowanie historii…</div>
+            ) : humanMessages.length===0 ? (
+              <div style={{ textAlign:"center", padding:"4rem", color:cFaint }}>
+                <div style={{ fontSize:36, marginBottom:12 }}>💬</div>
+                <div style={{ fontSize:14, fontWeight:600 }}>Napisz pierwszą wiadomość do {activeContact?.username}</div>
               </div>
-            ))}
-
-            {/* Typing indicator */}
-            {isTyping && (
-              <div
-                className="bubble-ai"
-                style={{ display: "flex", alignItems: "flex-end", gap: 10 }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 10,
-                    background: "linear-gradient(135deg,#3b82f6,#7c3aed)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                    fontSize: 11,
-                    fontWeight: 800,
-                    flexShrink: 0,
-                  }}
-                >
-                  AI
-                </div>
-                <div
-                  style={{
-                    background: cCard,
-                    border: `1px solid ${cBorder}`,
-                    borderRadius: "18px 18px 18px 4px",
-                    padding: "12px 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  <span className="typing-dot" />
-                  <span className="typing-dot" />
-                  <span className="typing-dot" />
-                </div>
-              </div>
+            ) : (
+              humanMessages.map(msg => {
+                const mine = msg.sender_id===myId;
+                return (
+                  <div key={msg.id} className={mine?"bbr":"bbl"} style={{ display:"flex", justifyContent:mine?"flex-end":"flex-start", gap:8, alignItems:"flex-end" }}>
+                    {!mine && <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#f59e0b,#d97706)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:10, fontWeight:800, flexShrink:0 }}>{activeContact?.username.slice(0,2).toUpperCase()}</div>}
+                    <div style={{ maxWidth:"72%" }}>
+                      <div style={{ background:mine?cPrimary:cCard, border:!mine?`1px solid ${cBorder}`:"none", borderRadius:mine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px" }}>
+                        <p style={{ margin:0, fontSize:13, color:mine?"#fff":cText, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{msg.content}</p>
+                      </div>
+                      <div style={{ fontSize:10, color:cFaint, marginTop:2, textAlign:mine?"right":"left", padding:"0 4px" }}>
+                        {mine?"Ty":activeContact?.username} · {new Date(msg.timestamp).toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* ── Input bar ── */}
-          <div
-            style={{
-              flexShrink: 0,
-              background: cSurface,
-              borderTop: `1px solid ${cBorder}`,
-              padding: "14px 24px 16px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                maxWidth: 860,
-                margin: "0 auto",
-              }}
-            >
-              <div
-                className="chat-input-wrap"
-                style={{
-                  flex: 1,
-                  background: cBg,
-                  border: `1px solid ${cBorder}`,
-                  display: "flex",
-                  alignItems: "center",
-                  borderRadius: 18,
-                  padding: "10px 16px",
-                  transition: "border-color .2s, box-shadow .2s",
-                }}
-              >
+          {/* Input */}
+          <div style={{ flexShrink:0, background:cSurface, borderTop:`1px solid ${cBorder}`, padding:"12px 20px" }}>
+            <div style={{ display:"flex", gap:10, alignItems:"flex-end", maxWidth:860, margin:"0 auto" }}>
+              <div style={{ flex:1, background:cBg, border:`1px solid ${cBorder}`, borderRadius:18, padding:"10px 16px", display:"flex" }}>
                 <textarea
-                  ref={textareaRef}
-                  className="chat-textarea"
-                  rows={1}
-                  placeholder="Napisz wiadomość… (np. 'Jestem w Warszawie, mam miejsce na 24t')"
+                  ref={textareaRef} rows={1}
+                  placeholder={selectedContact==="ai"?"Napisz do AI… (Enter = wyślij)":`Napisz do ${activeContact?.username ?? "kontaktu"}…`}
                   value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    e.target.style.height = "auto";
-                    e.target.style.height =
-                      Math.min(e.target.scrollHeight, 128) + "px";
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.ctrlKey && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                    // Ctrl+Enter lub Shift+Enter → nowa linia (domyślne zachowanie textarea)
-                  }}
-                  style={{
-                    width: "100%",
-                    background: "transparent",
-                    border: "none",
-                    fontSize: 13,
-                    color: cText,
-                    resize: "none",
-                    outline: "none",
-                    lineHeight: 1.6,
-                    maxHeight: 128,
-                    overflowY: "auto",
-                    fontFamily: "inherit",
-                  }}
+                  onChange={e => { setInput(e.target.value); e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,120)+"px"; }}
+                  onKeyDown={e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }}}
+                  style={{ width:"100%", fontSize:13, color:cText, lineHeight:1.6, maxHeight:120, overflowY:"auto" }}
                 />
               </div>
               <button
-                onClick={() => sendMessage()}
-                disabled={!input.trim() || wsStatus !== "online"}
-                title="Wyślij (Ctrl+Enter)"
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  border: "none",
-                  flexShrink: 0,
-                  background:
-                    !input.trim() || wsStatus !== "online"
-                      ? isDark
-                        ? "#1e1e1e"
-                        : "#e2e8f0"
-                      : cPrimary,
-                  color:
-                    !input.trim() || wsStatus !== "online" ? cFaint : "#fff",
-                  cursor:
-                    !input.trim() || wsStatus !== "online"
-                      ? "not-allowed"
-                      : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "background .2s, color .2s",
-                  boxShadow:
-                    input.trim() && wsStatus === "online"
-                      ? "0 4px 12px rgba(59,130,246,.35)"
-                      : "none",
-                }}
+                onClick={sendMsg} disabled={!input.trim()}
+                style={{ width:44, height:44, borderRadius:12, border:"none", background:input.trim()?"linear-gradient(135deg,#3b82f6,#6366f1)":(isDark?"#1e1e1e":"#e2e8f0"), color:input.trim()?"#fff":cFaint, cursor:input.trim()?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s", flexShrink:0, boxShadow:input.trim()?"0 4px 12px rgba(59,130,246,0.35)":"none" }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                </svg>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
-            </div>
-            <div style={{ textAlign: "center", marginTop: 6 }}>
-              <span style={{ fontSize: 10, color: cFaint }}>
-                Enter — wyślij &nbsp;·&nbsp; Shift+Enter — nowa linia
-              </span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Modal: Przypisz trasę do kierowcy ── */}
+      {assignDialog && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9999 }}>
+          <div style={{ background:cSurface, border:`1px solid ${cBorder}`, borderRadius:18, padding:"28px 32px", width:380, maxWidth:"90vw", boxShadow:"0 24px 64px rgba(0,0,0,0.5)" }}>
+
+            {assignDialog.step === "ask" && (
+              <>
+                <div style={{ fontSize:20, fontWeight:800, color:cText, marginBottom:8 }}>🚛 Przypisz trasę?</div>
+                <p style={{ fontSize:13, color:cFaint, marginBottom:20, lineHeight:1.5 }}>
+                  Zaakceptowałeś ofertę <b style={{ color:cText }}>{assignDialog.card.route_from} → {assignDialog.card.route_to}</b>.
+                  <br />Czy chcesz przypisać ją konkretnemu kierowcy?
+                </p>
+                <div style={{ display:"flex", gap:10 }}>
+                  <button onClick={() => setAssignDialog(d => d ? { ...d, step:"input" } : null)} style={{ flex:1, padding:"10px 0", borderRadius:10, border:"none", background:"linear-gradient(135deg,#3b82f6,#6366f1)", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                    ✅ Tak, przypisz
+                  </button>
+                  <button onClick={() => setAssignDialog(null)} style={{ flex:1, padding:"10px 0", borderRadius:10, border:`1px solid ${cBorder}`, background:"transparent", color:cFaint, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                    Nie, później
+                  </button>
+                </div>
+              </>
+            )}
+
+            {assignDialog.step === "input" && (
+              <>
+                <div style={{ fontSize:18, fontWeight:800, color:cText, marginBottom:4 }}>Wybierz kierowcę</div>
+                <p style={{ fontSize:12, color:cFaint, marginBottom:12 }}>Wpisz imię, login lub e-mail — pojawią się podpowiedzi</p>
+
+                {/* Input z dropdownem */}
+                <div style={{ position:"relative", marginBottom:14 }}>
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="🔍 Szukaj kierowcy…"
+                    value={assignDialog.driverQuery}
+                    onChange={e => {
+                      setAssignDialog(d => d ? { ...d, driverQuery: e.target.value } : null);
+                      setShowSuggestions(true);
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && assignDialog.driverQuery.trim()) { setShowSuggestions(false); doAssign(); }
+                      if (e.key === "Escape") setShowSuggestions(false);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    style={{ width:"100%", boxSizing:"border-box", padding:"10px 14px", borderRadius:10, border:`1.5px solid ${showSuggestions && filteredDrivers.length > 0 ? "#3b82f6" : cBorder}`, background:cBg, color:cText, fontSize:13, outline:"none", transition:"border-color 0.15s" }}
+                  />
+
+                  {/* Dropdown */}
+                  {showSuggestions && filteredDrivers.length > 0 && (
+                    <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, background:cSurface, border:`1px solid ${cBorder}`, borderRadius:10, overflow:"hidden", boxShadow:"0 8px 24px rgba(0,0,0,0.35)", zIndex:10 }}>
+                      {filteredDrivers.map(d => (
+                        <button
+                          key={d.id}
+                          onMouseDown={e => e.preventDefault()} // nie trać focusa z inputa
+                          onClick={() => {
+                            setAssignDialog(prev => prev ? { ...prev, driverQuery: d.email || d.username } : null);
+                            setShowSuggestions(false);
+                          }}
+                          style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 14px", border:"none", background:"transparent", cursor:"pointer", textAlign:"left", transition:"background 0.1s" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = isDark ? "#1e1e1e" : "#f1f5f9")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                        >
+                          {/* Avatar */}
+                          <div style={{ width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,#f59e0b,#d97706)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:800, flexShrink:0 }}>
+                            {d.username.slice(0,2).toUpperCase()}
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:13, fontWeight:700, color:cText }}>{d.username}</div>
+                            {d.email && <div style={{ fontSize:11, color:cFaint, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.email}</div>}
+                            {d.vehicle_plate && <div style={{ fontSize:10, color:"#3b82f6", fontWeight:700 }}>🚛 {d.vehicle_plate}</div>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Hint gdy za mało znaków */}
+                  {showSuggestions && assignDialog.driverQuery.length > 0 && assignDialog.driverQuery.length < 2 && (
+                    <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, background:cSurface, border:`1px solid ${cBorder}`, borderRadius:10, padding:"10px 14px", fontSize:12, color:cFaint }}>
+                      Wpisz co najmniej 2 znaki…
+                    </div>
+                  )}
+                </div>
+
+                {assignDialog.errorMsg && (
+                  <p style={{ fontSize:12, color:"#f87171", marginBottom:12 }}>❌ {assignDialog.errorMsg}</p>
+                )}
+                <div style={{ display:"flex", gap:10 }}>
+                  <button onClick={() => { setShowSuggestions(false); doAssign(); }} disabled={!assignDialog.driverQuery.trim()} style={{ flex:1, padding:"10px 0", borderRadius:10, border:"none", background:assignDialog.driverQuery.trim()?"linear-gradient(135deg,#3b82f6,#6366f1)":"#333", color:"#fff", fontWeight:700, fontSize:13, cursor:assignDialog.driverQuery.trim()?"pointer":"default" }}>
+                    Przypisz →
+                  </button>
+                  <button onClick={() => setAssignDialog(null)} style={{ padding:"10px 16px", borderRadius:10, border:`1px solid ${cBorder}`, background:"transparent", color:cFaint, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                    Anuluj
+                  </button>
+                </div>
+              </>
+            )}
+
+            {assignDialog.step === "loading" && (
+              <div style={{ textAlign:"center", padding:"16px 0", color:cFaint, fontSize:14 }}>
+                <div style={{ fontSize:28, marginBottom:10 }}>⏳</div>
+                Przypisuję trasę…
+              </div>
+            )}
+
+            {assignDialog.step === "done" && (
+              <div style={{ textAlign:"center", padding:"16px 0" }}>
+                <div style={{ fontSize:36, marginBottom:10 }}>✅</div>
+                <div style={{ fontSize:15, fontWeight:800, color:"#22c55e", marginBottom:6 }}>Trasa przypisana!</div>
+                <p style={{ fontSize:12, color:cFaint }}>Kierowca otrzymał powiadomienie i widzi trasę w panelu Moje Trasy.</p>
+              </div>
+            )}
+
+            {assignDialog.step === "error" && (
+              <>
+                <div style={{ textAlign:"center", fontSize:28, marginBottom:8 }}>❌</div>
+                <p style={{ textAlign:"center", fontSize:13, color:"#f87171", marginBottom:16 }}>{assignDialog.errorMsg}</p>
+                <div style={{ display:"flex", gap:10 }}>
+                  <button onClick={() => setAssignDialog(d => d ? { ...d, step:"input", errorMsg:undefined } : null)} style={{ flex:1, padding:"10px 0", borderRadius:10, border:"none", background:"#ef4444", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                    Spróbuj ponownie
+                  </button>
+                  <button onClick={() => setAssignDialog(null)} style={{ padding:"10px 16px", borderRadius:10, border:`1px solid ${cBorder}`, background:"transparent", color:cFaint, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                    Zamknij
+                  </button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
     </>
   );
 }

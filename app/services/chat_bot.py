@@ -10,7 +10,9 @@ import os
 import re
 import json
 import logging
+import asyncio
 import requests
+from datetime import datetime
 from sqlmodel import Session, select, or_
 from app.models.email_log import EmailLog
 
@@ -67,12 +69,13 @@ def _extract_intent(message: str, awaiting_plate: bool, last_action: str = None)
         context_hint = "WAŻNE: Właśnie złożyłeś ofertę ładunku. Odpowiedzi typu 'pasuje', 'biorę', 'ok', 'może być' to AKCEPTUJE_LADUNEK."
 
     prompt = f"""Jesteś logistycznym systemem AI. Skalasyfikuj wiadomość kierowcy.
-Zwróć WYŁĄCZNIE JSON: {{"intent": "...", "loading_city": "...", "unloading_city": "...", "plate_number": "..."}}
+Zwróć WYŁĄCZNIE JSON: {{"intent": "...", "loading_city": "...", "unloading_city": "...", "plate_number": "...", "driver_id": null}}
 
 Intencje:
 - SZUKA_LADUNKU: pyta o wolne trasy / podaje lokalizację
 - AKCEPTUJE_LADUNEK: zgadza się na Twoją propozycję (synonimy: pasuje mi, biorę to, git, wchodzę w to, ok)
 - PODAJ_REJESTRACJE: podaje numer rejestracyjny
+- PRZYPISZ_TRASE: prosi o przypisanie trasy do kierowcy (zawiera "daj", "przypisz", "kierowca nr", "dla kierowcy") — wyciągnij driver_id jako liczbę
 - INNE: reszta
 
 Kontekst: {context_hint}
@@ -86,13 +89,14 @@ JSON:"""
     try:
         result = json.loads(raw)
         intent = result.get("intent", "INNE")
-        if intent not in ("SZUKA_LADUNKU", "AKCEPTUJE_LADUNEK", "PODAJ_REJESTRACJE", "INNE"):
+        if intent not in ("SZUKA_LADUNKU", "AKCEPTUJE_LADUNEK", "PODAJ_REJESTRACJE", "PRZYPISZ_TRASE", "INNE"):
             intent = "INNE"
         return {
             "intent": intent,
             "loading_city": result.get("loading_city"),
             "unloading_city": result.get("unloading_city"),
             "plate_number": result.get("plate_number"),
+            "driver_id": result.get("driver_id"),
         }
     except Exception:
         logger.warning(f"⚠️ Nie udało się sparsować intencji: {raw!r}")
@@ -190,8 +194,73 @@ def process_driver_message(message: str, db_session: Session, session_id: str = 
     loading_city = parsed.get("loading_city")
     unloading_city = parsed.get("unloading_city")
     plate = parsed.get("plate_number")
+    driver_id_from_llm = parsed.get("driver_id")
 
-    logger.info(f"🎯 intent={intent} | loading={loading_city} | unloading={unloading_city} | plate={plate}")
+    logger.info(f"🎯 intent={intent} | loading={loading_city} | unloading={unloading_city} | plate={plate} | driver_id={driver_id_from_llm}")
+
+    # ── PRZYPISZ_TRASE → przypisz ofertę do kierowcy i powiadom ─────
+    if intent == "PRZYPISZ_TRASE":
+        offer = sess.get("last_offer")
+        if not offer:
+            return "Nie pamiętam żadnej omawianej oferty. Najpierw powiedz mi skąd szukasz ładunku."
+
+        # Fallback: szukaj driver_id z regex jeśli LLM nie wyciągnął
+        if not driver_id_from_llm:
+            m = re.search(r'(?:kierowca?|driver)[^\d]*(\d+)', message, re.IGNORECASE)
+            driver_id_from_llm = int(m.group(1)) if m else None
+
+        if not driver_id_from_llm:
+            return "Podaj numer ID kierowcy (np. 'daj tę trasę kierowcy nr 3')."
+
+        try:
+            from app.models.user import User, UserRole
+            from app.models.assigned_route import AssignedRoute
+            from app.core.database import engine
+            from sqlmodel import Session as Sess
+
+            with Sess(engine) as s:
+                driver = s.get(User, int(driver_id_from_llm))
+                if not driver or driver.role != UserRole.KIEROWCA:
+                    return f"Nie znalazłem kierowcy nr {driver_id_from_llm} w systemie."
+
+                route = AssignedRoute(
+                    driver_id=driver.id,
+                    source_id=f"chat_offer_{offer.id}",
+                    loading_city=offer.loading_city or "?",
+                    unloading_city=offer.unloading_city or "?",
+                    weight_kg=float(offer.weight_kg or 0),
+                    price=float(offer.price or 0),
+                    status="PRZYPISANE",
+                )
+                s.add(route)
+                s.commit()
+                s.refresh(route)
+                route_id = route.id
+
+            # Wyślij powiadomienie WS do kierowcy
+            try:
+                from app.api.chat import chat_manager
+                notif = {
+                    "type": "notification",
+                    "message": f"🚛 Nowa trasa przypisana! {offer.loading_city} → {offer.unloading_city}. Sprawdź panel Moje Trasy.",
+                }
+                loop = asyncio.get_event_loop()
+                asyncio.run_coroutine_threadsafe(
+                    chat_manager.send_to_user(driver.id, notif), loop
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ WS notify failed: {e}")
+
+            sess["last_offer"] = None
+            route_str = f"{offer.loading_city} → {offer.unloading_city}"
+            return (
+                f"Jasne! ✅ Trasa <b>{route_str}</b> została przypisana do kierowcy "
+                f"<b>{driver.username}</b> (ID: {driver.id}).<br>"
+                f"Wysłałem mu powiadomienie o nowej trasie. Możesz to sprawdzić w panelu Moje Trasy."
+            )
+        except Exception as e:
+            logger.error(f"❌ assign_route error: {e}", exc_info=True)
+            return "Wystąpił błąd przy przypisywaniu trasy. Spróbuj ponownie."
 
     # ── PODAJ_REJESTRACJE → generuj CMR ──────────────────────────────
     if intent == "PODAJ_REJESTRACJE" and plate and sess.get("last_offer"):
@@ -201,6 +270,16 @@ def process_driver_message(message: str, db_session: Session, session_id: str = 
     # ── AKCEPTUJE_LADUNEK → zapytaj o rejestrację ────────────────────
     if intent == "AKCEPTUJE_LADUNEK":
         if sess.get("last_offer"):
+            # Sprawdź czy wiadomość zawiera konkretne ID oferty (#123)
+            id_match = re.search(r'#(\d+)', message)
+            if id_match:
+                offer_id = int(id_match.group(1))
+                # Znajdź konkretną ofertę w liście
+                all_offers = sess.get("all_offers", [sess["last_offer"]])
+                matched = next((o for o in all_offers if o.id == offer_id), None)
+                if matched:
+                    sess["last_offer"] = matched
+
             sess["awaiting_plate"] = True
             offer = sess["last_offer"]
             route = f"{offer.loading_city} → {offer.unloading_city}"
@@ -217,21 +296,27 @@ def process_driver_message(message: str, db_session: Session, session_id: str = 
         logger.info(f"📦 Znaleziono {len(offers)} ofert dla: {loading_city}")
 
         if offers:
-            offer = offers[0]
-            sess["last_offer"] = offer
+            # Zapamiętaj pierwszą ofertę jako "last_offer" dla akcji akceptuj/przypisz
+            sess["last_offer"] = offers[0]
+            sess["all_offers"] = offers  # lista do wyboru
             sess["awaiting_plate"] = False
             text = _build_offer_response(message, loading_city, offers)
+
+            offer_cards = []
+            for o in offers:
+                offer_cards.append({
+                    "id": f"#{o.id}",
+                    "route_from": o.loading_city or "?",
+                    "route_to": o.unloading_city or "?",
+                    "price": f"{o.price} {o.currency}" if o.price else "do ustalenia",
+                    "weight": f"{o.weight_kg} kg" if o.weight_kg else "?",
+                })
 
             payload = {
                 "type": "offer_card",
                 "message": text or f"Znalazłem coś dla Ciebie z {loading_city}!",
-                "offer": {
-                    "id": f"#{offer.id}",
-                    "route_from": offer.loading_city or "?",
-                    "route_to": offer.unloading_city or "?",
-                    "price": f"{offer.price} {offer.currency}" if offer.price else "do ustalenia",
-                    "weight": f"{offer.weight_kg} kg" if offer.weight_kg else "?",
-                }
+                "offers": offer_cards,
+                "offer": offer_cards[0],  # backwards compat
             }
             return json.dumps(payload, ensure_ascii=False)
         else:
