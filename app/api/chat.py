@@ -138,6 +138,7 @@ async def user_chat_ws(websocket: WebSocket):
     try:
         while True:
             raw = await websocket.receive_text()
+            print(f"📡 [WS] Otrzymano surowe dane od {current_user_id}: {raw}")
             try:
                 # ── Parsuj JSON ──
                 try:
@@ -157,25 +158,31 @@ async def user_chat_ws(websocket: WebSocket):
                 receiver_id = int(receiver_id)  # konwertuj na int na wypadek stringa
 
                 # ── Zapis do bazy (PRZED broadcastem) ──
-                with Session(engine) as session:
-                    msg = ChatMessage(
-                        sender_id=current_user_id,   # zawsze z autoryzacji, nie z frontendu
-                        receiver_id=receiver_id,
-                        content=content,
-                    )
-                    session.add(msg)
-                    session.commit()
-                    session.refresh(msg)
+                try:
+                    with Session(engine) as session:
+                        msg = ChatMessage(
+                            sender_id=int(current_user_id),   # upewniamy się, że to integer
+                            receiver_id=int(receiver_id),     # j.w.
+                            content=content,
+                        )
+                        session.add(msg)
+                        session.commit()
+                        session.refresh(msg)
+                        print("✅ Wiadomość zapisana w bazie: ", msg.id)
 
-                    msg_payload = {
-                        "type": "message",
-                        "id": msg.id,
-                        "sender_id": msg.sender_id,
-                        "receiver_id": msg.receiver_id,
-                        "content": msg.content,
-                        "timestamp": msg.timestamp.isoformat(),
-                        "is_read": msg.is_read,
-                    }
+                        msg_payload = {
+                            "type": "message",
+                            "id": msg.id,
+                            "sender_id": msg.sender_id,
+                            "receiver_id": msg.receiver_id,
+                            "content": msg.content,
+                            "timestamp": msg.timestamp.isoformat(),
+                            "is_read": msg.is_read,
+                        }
+                except Exception as db_err:
+                    print("❌ BŁĄD ZAPISU WS: ", db_err)
+                    logger.error(f"❌ BŁĄD ZAPISU WS: {db_err}", exc_info=True)
+                    continue
 
                 logger.info(f"[WS] MSG #{msg_payload['id']} | {current_user_id}→{receiver_id} | saved ✓")
 
