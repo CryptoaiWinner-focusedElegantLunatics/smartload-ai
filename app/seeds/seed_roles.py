@@ -10,16 +10,16 @@ from app.models.user import User, UserRole
 
 
 ACCOUNTS = [
-    # (username, password, role, vehicle_plate)
-    ("admin@smartload.ai",      "admin123", UserRole.ADMIN,    None),
-    ("spedytor1@smartload.ai",  "sped123",  UserRole.SPEDYTOR, None),
-    ("spedytor2@smartload.ai",  "sped123",  UserRole.SPEDYTOR, None),
-    ("spedytor3@smartload.ai",  "sped123",  UserRole.SPEDYTOR, None),
-    ("kierowca1@smartload.ai",  "kier123",  UserRole.KIEROWCA, "WA 1234K"),
-    ("kierowca2@smartload.ai",  "kier123",  UserRole.KIEROWCA, "GD 5678K"),
-    ("kierowca3@smartload.ai",  "kier123",  UserRole.KIEROWCA, "KR 9012K"),
-    ("kierowca4@smartload.ai",  "kier123",  UserRole.KIEROWCA, "PO 3456K"),
-    ("kierowca5@smartload.ai",  "kier123",  UserRole.KIEROWCA, "WR 7890K"),
+    # (username, email, password, role, vehicle_plate)
+    ("admin",     "admin@smartload.ai",      "admin123", UserRole.ADMIN,    None),
+    ("spedytor1", "spedytor1@smartload.ai",  "sped123",  UserRole.SPEDYTOR, None),
+    ("spedytor2", "spedytor2@smartload.ai",  "sped123",  UserRole.SPEDYTOR, None),
+    ("spedytor3", "spedytor3@smartload.ai",  "sped123",  UserRole.SPEDYTOR, None),
+    ("kierowca1", "kierowca1@smartload.ai",  "kier123",  UserRole.KIEROWCA, "WA 1234K"),
+    ("kierowca2", "kierowca2@smartload.ai",  "kier123",  UserRole.KIEROWCA, "GD 5678K"),
+    ("kierowca3", "kierowca3@smartload.ai",  "kier123",  UserRole.KIEROWCA, "KR 9012K"),
+    ("kierowca4", "kierowca4@smartload.ai",  "kier123",  UserRole.KIEROWCA, "PO 3456K"),
+    ("kierowca5", "kierowca5@smartload.ai",  "kier123",  UserRole.KIEROWCA, "WR 7890K"),
 ]
 
 
@@ -38,9 +38,9 @@ def seed_roles():
             session.commit()
             print("✅ Zaktualizowano rolę istniejącego konta 'admin' → ADMIN")
 
-        for username, password, role, plate in ACCOUNTS:
+        for username, email, password, role, plate in ACCOUNTS:
             exists = session.exec(
-                select(User).where(User.username == username)
+                select(User).where((User.username == username) | (User.email == email))
             ).first()
 
             if exists:
@@ -49,6 +49,7 @@ def seed_roles():
 
             user = User(
                 username=username,
+                email=email,
                 hashed_password=get_password_hash(password),
                 role=role,
                 vehicle_plate=plate,
