@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Dokument CMR</title>
+<style>
+
+    @page {
+        size: A4;
+        margin: 0;
+    }
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #555;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+    }
+    @media print {
+        body {
+            background-color: transparent;
+            padding: 0;
+            gap: 0;
+        }
+        .page {
+            box-shadow: none !important;
+            page-break-after: always;
+        }
+    }
+    .page {
+        background-color: #fff;
+        width: 210mm;
+        height: 297mm;
+        position: relative;
+        box-sizing: border-box;
+        padding: 10mm 22mm 10mm 22mm;
+        box-shadow: 0 0 15px rgba(0,0,0,0.7);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Left Margin Elements */
+    .margin-left-wrapper {
+        position: absolute;
+        left: -110mm;
+        top: 115mm;
+        width: 240mm;
+        transform: rotate(-90deg);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        color: var(--main-color);
+    }
+    .margin-small {
+        font-size: 6px;
+        line-height: 1.1;
+    }
+    .margin-large {
+        font-size: 16px;
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
+
+    /* Right Margin Absolute Text */
+    .right-margin-text {
+        position: absolute;
+        right: 6mm;
+        top: 60mm;
+        color: var(--main-color);
+        writing-mode: vertical-rl;
+        font-size: 5.5px;
+        line-height: 1.0;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 5px;
+        color: var(--main-color);
+    }
+    .header-left .big-1 {
+        font-size: 28px;
+        font-weight: bold;
+        line-height: 1;
+    }
+    .header-left .text {
+        font-size: 9px;
+        font-weight: bold;
+        line-height: 1.2;
+    }
+
+    .form-border {
+        border: 2px solid var(--main-color);
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .row {
+        display: flex;
+        border-bottom: 1px solid var(--main-color);
+        box-sizing: border-box;
+    }
+    .row:last-child {
+        border-bottom: none;
+    }
+    .col-50 {
+        width: 50%;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+    }
+    .col-50.left {
+        border-right: 1px solid var(--main-color);
+    }
+    .col-33 {
+        width: 33.333%;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        border-right: 1px solid var(--main-color);
+    }
+    .col-33:last-child {
+        border-right: none;
+    }
+
+    .box {
+        position: relative;
+        padding: 4px 4px 4px 20px;
+        box-sizing: border-box;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: min-content;
+    }
+    .box-border-bottom {
+        border-bottom: 1px solid var(--main-color);
+    }
+    .box-num {
+        position: absolute;
+        left: 3px;
+        top: 3px;
+        font-size: 14px;
+        font-weight: bold;
+        color: var(--main-color);
+    }
+    .box-title {
+        font-size: 6.5px;
+        line-height: 1.1;
+        color: var(--main-color);
+    }
+    .user-data {
+        color: #000;
+        font-size: 9px;
+        font-family: 'Arial', sans-serif;
+        margin-top: 6px;
+    }
+
+    .goods-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .goods-table th, .goods-table td {
+        padding: 2px 4px;
+        vertical-align: top;
+    }
+    .goods-table th {
+        font-weight: normal;
+        font-size: 6.5px;
+        line-height: 1.1;
+        text-align: left;
+        position: relative;
+        padding-left: 18px;
+        color: var(--main-color);
+    }
+    .goods-table th .box-num {
+        font-size: 14px;
+        font-weight: bold;
+        position: absolute;
+        left: 2px;
+        top: 2px;
+    }
+    .goods-table td {
+        color: #000;
+        font-size: 9px;
+        padding-top: 2px;
+        padding-bottom: 4px;
+    }
+    .no-rb { border-right: none !important; }
+    .rb { border-right: 1px solid var(--main-color); }
+
+    .payment-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .payment-table th, .payment-table td {
+        border: 1px solid var(--main-color);
+        font-size: 6px;
+        padding: 2px;
+        text-align: left;
+        color: var(--main-color);
+    }
+    .payment-table th { font-weight: normal; }
+    .payment-table td { height: 11px; }
+
+    .signature {
+        position: absolute;
+        bottom: 2px;
+        left: 8px;
+        font-size: 6px;
+        line-height: 1.1;
+        text-align: left;
+        color: var(--main-color);
+    }
+    
+    .footer {
+        text-align: center;
+        font-size: 6px;
+        margin-top: 4px;
+        color: var(--main-color);
+    }
+
+</style>
+</head>
+<body>
+
+{% for page in pages %}
+<div class="page" style="--main-color: {{ page.color }};">
+    
+    <!-- Left Margin Wrapper -->
+    <div class="margin-left-wrapper">
+        <div class="margin-small" style="text-align: right;">Do wypelnienia pod odpowiedzialnoscia nadawcy<br>Auszufullen unter der Verantwortung das Absenders<br>To be completed on the sender's responsibility</div>
+        <div class="margin-large">1 - 15</div>
+        <div class="margin-small" style="text-align: center;">wlacznie oraz<br>einschliesslich<br>including and</div>
+        <div class="margin-large">19 + 20 + 22</div>
+        <div class="margin-small" style="text-align: left;">Rubryki obwiedzione tlustymi liniami wypelnia przewoznik.<br>Die mit fett gedruckten Linien eingerahmten Rubriken mussen vom Frachtfuhrer ausgefullt werden.<br>The spaces framed with heavy lines must be filled by the carrier.</div>
+    </div>
+
+    <!-- Right Margin Absolute Text -->
+    <div class="right-margin-text">
+        * W przypadku przewozu towarow niebezpiecznych oprocz ewentualnego posiadania zaswiadczenia , nalezy podac w ostatnim wierszu: klase, liczbe oraz, w danym przypadku, litere<br>
+        * Bei gefahrlichen Gutrn ist, ausser der eventuellen Bescheinigung, auf der letzten Linie der Rubrik anzugeben: die Klasse, die Zi er, sowie gegebenenfalls der Buchstabe.<br>
+        * In case of dangerous goods mention, besides the possible certi fication, on the last line of the column the particulars of the class, the number and the letter, if any
+    </div>
+
+    <!-- Egzemplarz Header -->
+    <div class="header-left" {% if page.is_copy %}style="align-items: center;"{% endif %}>
+        {% if page.is_copy %}
+        <div class="big-1" style="font-size: 46px; letter-spacing: 2px;">KOPIA</div>
+        {% else %}
+        <div class="big-1">{{ page.number }}</div>
+        <div class="text">{{ page.text | safe }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Main Form inside Border -->
+    <div class="form-border">
+        
+        <!-- Row 1 -->
+        <div class="row">
+            <div class="col-50 left">
+                <div class="box" style="min-height: 60px;">
+                    <div class="box-num">1</div>
+                    <div class="box-title">Nadawca (nazwisko lub nazwa, adres, kraj)<br>Absender (Name, Anschrift, Land)<br>Sender (name, address, country)</div>
+                    <div class="user-data">{{ sender_name }}<br>{{ sender_address }}</div>
+                </div>
+            </div>
+            <div class="col-50">
+                <div class="box" style="min-height: 60px; padding: 10px; padding-left: 15px; justify-content: center;">
+                    <div style="text-align: left; font-size: 6px; font-weight: normal; line-height: 1.2; margin-bottom: 5px; color: var(--main-color);">
+                        MIEDZYNARODOWY SAMOCHODOWY LIST PRZEWOZOWY<br>
+                        INTERNATIONALER FRACHTBRIEF<br>
+                        INTERNATIONAL CONSIGNMENT
+                    </div>
+                    <div style="text-align: right; padding-right: 30px; font-size: 16px; font-weight: bold; margin-bottom: 8px; color: var(--main-color);">
+                        CMR No: <span style="color:#000;">{{ doc_nr }}</span>
+                    </div>
+                    <div style="font-size: 6px; color: var(--main-color); line-height: 1.2;">
+                        <div style="margin-bottom: 4px;">Niniejszy przewoz podlega postanowieniom konwencji o umowie miedzynarodowej przewozu<br>drogowego towarow (CMR) bez wzgledu na jakakolwiek przeciwna klauzule.</div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <div style="width: 48%;">Diese Beforderung unterliegt trotz einer gegen-<br>teiligen Abmachung den Bestimmungen des<br>Ubereinkommens uber den Beforderungsvertrag<br>im internationalen Strassenguterverkehr (CMR)</div>
+                            <div style="width: 48%;">This carriage is subject notwithstanding any<br>clause to the contrary, to the Convention on<br>the Contract for the international Carriage of<br>goods by road (CMR)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="row">
+            <div class="col-50 left">
+                <div class="box" style="min-height: 45px;">
+                    <div class="box-num">2</div>
+                    <div class="box-title">Odbiorca (nazwisko lub nazwa, adres, kraj)<br>Empfanger (Name, Anschrift, Land)<br>Consignee (name, address, country)</div>
+                    <div class="user-data">{{ receiver_name }}<br>{{ receiver_address }}</div>
+                </div>
+            </div>
+            <div class="col-50">
+                <div class="box" style="min-height: 45px;">
+                    <div class="box-num">16</div>
+                    <div class="box-title">Przewoznik (nazwisko lub nazwa, adres, kraj)<br>Frachtfuhrer (Name, Anschrift, Land)<br>Carrier (name, address, country)</div>
+                    <div class="user-data">{{ carrier_name }}<br>{{ carrier_address }}</div>
+                    <div class="user-data" style="margin-top: 4px;"><span style="color:var(--main-color); font-weight:bold;">NR REJ.:</span> {{ vehicle_plate }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="row">
+            <div class="col-50 left">
+                <div class="box" style="min-height: 45px;">
+                    <div class="box-num">3</div>
+                    <div class="box-title">Miejsce przeznaczenia (miejscowosc, kraj)<br>Auslieferungsort des Gutes (Ort, Land)<br>Place of delivery of the goods (place, country)</div>
+                    <div class="user-data">{{ destination }}</div>
+                </div>
+            </div>
+            <div class="col-50">
+                <div class="box" style="min-height: 45px;">
+                    <div class="box-num">17</div>
+                    <div class="box-title">Kolejni przewoznicy (nazwisko lub nazwa, adres, kraj)<br>Nachfolgende Frachtfuhrer (Name, Anschrift, Land)<br>Successive carriers (name, address, country)</div>
+                    <div class="user-data">{{ successive_carrier }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="row">
+            <div class="col-50 left">
+                <div class="box box-border-bottom" style="min-height: 40px;">
+                    <div class="box-num">4</div>
+                    <div class="box-title">Miejsce i data zaladowania (miejscowosc, kraj, data)<br>Ort und Tag der Ubernahme des Gutes (Ort, Land, Datum)<br>Place and date taking over the goods (place, country, date)</div>
+                    <div class="user-data" style="display: flex; justify-content: space-between; padding-right: 20px;">
+                        <span>{{ origin }}</span>
+                        <span>{{ load_date }}</span>
+                    </div>
+                </div>
+                <div class="box" style="min-height: 40px;">
+                    <div class="box-num">5</div>
+                    <div class="box-title">Zalaczone dokumenty<br>Beigefugte Dokumente<br>Documents attached</div>
+                    <div class="user-data">{{ attached_docs }}</div>
+                </div>
+            </div>
+            <div class="col-50">
+                <div class="box" style="flex-grow: 1;">
+                    <div class="box-num">18</div>
+                    <div class="box-title">Zastrzezenia i uwagi przewoznika<br>Vorbehalte und Bemerkungen der Frachtfuhrer<br>Carrier's reservations and observations</div>
+                    <div class="user-data">{{ carrier_remarks }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goods Table Row -->
+        <div class="row" style="flex-direction: column;">
+            <table class="goods-table">
+                <thead>
+                    <tr>
+                        <th class="no-rb" style="width: 25%;"><div class="box-num">6</div>Cechy i numery<br>Kennzeichen und Nummern<br>Marks and Nos</th>
+                        <th class="no-rb" style="width: 10%;"><div class="box-num">7</div>Ilosc sztuk<br>Anzahl der Packstucke<br>Number of packages</th>
+                        <th class="no-rb" style="width: 18%;"><div class="box-num">8</div>Sposob opakowania<br>Art der Verpackung<br>Method of packing</th>
+                        <th class="rb" style="width: 18%;"><div class="box-num">9</div>Rodzaj towaru<br>Bezeichnung des Gutes<br>Nature of the goods</th>
+                        <th class="rb" style="width: 10%;"><div class="box-num">10</div>Numer statystyczny<br>Statistiknummer<br>Statistical number</th>
+                        <th class="rb" style="width: 10%;"><div class="box-num">11</div>Waga brutto w kg<br>Bruttogewicht in kg<br>Gross weight in kg</th>
+                        <th style="width: 9%; border-right: none;"><div class="box-num">12</div>Objetosc w m3<br>Umfang m3<br>Volume in m3</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="no-rb">{{ item.marks }}</td>
+                        <td class="no-rb">{{ item.packages }}</td>
+                        <td class="no-rb">{{ item.method }}</td>
+                        <td class="rb">{{ item.nature }}</td>
+                        <td class="rb">{{ item.stat_no }}</td>
+                        <td class="rb">{{ item.weight }}</td>
+                        <td>{{ item.volume }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td class="no-rb"><br><br></td><td class="no-rb"></td><td class="no-rb"></td><td class="rb"></td><td class="rb"></td><td class="rb"></td><td></td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="border-top: 1px solid var(--main-color);">
+                        <td colspan="4" style="border-right: 1px solid var(--main-color); padding: 2px 4px;">
+                            <div style="display: flex; align-items: center; font-size: 7px; color: var(--main-color); gap: 50px;">
+                                <div style="display: flex; align-items: center; gap: 5px;"><span>Klasa<br>Klasse<br>Class</span><span style="color: #000; font-size: 9px;">{{ adr_class }}</span></div>
+                                <div style="display: flex; align-items: center; gap: 5px;"><span>Liczba<br>Ziffer<br>Number</span><span style="color: #000; font-size: 9px;">{{ adr_number }}</span></div>
+                                <div style="display: flex; align-items: center; gap: 5px;"><span>Litera<br>Buchstabe<br>Letter</span><span style="color: #000; font-size: 9px;">{{ adr_letter }}</span></div>
+                                <div style="display: flex; align-items: center; gap: 5px;"><span>(ADR*)</span><span style="color: #000; font-size: 9px;">{{ adr_adr }}</span></div>
+                            </div>
+                        </td>
+                        <td colspan="3" style="border-right: none;"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Instructions & Payments -->
+        <div class="row">
+            <div class="col-50 left">
+                <div class="box box-border-bottom" style="min-height: 55px;">
+                    <div class="box-num">13</div>
+                    <div class="box-title">Instrukcje nadawcy<br>Anweisungen des Absenders<br>Senders instructions</div>
+                    <div class="user-data" style="font-weight: bold; margin-left: 10px;">{{ sender_instructions }}</div>
+                </div>
+                <div class="box" style="min-height: 85px;">
+                    <div class="box-num">14</div>
+                    <div class="box-title">Postanowienia odnosnie przewoznego<br>Frachtzahlungsanweisungen<br>Instruction as to payment for carriage</div>
+                    
+                    <div class="user-data" style="margin-top: 8px; margin-left: 20px; text-align: left; font-weight: bold;">
+                        {{ payment_instructions }}
+                    </div>
+                    <div class="box-title" style="margin-top: 5px; margin-left: 20px;">
+                        Przewozne zaplacone / frei / Carriage paid<br>
+                        Przewozne nieoplacone / Unfrei / Carriage forward
+                    </div>
+                </div>
+            </div>
+            <div class="col-50">
+                <div class="box box-border-bottom" style="min-height: 35px;">
+                    <div class="box-num">19</div>
+                    <div class="box-title">Postanowienia specjalne<br>Besondere Vereinbarungen<br>Special agreements</div>
+                    <div class="user-data" style="font-weight: bold;">{{ special_agreements }}</div>
+                </div>
+                <div class="box" style="padding: 0;">
+                    <table class="payment-table" style="width: 100%; height: 100%; border: none;">
+                        <tr>
+                            <th style="width: 32%; border-top: none; border-left: none; position: relative; padding-left: 24px;">
+                                <span class="box-num" style="font-size: 16px; top: 2px; left: 2px;">20</span>
+                                Do zaplacenia<br>Zu zahlen vom<br>To be paid by
+                            </th>
+                            <th style="width: 16%; border-top: none;">Nadawca<br>Absender<br>Sender</th>
+                            <th style="width: 8%; border-top: none;"></th>
+                            <th style="width: 16%; border-top: none;">Waluta<br>Wahrung<br>Currency</th>
+                            <th style="width: 8%; border-top: none;"></th>
+                            <th style="width: 16%; border-top: none;">Odbiorca<br>Empfanger<br>Consignee</th>
+                            <th style="width: 4%; border-top: none; border-right: none;"></th>
+                        </tr>
+                        <tr>
+                            <td style="border-left: none;">Przewozne / Fracht<br>/ Carriage charges</td>
+                            <td>{{ charges.sender_freight }}</td><td></td><td>{{ currency }}</td><td></td><td>{{ charges.receiver_freight }}</td><td style="border-right: none;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border-left: none;">Bonifikaty / Ermassigungen<br>/ Deductions</td>
+                            <td></td><td></td><td></td><td></td><td></td><td style="border-right: none;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border-left: none;">Saldo / Zuschlage<br>/ Balance</td>
+                            <td></td><td></td><td></td><td></td><td></td><td style="border-right: none;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border-left: none;">Doplaty / Nebengebuhren<br>/ Supplem. charges</td>
+                            <td></td><td></td><td></td><td></td><td></td><td style="border-right: none;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border-left: none;">Koszty dodatkowe<br>/ Sonstiges / Miscellaneous</td>
+                            <td></td><td></td><td></td><td></td><td></td><td style="border-right: none;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border-left: none;">Ubezpieczenie</td>
+                            <td></td><td></td><td></td><td></td><td></td><td style="border-right: none;"></td>
+                        </tr>
+                        <tr>
+                            <td style="border-left: none; border-bottom: none;">Razem / Gesamtsumme<br>Total to be paid</td>
+                            <td style="border-bottom: none;">{{ charges.sender_freight }}</td><td style="border-bottom: none;"></td><td style="border-bottom: none;">{{ currency }}</td><td style="border-bottom: none;"></td><td style="border-bottom: none;">{{ charges.receiver_freight }}</td><td style="border-right: none; border-bottom: none;"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issue & Delivery details -->
+        <div class="row">
+            <div class="col-50 left" style="flex-direction: row; align-items: flex-start; justify-content: space-between;">
+                <div class="box" style="flex: 1; border-right: none; min-height: 45px;">
+                    <div class="box-num">21</div>
+                    <div class="box-title">Wystawiono w<br>Ausgefertigt in<br>Established in</div>
+                    <div class="user-data" style="margin-left: 10px;">{{ issue_place }}</div>
+                </div>
+                <div style="padding: 5px 15px 0 0; text-align: left; color: var(--main-color); font-size: 6px; display: flex; flex-direction: column; align-items: center;">
+                    <div style="text-align: left; width: 100%;">dnia<br>am<br>on</div>
+                    <div class="user-data">{{ issue_date }}</div>
+                </div>
+            </div>
+            <div class="col-50" style="position: relative;">
+                <div class="box" style="min-height: 45px;">
+                    <div class="box-num">15</div>
+                    <div class="box-title">Zaplata<br>Ruckerstattung<br>Cash on delivery</div>
+                    <div class="user-data" style="position: absolute; left: 140px; top: 15px;">{{ cod_amount }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="row" style="min-height: 70px;"> 
+            <div class="col-33">
+                <div class="box" style="padding-left: 8px;">
+                    <div class="box-num">22</div>
+                    <div class="signature">
+                        Podpis i stempel nadawcy<br>
+                        Unterschrift und Stempel des Absenders<br>
+                        Signature and stamp of the sender
+                    </div>
+                </div>
+            </div>
+            <div class="col-33">
+                <div class="box" style="padding-left: 8px;">
+                    <div class="box-num">23</div>
+                    <div class="signature">
+                        Podpis i stempel przewoznika<br>
+                        Unterschrift und Stempel des Frachtfuhrers<br>
+                        Signature and stamp of the carrier
+                    </div>
+                </div>
+            </div>
+            <div class="col-33">
+                <div class="box" style="padding-left: 8px;">
+                    <div class="box-num">24</div>
+                    <div class="box-title" style="margin-left: 15px;">Przesylke otrzymano / Gut empfangen<br>Goods received</div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; padding: 0 10px; color: var(--main-color); font-size: 6px;">
+                        <div>Miejscowosc<br>Ort<br>Place</div>
+                        <div>dnia<br>am<br>on</div>
+                    </div>
+                    <div class="signature">
+                        Podpis i stempel odbiorcy<br>
+                        Unterschrift und Stempel des Empfangers<br>
+                        Signature and stamp of the consignee
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        Wzór CMR/IRU/Polska z 1976 dla międzynarodowych przewozów drogowych odpowiada ustaleniom, które zostały dokonane przez Międzynarodową Unię Transportu Drogowego (IRU).
+    </div>
+</div>
+{% endfor %}
+
+</body>
+</html>
