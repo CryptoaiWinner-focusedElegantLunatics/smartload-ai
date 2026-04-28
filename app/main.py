@@ -56,6 +56,9 @@ async def lifespan(app: FastAPI):
             ))
             # RBAC: dodaj kolumny ról do tabeli user (jeśli tabela już istniała bez nich)
             session.exec(text(
+                "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS email VARCHAR"
+            ))
+            session.exec(text(
                 "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'SPEDYTOR'"
             ))
             session.exec(text(
