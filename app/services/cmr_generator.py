@@ -7,13 +7,13 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from app.models.document_schema import ParsedDocument
-from jinja2 import Environment, FileSystemPath
+from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 
 logger = logging.getLogger(__name__)
 
 DOCS_DIR = Path("static/docs")
-TEMPLATES_DIR = Path("templates") # Dostosuj ścieżkę jeśli templates masz wew. 'app/' tj. Path("app/templates")
+TEMPLATES_DIR = Path("app/templates")
 
 def _ensure_dirs():
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
