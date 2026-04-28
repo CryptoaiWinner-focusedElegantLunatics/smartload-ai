@@ -278,7 +278,14 @@ const MobileEmailCard = memo(({ e, idx, sel, isUnread, isStarred, isDark, cBorde
 // ── OPTIMIZATION: Separate Modal Component to isolate state ──
 const AddCategoryModal = ({ isOpen, onClose, onSave, cSurface, cBorder, cText, cHover, cMuted, cFaint, cBg, cPrimary, isDark }: any) => {
   const [newCatInput, setNewCatInput] = useState("");
-  const [newCatColor, setNewCatColor] = useState("#64748b");
+  const [newCatColor, setNewCatColor] = useState("#3b82f6");
+  const [hue, setHue] = useState(217); // Default blue hue
+
+  // Update color when hue changes
+  useEffect(() => {
+    setNewCatColor(`hsl(${hue}, 80%, 60%)`);
+  }, [hue]);
+
   if (!isOpen) return null;
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -288,9 +295,38 @@ const AddCategoryModal = ({ isOpen, onClose, onSave, cSurface, cBorder, cText, c
           <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${cBorder}`, background: cHover, color: cMuted, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
         <div style={{ padding: "1.25rem 1.5rem" }}>
-          <label style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.2em", color: cFaint, display: "block", marginBottom: 8 }}>Nazwa kategorii (np. REKLAMACJA)</label>
-          <input autoFocus type="text" placeholder="WPISZ_NAZWE" maxLength={25} value={newCatInput} onChange={(e) => setNewCatInput(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") onSave(newCatInput, newCatColor); }} style={{ width: "100%", padding: "0.6rem 0.875rem", border: `1px solid ${cBorder}`, borderRadius: 8, background: cBg, color: cText, fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", outline: "none", boxSizing: "border-box", marginBottom: "1rem" }} />
-          <label style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.2em", color: cFaint, display: "block", marginBottom: 8 }}>Kolor kategorii</label>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: "2rem", padding: "1.5rem", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", borderRadius: 16, border: `1px solid ${cBorder}` }}>
+            <label style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.2em", color: cFaint, display: "block" }}>Podgląd nazwy i koloru</label>
+            <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
+              <input
+                autoFocus
+                type="text"
+                placeholder="WPISZ_NAZWE"
+                maxLength={20}
+                value={newCatInput}
+                onChange={(e) => setNewCatInput(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ""))}
+                onKeyDown={(e) => { if (e.key === "Enter") onSave(newCatInput, newCatColor); }}
+                style={{
+                  width: "100%",
+                  maxWidth: 240,
+                  padding: "10px 20px",
+                  borderRadius: 100,
+                  background: newCatColor,
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textAlign: "center",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  border: "none",
+                  outline: "none",
+                  boxShadow: `0 8px 25px ${newCatColor}55`,
+                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+                }}
+              />
+            </div>
+          </div>
+          <label style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.2em", color: cFaint, display: "block", marginBottom: 8 }}>Gotowe kolory</label>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 20 }}>
             {["#3b82f6", "#22c55e", "#ef4444", "#f59e0b", "#7c3aed", "#ec4899", "#06b6d4", "#10b981", "#f97316", "#8b5cf6", "#64748b", "#475569"].map(color => (
               <button
@@ -314,46 +350,50 @@ const AddCategoryModal = ({ isOpen, onClose, onSave, cSurface, cBorder, cText, c
           </div>
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              padding: "1rem",
+              padding: "1.25rem",
               background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
               borderRadius: 12,
               border: `1px solid ${cBorder}`
             }}
           >
-            <div style={{ position: "relative", width: 48, height: 48 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: cFaint, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Wybierz odcień</div>
+            <div style={{ position: "relative", padding: "8px 0" }}>
               <input
-                type="color"
-                value={newCatColor}
-                onChange={(e) => setNewCatColor(e.target.value)}
+                type="range"
+                min="0"
+                max="360"
+                value={hue}
+                onChange={(e) => setHue(parseInt(e.target.value))}
                 style={{
-                  position: "absolute",
-                  inset: 0,
                   width: "100%",
-                  height: "100%",
-                  padding: 0,
-                  border: "none",
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  background: "none",
-                  overflow: "hidden"
+                  height: 12,
+                  borderRadius: 10,
+                  appearance: "none",
+                  WebkitAppearance: "none",
+                  background: "linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)",
+                  outline: "none",
+                  cursor: "pointer"
                 }}
               />
-              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `2px solid ${isDark ? "#333" : "#e2e8f0"}`, pointerEvents: "none" }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: cFaint, textTransform: "uppercase", marginBottom: 2 }}>Podgląd</div>
-              <div style={{ padding: "6px 14px", background: newCatColor, color: "#fff", borderRadius: 100, fontSize: 12, fontWeight: 800, textAlign: "center", textTransform: "uppercase", boxShadow: `0 4px 12px ${newCatColor}44` }}>
-                {newCatInput || "NAZWA"}
-              </div>
+              <style>{`
+                input[type=range]::-webkit-slider-thumb {
+                  -webkit-appearance: none;
+                  height: 22px;
+                  width: 22px;
+                  border-radius: 50%;
+                  background: #fff;
+                  border: 3px solid ${newCatColor};
+                  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+                  cursor: pointer;
+                  margin-top: 0;
+                }
+              `}</style>
             </div>
           </div>
-        </div>
-        <div style={{ padding: "1.25rem 1.5rem", borderTop: `1px solid ${cBorder}`, background: isDark ? "rgba(0,0,0,0.1)" : "#fcfcfc", display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "0.625rem 1.5rem", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", border: `1px solid ${cBorder}`, background: "transparent", color: cMuted }}>Anuluj</button>
-          <button onClick={() => onSave(newCatInput, newCatColor)} style={{ padding: "0.625rem 1.5rem", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none", background: cPrimary, color: "#fff", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>Zapisz</button>
+          <div style={{ padding: "1.25rem 1.5rem", borderTop: `1px solid ${cBorder}`, background: isDark ? "rgba(0,0,0,0.1)" : "#fcfcfc", display: "flex", gap: "0.75rem", justifyContent: "center" }}>
+            <button onClick={onClose} style={{ padding: "0.625rem 1.5rem", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", border: `1px solid ${cBorder}`, background: "transparent", color: cMuted }}>Anuluj</button>
+            <button onClick={() => onSave(newCatInput, newCatColor)} style={{ padding: "0.625rem 1.5rem", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none", background: cPrimary, color: "#fff", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>Zapisz</button>
+          </div>
         </div>
       </div>
     </div>
