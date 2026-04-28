@@ -14,7 +14,6 @@ class ParsedDocument(BaseModel):
     receiver_address: Optional[str] = None
 
     # Towar
-    cargo_description: Optional[str] = None
     weight_kg: Optional[float] = None
     quantity: Optional[int] = None
     unit: Optional[str] = None        # "paleta", "karton" itp.

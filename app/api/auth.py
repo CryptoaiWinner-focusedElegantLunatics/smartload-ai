@@ -54,6 +54,7 @@ def get_me(user: User = Depends(get_current_user)):
     """Zwraca profil zalogowanego użytkownika (username + rola)."""
     role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
     return {
+        "id": user.id,
         "username": user.username,
         "role": role_str,
         "vehicle_plate": user.vehicle_plate,

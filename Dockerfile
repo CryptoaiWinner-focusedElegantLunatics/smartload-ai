@@ -10,12 +10,6 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr-eng \
     poppler-utils \
     fonts-dejavu-core \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libharfbuzz0b \
-    libharfbuzz-icu0 \
-    fontconfig \
-    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

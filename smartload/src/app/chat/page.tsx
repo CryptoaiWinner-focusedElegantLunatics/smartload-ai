@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../components/AuthContext";
-import { useChatWebSocket, ChatMsg } from "../hooks/useChatWebSocket";
+import { usePusherChat, ChatMsg } from "../hooks/usePusherChat";
 
 // ── Types ──
 interface Contact { id: number; username: string; role: string; }
@@ -94,10 +94,13 @@ export default function ChatPage() {
     setHumanMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
   }, []);
 
-  const { status: wsStatus, sendMessage: wsSend } = useChatWebSocket({
+  const { status: wsStatus, sendMessage: pusherSend, myId: pusherMyId } = usePusherChat({
     onConnected: setMyId,
     onMessage: onIncoming,
   });
+
+  // Ustaw myId z Pusher jeśli jeszcze nie ustawiony
+  useEffect(() => { if (pusherMyId && !myId) setMyId(pusherMyId); }, [pusherMyId, myId]);
 
   useEffect(() => {
     if (selectedContact === "ai") { setHumanMessages([]); return; }
@@ -311,7 +314,7 @@ export default function ChatPage() {
       const c = selectedContact as Contact;
       // NIE dodajemy optimistic update - czekamy na echo "sent" z serwera
       // (echo zawiera prawdziwe DB id, które przetrwa F5)
-      wsSend(c.id, text);
+      pusherSend(c.id, text);
     }
   }
 

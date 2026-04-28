@@ -320,7 +320,6 @@ def generate_route_cmr(
         sender_address="ul. Logistyczna 1, 00-001 Warszawa",
         receiver_name="Odbiorca",
         receiver_address=route.unloading_city,
-        cargo_description=f"Ładunek — zlecenie #{route_id}",
         weight_kg=route.weight_kg,
         origin=route.loading_city,
         destination=route.unloading_city,

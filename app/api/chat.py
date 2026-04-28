@@ -1,62 +1,26 @@
 """
-Moduł czatu user-to-user: WebSocket ConnectionManager + endpointy REST.
-Stary bot AI (/ws/chat) pozostaje w websocket.py — ten moduł obsługuje /ws/user-chat.
+Czat user-to-user oparty na Pusher Channels (zamiast raw WebSocket).
+Wysyłanie: POST /api/chat/send → zapis w DB + Pusher trigger.
+Odbieranie: frontend subskrybuje private-user-{id} i dostaje eventy.
+Autoryzacja: POST /api/pusher/auth (Pusher wymaga tego dla private channels).
+AI Bot (/ws/chat) pozostaje w websocket.py.
 """
 import json
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.core.database import engine
-from app.core.security import _get_secret, ALGORITHM
+from app.core.security import RoleChecker, _get_secret, ALGORITHM
+from app.core.pusher_client import pusher_client
 from app.models.user import User, UserRole
 from app.models.chat_message import ChatMessage
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
-
-
-# ─── ConnectionManager ────────────────────────────────────────────────────────
-class UserConnectionManager:
-    """
-    Przechowuje mapowanie user_id → WebSocket.
-    Jeden użytkownik = jedno aktywne połączenie (nowe zastępuje stare).
-    """
-
-    def __init__(self):
-        self.active: dict[int, WebSocket] = {}
-
-    async def connect(self, user_id: int, websocket: WebSocket):
-        # Jeśli stare połączenie istnieje, zamknij je
-        if user_id in self.active:
-            try:
-                await self.active[user_id].close()
-            except Exception:
-                pass
-        self.active[user_id] = websocket
-        logger.info(f"🔌 [Chat] User {user_id} połączony. Online: {list(self.active.keys())}")
-
-    def disconnect(self, user_id: int):
-        self.active.pop(user_id, None)
-        logger.info(f"🔌 [Chat] User {user_id} rozłączony. Online: {list(self.active.keys())}")
-
-    async def send_to_user(self, user_id: int, payload: dict):
-        ws = self.active.get(user_id)
-        if ws:
-            try:
-                await ws.send_text(json.dumps(payload, ensure_ascii=False, default=str))
-            except Exception as e:
-                logger.warning(f"⚠️ Nie można wysłać do user {user_id}: {e}")
-                self.disconnect(user_id)
-
-    def is_online(self, user_id: int) -> bool:
-        return user_id in self.active
-
-
-chat_manager = UserConnectionManager()
 
 
 # ─── Schematy ─────────────────────────────────────────────────────────────────
@@ -81,17 +45,87 @@ class MessageOut(BaseModel):
         from_attributes = True
 
 
-# ─── Helper: wyciągnij usera z cookie WebSocketa ─────────────────────────────
-def _get_user_from_ws_cookie(websocket: WebSocket) -> User | None:
+class SendMessageIn(BaseModel):
+    receiver_id: int
+    content: str
+
+
+# ─── POST /api/chat/send — wysyłanie wiadomości ──────────────────────────────
+@router.post("/api/chat/send", response_model=MessageOut)
+def send_message(
+    body: SendMessageIn,
+    current_user: User = Depends(RoleChecker(["ADMIN", "SPEDYTOR", "KIEROWCA"])),
+):
+    """
+    Zapisuje wiadomość w bazie i wysyła Pusher event do odbiorcy.
+    Nadawca dostaje odpowiedź HTTP z zapisaną wiadomością (zawiera DB id + timestamp).
+    """
+    content = body.content.strip()
+    if not content:
+        raise HTTPException(400, "Treść wiadomości nie może być pusta")
+
+    with Session(engine) as session:
+        msg = ChatMessage(
+            sender_id=current_user.id,
+            receiver_id=body.receiver_id,
+            content=content,
+        )
+        session.add(msg)
+        session.commit()
+        session.refresh(msg)
+
+        payload = {
+            "id": msg.id,
+            "sender_id": msg.sender_id,
+            "receiver_id": msg.receiver_id,
+            "content": msg.content,
+            "timestamp": msg.timestamp.isoformat(),
+            "is_read": msg.is_read,
+        }
+
+    # Pusher: wyślij event na kanał ODBIORCY
+    try:
+        pusher_client.trigger(
+            f"private-user-{body.receiver_id}",
+            "new-message",
+            payload,
+        )
+        # Opcjonalnie: echo na kanale NADAWCY (żeby inne karty/urządzenia zobaczyły)
+        pusher_client.trigger(
+            f"private-user-{current_user.id}",
+            "message-sent",
+            payload,
+        )
+        logger.info(f"[Pusher] MSG #{msg.id} | {current_user.id}→{body.receiver_id} ✓")
+    except Exception as e:
+        logger.error(f"[Pusher] Błąd trigger: {e}")
+        # Wiadomość jest już w bazie — nie rzucamy 500, frontend dostanie ją z historii
+
+    return MessageOut(**payload)
+
+
+# ─── POST /api/pusher/auth — autoryzacja private channels ────────────────────
+@router.post("/api/pusher/auth")
+async def pusher_auth(request: Request):
+    """
+    Pusher JS client automatycznie wysyła POST tutaj gdy subskrybuje private-*.
+    Sprawdzamy czy user jest zalogowany i czy kanał pasuje do jego ID.
+    """
     from jose import jwt as jose_jwt, JWTError
 
-    token = websocket.cookies.get("access_token")
-    print(f"🕵️ WS DEBUG CIASTKA: {token[:15]}..." if token else "🕵️ WS DEBUG CIASTKA: BRAK (None)!")
-    
-    if not token:
-        return None
+    # Parsuj body (Pusher wysyła form-encoded)
+    form = await request.form()
+    socket_id = form.get("socket_id")
+    channel_name = form.get("channel_name")
 
-    # Jeśli ciastko ma dopisek "Bearer ", usuwamy go. Jak nie ma, bierzemy całe.
+    if not socket_id or not channel_name:
+        raise HTTPException(400, "Brak socket_id lub channel_name")
+
+    # Autentykacja — z ciasteczka access_token
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(403, "Brak tokena autoryzacji")
+
     if token.lower().startswith("bearer "):
         token = token.split(" ", 1)[1]
 
@@ -99,121 +133,30 @@ def _get_user_from_ws_cookie(websocket: WebSocket) -> User | None:
         payload = jose_jwt.decode(token, _get_secret(), algorithms=[ALGORITHM])
         username = payload.get("sub")
         if not username:
-            return None
-    except JWTError as e:
-        print(f"❌ WS BŁĄD DEKODOWANIA JWT: {e}")
-        return None
+            raise HTTPException(403, "Nieprawidłowy token")
+    except JWTError:
+        raise HTTPException(403, "Nieprawidłowy token")
 
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == username)).first()
-    return user
+        if not user:
+            raise HTTPException(403, "Użytkownik nie istnieje")
 
+    # Sprawdź czy kanał należy do tego usera
+    expected_channel = f"private-user-{user.id}"
+    if channel_name != expected_channel:
+        logger.warning(f"[Pusher Auth] User {user.id} próbuje subskrybować {channel_name} (oczekiwano {expected_channel})")
+        raise HTTPException(403, "Brak dostępu do tego kanału")
 
-# ─── WebSocket endpoint ───────────────────────────────────────────────────────
-@router.websocket("/ws/user-chat")
-async def user_chat_ws(websocket: WebSocket):
-    """
-    WebSocket dla czatu user-to-user.
-    Autentykacja przez cookie access_token (przy WS handshake przeglądarka
-    automatycznie wysyła cookies — nawet httponly).
-    Wiadomości mają format: {"receiver_id": 5, "content": "Cześć!"}
-    """
-    # ── Autoryzacja z cookie ──
-    await websocket.accept()
-
-    user = _get_user_from_ws_cookie(websocket)
-    if not user:
-        await websocket.send_text(json.dumps({"type": "error", "message": "Brak autoryzacji"}))
-        await websocket.close(code=1008, reason="Brak autoryzacji")
-        return
-
-    current_user_id = user.id
-    await chat_manager.connect(current_user_id, websocket)
-
-    # Poinformuj klienta o połączeniu
-    await websocket.send_text(json.dumps({
-        "type": "connected",
-        "user_id": current_user_id,
-        "username": user.username,
-        "message": "Połączono z czatem.",
-    }))
-
-    try:
-        while True:
-            raw = await websocket.receive_text()
-            print(f"📡 [WS] Otrzymano surowe dane od {current_user_id}: {raw}")
-            try:
-                # ── Parsuj JSON ──
-                try:
-                    payload = json.loads(raw)
-                except json.JSONDecodeError as e:
-                    logger.warning(f"[WS:{current_user_id}] Zły JSON: {e} | raw={raw!r}")
-                    await websocket.send_text(json.dumps({"type": "error", "message": "Nieprawidłowy format JSON"}))
-                    continue
-
-                receiver_id = payload.get("receiver_id")
-                print("Receiver ID: ", receiver_id)
-                content = (payload.get("content") or "").strip()
-                print("Content: ", content)
-
-                if not receiver_id or not content:
-                    await websocket.send_text(json.dumps({"type": "error", "message": "Wymagane pola: receiver_id (int), content (str)"}))
-                    continue
-
-                receiver_id = int(receiver_id)  # konwertuj na int na wypadek stringa
-
-                # ── Zapis do bazy (PRZED broadcastem) ──
-                try:
-                    with Session(engine) as session:
-                        msg = ChatMessage(
-                            sender_id=int(current_user_id),   # to z tokena/sesji
-                            receiver_id=receiver_id,          # to z payloadu!
-                            content=content,
-                        )
-                        session.add(msg)
-                        session.commit()
-                        session.refresh(msg)
-                        print("✅ Wiadomość zapisana w bazie: ", msg.id)
-
-                        msg_payload = {
-                            "type": "message",
-                            "id": msg.id,
-                            "sender_id": msg.sender_id,
-                            "receiver_id": msg.receiver_id,
-                            "content": msg.content,
-                            "timestamp": msg.timestamp.isoformat(),
-                            "is_read": msg.is_read,
-                        }
-                except Exception as db_err:
-                    print("❌ BŁĄD ZAPISU WS: ", db_err)
-                    logger.error(f"❌ BŁĄD ZAPISU WS: {db_err}", exc_info=True)
-                    continue
-
-                logger.info(f"[WS] MSG #{msg_payload['id']} | {current_user_id}→{receiver_id} | saved ✓")
-
-                # ── Broadcast do odbiorcy ──
-                await chat_manager.send_to_user(receiver_id, msg_payload)
-                # ── Echo z type="sent" do nadawcy (zawiera prawdziwe DB id) ──
-                await websocket.send_text(json.dumps({**msg_payload, "type": "sent"}))
-
-            except Exception as loop_err:
-                logger.error(f"[WS:{current_user_id}] Błąd w pętli: {loop_err}", exc_info=True)
-                try:
-                    await websocket.send_text(json.dumps({"type": "error", "message": f"Błąd serwera: {loop_err}"}))
-                except Exception:
-                    pass  # websocket może być już zamknięty
-
-    except WebSocketDisconnect:
-        chat_manager.disconnect(current_user_id)
-    except Exception as e:
-        logger.error(f"❌ WS user-chat fatal error: {e}", exc_info=True)
-        chat_manager.disconnect(current_user_id)
+    # Generuj podpis Pusher
+    auth_response = pusher_client.authenticate(
+        channel=channel_name,
+        socket_id=socket_id,
+    )
+    return auth_response
 
 
 # ─── REST: Historia konwersacji ───────────────────────────────────────────────
-from app.core.security import RoleChecker
-
-
 @router.get("/api/chat/history/{contact_id}", response_model=list[MessageOut])
 def get_chat_history(
     contact_id: int,
@@ -236,8 +179,6 @@ def get_chat_history(
                 m.is_read = True
         session.commit()
 
-        # WAŻNE: konwertuj na Pydantic WEWNĄTRZ bloku with,
-        # zanim sesja się zamknie — inaczej DetachedInstanceError
         result = [
             MessageOut(
                 id=m.id,

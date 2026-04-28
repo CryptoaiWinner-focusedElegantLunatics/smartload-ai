@@ -27,7 +27,8 @@ def _session(session_id: str) -> dict:
     return _sessions[session_id]
 
 
-def _call_llm(prompt: str, max_tokens: int = 300) -> str:
+def _call_llm_sync(prompt: str, max_tokens: int = 300) -> str:
+    """Synchroniczna wersja — wywoływana w wątku."""
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         return ""
@@ -53,7 +54,12 @@ def _call_llm(prompt: str, max_tokens: int = 300) -> str:
     return ""
 
 
-def _extract_intent(message: str, awaiting_plate: bool, last_action: str = None) -> dict:
+async def _call_llm(prompt: str, max_tokens: int = 300) -> str:
+    """Async wrapper — oddelegowuje blokujący requests.post do wątku."""
+    return await asyncio.to_thread(_call_llm_sync, prompt, max_tokens)
+
+
+async def _extract_intent(message: str, awaiting_plate: bool, last_action: str = None) -> dict:
     if not message or not message.strip():
         return {"intent": "INNE", "loading_city": None, "unloading_city": None, "plate_number": None}
 
@@ -77,7 +83,7 @@ Kontekst: {context_hint}
 Wiadomość: "{message}"
 JSON:"""
 
-    raw = _call_llm(prompt, max_tokens=100)
+    raw = await _call_llm(prompt, max_tokens=100)
     raw = re.sub(r'```json\n?', '', raw)
     raw = re.sub(r'```\n?', '', raw).strip()
 
@@ -111,7 +117,7 @@ def _find_offers(loading_city: str, unloading_city: str, db_session: Session) ->
     return db_session.exec(query).all()
 
 
-def _build_offer_response(driver_message: str, city: str, offers: list[EmailLog]) -> str:
+async def _build_offer_response(driver_message: str, city: str, offers: list[EmailLog]) -> str:
     if offers:
         offers_text = ""
         for i, o in enumerate(offers, 1):
@@ -135,7 +141,7 @@ Brak ofert z {city}. Przeproś i obiecaj odezwać się gdy coś się pojawi.
 Wiadomość: "{driver_message}"
 Odpowiedź spedytora:"""
 
-    return _call_llm(prompt, max_tokens=250)
+    return await _call_llm(prompt, max_tokens=250)
 
 
 async def _generate_cmr(offer: EmailLog, plate: str) -> str:
@@ -151,7 +157,6 @@ async def _generate_cmr(offer: EmailLog, plate: str) -> str:
         receiver_address="Adres Odbiorcy",
         origin=f"{offer.loading_city or ''} {offer.loading_zip or ''}".strip() or None,
         destination=f"{offer.unloading_city or ''} {offer.unloading_zip or ''}".strip() or None,
-        cargo_description=offer.cargo_description or "Ładunek — szczegóły wg zlecenia",
         weight_kg=float(offer.weight_kg) if offer.weight_kg else None,
         vehicle_plate=plate.upper().strip(),
         price=offer.price,
@@ -187,7 +192,7 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
     """Główna logika czatu - teraz asynchroniczna, aby nie blokować serwera."""
     sess = _session(session_id)
     last_action = "OFFER_MADE" if sess.get("last_offer") else None
-    parsed = _extract_intent(message, sess["awaiting_plate"], last_action)
+    parsed = await _extract_intent(message, sess["awaiting_plate"], last_action)
     intent = parsed["intent"]
     loading_city = parsed.get("loading_city")
     unloading_city = parsed.get("unloading_city")
@@ -298,7 +303,7 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
             sess["last_offer"] = offers[0]
             sess["all_offers"] = offers  # lista do wyboru
             sess["awaiting_plate"] = False
-            text = _build_offer_response(message, loading_city, offers)
+            text = await _build_offer_response(message, loading_city, offers)
 
             offer_cards = []
             for o in offers:
@@ -318,7 +323,7 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
             }
             return json.dumps(payload, ensure_ascii=False)
         else:
-            return _build_offer_response(message, loading_city, []) or f"Niestety brak ofert z {loading_city} 😔 Odezwę się jak coś się pojawi!"
+            return (await _build_offer_response(message, loading_city, [])) or f"Niestety brak ofert z {loading_city} 😔 Odezwę się jak coś się pojawi!"
 
     # ── Czekamy na tablice, ale LLM sklasyfikował INNE ───────────────
     if sess["awaiting_plate"]:
@@ -333,7 +338,7 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
         )
 
     # ── Fallback ──────────────────────────────────────────────────────
-    fallback = _call_llm(
+    fallback = await _call_llm(
         f"""Jesteś spedytorem. Kierowca napisał: "{message}"
 Odpowiedz krótko, po polsku — zapytaj o lokalizację lub jak możesz pomóc. Max 2 zdania.""",
         max_tokens=120,

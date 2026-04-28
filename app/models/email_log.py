@@ -20,4 +20,4 @@ class EmailLog(SQLModel, table=True):
     unloading_zip: Optional[str] = Field(default=None)
     weight_kg: Optional[int] = Field(default=None)
     price: Optional[float] = Field(default=None)
-    currency: Optional[str] = Field(default=None)
+    currency: Optional[str] = Field(default=None)

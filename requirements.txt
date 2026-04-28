@@ -50,5 +50,8 @@ pypdf
 pytest==8.1.1
 pytest-asyncio==0.23.6
 
-# PDF Generation
-weasyprint
+# PDF Generation (ReportLab — szybkie, pure Python)
+# reportlab już jest powyżej (linia 47)
+
+# Real-time chat (Pusher Channels)
+pusher==3.3.2
