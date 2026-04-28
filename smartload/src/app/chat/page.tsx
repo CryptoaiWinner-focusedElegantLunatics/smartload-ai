@@ -123,16 +123,7 @@ export default function ChatPage() {
     // Nie twórz nowego połączenia jeśli poprzednie jest w toku lub otwarte
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") || "" : "";
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    let wsUrl = "";
-    if (apiUrl) {
-      wsUrl = apiUrl.replace(/^http/, "ws") + `/ws/chat?token=${token}`;
-    } else {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      wsUrl = `${protocol}//${host}/ws/chat?token=${token}`;
-    }
+    const wsUrl = "ws://localhost:8000/ws/chat";
     const newWs = new WebSocket(wsUrl);
     aiWsRef.current = newWs;
 

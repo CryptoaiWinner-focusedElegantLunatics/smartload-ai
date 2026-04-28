@@ -41,15 +41,14 @@ export function useChatWebSocket({
     setStatus("connecting");
 
     // Dynamiczny adres WebSocketa wspierający środowisko lokalne i produkcyjne (HTTPS -> WSS)
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") || "" : "";
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     let wsUrl = "";
     if (apiUrl) {
-      wsUrl = apiUrl.replace(/^http/, "ws") + `/ws/user-chat?token=${token}`;
+      wsUrl = apiUrl.replace(/^http/, "ws") + "/ws/user-chat";
     } else {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
-      wsUrl = `${protocol}//${host}/ws/user-chat?token=${token}`;
+      wsUrl = `${protocol}//${host}/ws/user-chat`;
     }
 
     console.log("[P2P WS] Próba połączenia z:", wsUrl);
