@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback, Suspense, useMemo, mem
 import { useSearchParams } from "next/navigation";
 import Sidebar from "../components/Sidebar";
 import DOMPurify from "dompurify";
+import RoleGuard from "../components/RoleGuard";
 
 const DEFAULT_CATS = ["OFERTA", "ZAMOWIENIE", "FAKTURA", "DOKUMENT_CMR", "INNE"];
 
@@ -1801,8 +1802,10 @@ function MailPageInner() {
 
 export default function MailPage() {
   return (
-    <Suspense fallback={null}>
-      <MailPageInner />
-    </Suspense>
+    <RoleGuard allowedRoles={["ADMIN", "SPEDYTOR"]}>
+      <Suspense fallback={null}>
+        <MailPageInner />
+      </Suspense>
+    </RoleGuard>
   );
 }

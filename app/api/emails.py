@@ -6,7 +6,7 @@ from sqlalchemy import func
 from bs4 import BeautifulSoup
 from pydantic import BaseModel
 from app.core.database import engine, get_session
-from app.core.security import get_current_user
+from app.core.security import get_current_user, RoleChecker
 from app.models.email_log import EmailLog
 from app.models.user import User
 from app.models.custom_category import CustomCategory
@@ -34,7 +34,7 @@ class BulkDeleteRequest(BaseModel):
 
 
 @router.get("/stats")
-def get_email_stats(user: User = Depends(get_current_user)):
+def get_email_stats(user: User = Depends(RoleChecker(["ADMIN", "SPEDYTOR"]))):
     """Zwraca liczbę maili pogrupowanych po ai_category."""
     with Session(engine) as session:
         rows = session.exec(
@@ -50,6 +50,7 @@ def get_emails(
     limit: int = 100,
     kategoria: Optional[str] = None,
     szukaj: Optional[str] = None,
+    user: User = Depends(RoleChecker(["ADMIN", "SPEDYTOR"])),
 ):
     with Session(engine) as session:
         query = select(EmailLog).where(EmailLog.is_deleted == False)
@@ -67,7 +68,7 @@ def get_emails(
 
 
 @router.get("/custom-categories")
-def get_custom_categories():
+def get_custom_categories(user: User = Depends(RoleChecker(["ADMIN", "SPEDYTOR"]))):
     try:
         with Session(engine) as session:
             categories = session.exec(select(CustomCategory)).all()

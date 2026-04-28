@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "./AuthContext";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const { role, username } = useAuth();
 
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -45,25 +47,16 @@ export default function Sidebar() {
     router.push("/login");
   }
 
-  const navItems = [
+  // Definicje wszystkich możliwych pozycji nawigacji
+  const allNavItems = [
     {
       href: "/dashboard",
       label: "Dashboard Główny",
       gradient: "linear-gradient(135deg, #60a5fa, #2563eb)",
+      roles: ["ADMIN", "SPEDYTOR", "KIEROWCA"],
       icon: (
-        <svg
-          width="16"
-          height="16"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="white"
-          strokeWidth="2"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-          />
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
       ),
     },
@@ -71,20 +64,10 @@ export default function Sidebar() {
       href: "/mail",
       label: "Poczta AI",
       gradient: "linear-gradient(135deg, #a78bfa, #7c3aed)",
+      roles: ["ADMIN", "SPEDYTOR"],
       icon: (
-        <svg
-          width="16"
-          height="16"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="white"
-          strokeWidth="2"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-          />
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       ),
     },
@@ -92,32 +75,13 @@ export default function Sidebar() {
       href: "/chat",
       label: "Komunikator",
       gradient: "linear-gradient(135deg, #34d399, #059669)",
+      roles: ["ADMIN", "SPEDYTOR", "KIEROWCA"],
       badge: (
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            background: "#10b981",
-            borderRadius: "50%",
-            animation: "pulse 2s infinite",
-            marginLeft: "auto",
-          }}
-        />
+        <span style={{ width: 8, height: 8, background: "#10b981", borderRadius: "50%", animation: "pulse 2s infinite", marginLeft: "auto" }} />
       ),
       icon: (
-        <svg
-          width="16"
-          height="16"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="white"
-          strokeWidth="2"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          />
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
       ),
     },
@@ -125,24 +89,38 @@ export default function Sidebar() {
       href: "/compare",
       label: "Porównywarka",
       gradient: "linear-gradient(135deg, #f59e0b, #d97706)",
+      roles: ["ADMIN", "SPEDYTOR"],
       icon: (
-        <svg
-          width="16"
-          height="16"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="white"
-          strokeWidth="2"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M16 16s3-3 3-8V4h-7v4h-3V4H2v4c0 5 3 8 3 8m2 0v4h10v-4m-5-8v8"
-          />
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 16s3-3 3-8V4h-7v4h-3V4H2v4c0 5 3 8 3 8m2 0v4h10v-4m-5-8v8" />
+        </svg>
+      ),
+    },
+    {
+      href: "/trasy",
+      label: "Moje Trasy",
+      gradient: "linear-gradient(135deg, #fb7185, #e11d48)",
+      roles: ["KIEROWCA"],
+      icon: (
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
         </svg>
       ),
     },
   ];
+
+  // Filtruj pozycje nawigacji wg roli
+  const navItems = role
+    ? allNavItems.filter((item) => item.roles.includes(role))
+    : allNavItems.filter((item) => item.roles.includes("SPEDYTOR")); // fallback podczas ładowania
+
+  // Etykiety ról po polsku
+  const roleLabels: Record<string, { label: string; color: string; bg: string }> = {
+    ADMIN:    { label: "Administrator", color: "#f59e0b", bg: "rgba(245,158,11,0.15)" },
+    SPEDYTOR: { label: "Spedytor",     color: "#3b82f6", bg: "rgba(59,130,246,0.15)" },
+    KIEROWCA: { label: "Kierowca",     color: "#22c55e", bg: "rgba(34,197,94,0.15)"  },
+  };
+  const roleInfo = role ? roleLabels[role] : null;
 
   const bg = isDark ? "#111111" : "#ffffff";
   const border = isDark ? "#252525" : "#e2e8f0";
@@ -446,6 +424,39 @@ export default function Sidebar() {
           gap: 4,
         }}
       >
+        {/* Karta użytkownika z rolą */}
+        {(username || roleInfo) && (
+          <div
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              background: cardBg,
+              border: `1px solid ${border}`,
+              marginBottom: 4,
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, color: textColor, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {username ?? "Użytkownik"}
+            </div>
+            {roleInfo && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: roleInfo.color,
+                  background: roleInfo.bg,
+                  padding: "2px 8px",
+                  borderRadius: 100,
+                }}
+              >
+                {roleInfo.label}
+              </span>
+            )}
+          </div>
+        )}
+
         <div
           style={{
             display: "flex",
@@ -533,16 +544,7 @@ export default function Sidebar() {
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           ) : (
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={mutedColor}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mutedColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="5" />
               <line x1="12" y1="1" x2="12" y2="3" />
               <line x1="12" y1="21" x2="12" y2="23" />
@@ -555,74 +557,37 @@ export default function Sidebar() {
             </svg>
           )}{" "}
         </button>
-        {/* Ustawienia — zastąp gołe <a href="/settings"> tym: */}
-        <Link
-          href="/settings"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "10px 12px",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 500,
-            textDecoration: "none",
-            color:
-              pathname === "/settings"
-                ? isDark
-                  ? "#60a5fa"
-                  : "#3b82f6"
-                : textColor,
-            background:
-              pathname === "/settings"
-                ? isDark
-                  ? "rgba(59,130,246,0.15)"
-                  : "rgba(59,130,246,0.08)"
-                : "transparent",
 
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = isDark
-              ? "rgba(255,255,255,0.05)"
-              : "rgba(0,0,0,0.04)")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background =
-              pathname === "/settings"
-                ? isDark
-                  ? "rgba(59,130,246,0.15)"
-                  : "rgba(59,130,246,0.08)"
-                : "transparent")
-          }
-        >
-          <div
+        {/* Ustawienia — tylko dla ADMIN */}
+        {role === "ADMIN" && (
+          <Link
+            href="/settings"
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              flexShrink: 0,
-              background: cardBg,
-              border: `1px solid ${border}`,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              gap: 12,
+              padding: "10px 12px",
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 500,
+              textDecoration: "none",
+              color: pathname === "/settings" ? (isDark ? "#60a5fa" : "#3b82f6") : textColor,
+              background: pathname === "/settings" ? (isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.08)") : "transparent",
+              transition: "background 0.15s",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = pathname === "/settings" ? (isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.08)") : "transparent")}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={mutedColor}
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-            </svg>
-          </div>
-          <span style={{ flex: 1 }}>Ustawienia</span>
-        </Link>
+            <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: cardBg, border: `1px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mutedColor} strokeWidth="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+              </svg>
+            </div>
+            <span style={{ flex: 1 }}>Ustawienia Systemu</span>
+          </Link>
+        )}
+
         <button
           onClick={handleLogout}
           style={{
@@ -637,14 +602,8 @@ export default function Sidebar() {
             width: "100%",
             transition: "background 0.15s",
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = isDark
-              ? "rgba(239,68,68,0.1)"
-              : "#fef2f2")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background = "transparent")
-          }
+          onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(239,68,68,0.1)" : "#fef2f2")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
           <div
             style={{
@@ -658,28 +617,11 @@ export default function Sidebar() {
               justifyContent: "center",
             }}
           >
-            <svg
-              width="16"
-              height="16"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke={isDark ? "#f87171" : "#dc2626"}
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={isDark ? "#f87171" : "#dc2626"} strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           </div>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-              color: isDark ? "#f87171" : "#dc2626",
-            }}
-          >
+          <span style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#f87171" : "#dc2626" }}>
             Wyloguj
           </span>
         </button>

@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Request, Form, Depends, status
-from fastapi.responses import RedirectResponse, JSONResponse  # dodaj JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from app.core.database import engine
-from app.core.security import verify_password, create_access_token
+from app.core.security import verify_password, create_access_token, get_current_user
 from app.models.user import User
 
 router = APIRouter(tags=["auth"])
@@ -24,8 +24,9 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
                 status_code=401,
                 content={"detail": "Nieprawidłowy login lub hasło."}
             )
-        access_token = create_access_token(data={"sub": user.username})
-        response = JSONResponse(content={"ok": True})  # zamiast RedirectResponse
+        # Dodajemy rolę do payload JWT
+        access_token = create_access_token(data={"sub": user.username, "role": user.role})
+        response = JSONResponse(content={"ok": True, "role": user.role})
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -41,3 +42,13 @@ def logout():
     response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     response.delete_cookie("access_token", samesite="none", secure=True)
     return response
+
+
+@router.get("/api/me")
+def get_me(user: User = Depends(get_current_user)):
+    """Zwraca profil zalogowanego użytkownika (username + rola)."""
+    return {
+        "username": user.username,
+        "role": user.role,
+        "vehicle_plate": user.vehicle_plate,
+    }

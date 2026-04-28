@@ -49,10 +49,24 @@ async def lifespan(app: FastAPI):
             session.exec(text(
                 "ALTER TABLE custom_categories ADD COLUMN IF NOT EXISTS color VARCHAR DEFAULT '#64748b'"
             ))
+            # RBAC: dodaj kolumny ról do tabeli user (jeśli tabela już istniała bez nich)
+            session.exec(text(
+                "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'SPEDYTOR'"
+            ))
+            session.exec(text(
+                "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS vehicle_plate VARCHAR"
+            ))
             session.commit()
         except Exception as e:
             session.rollback()
             print(f"⚠️ MIGRACJA ZIGNOROWANA: {e}")
+
+    # Seed kont ról RBAC (idempotentny — pomija duplikaty)
+    try:
+        from app.seeds.seed_roles import seed_roles
+        seed_roles()
+    except Exception as e:
+        print(f"⚠️ seed_roles pominięty: {e}")
 
     await run_all_scrapers()
 

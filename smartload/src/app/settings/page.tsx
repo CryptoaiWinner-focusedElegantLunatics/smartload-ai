@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import Sidebar from "../components/Sidebar";
+import RoleGuard from "../components/RoleGuard";
 
 interface ImapSettings {
   email_user: string;
@@ -828,8 +829,10 @@ function SettingsPageInner() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={null}>
-      <SettingsPageInner />
-    </Suspense>
+    <RoleGuard allowedRoles={["ADMIN"]}>
+      <Suspense fallback={null}>
+        <SettingsPageInner />
+      </Suspense>
+    </RoleGuard>
   );
 }

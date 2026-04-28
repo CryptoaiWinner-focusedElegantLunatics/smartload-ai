@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import Request, HTTPException
 from jose import JWTError, jwt
@@ -28,7 +28,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 # ──────────────────────────────────────────────
-# JWT Token
+# JWT Token — zawiera teraz pole `role`
 # ──────────────────────────────────────────────
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -71,3 +71,23 @@ def get_current_user(request: Request):
         raise _redirect
 
     return user
+
+# ──────────────────────────────────────────────
+# Dependency: RoleChecker
+# ──────────────────────────────────────────────
+class RoleChecker:
+    """
+    Dependency FastAPI sprawdzająca, czy zalogowany użytkownik ma jedną z dozwolonych ról.
+    Użycie: Depends(RoleChecker(["ADMIN", "SPEDYTOR"]))
+    """
+    def __init__(self, allowed_roles: List[str]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, request: Request):
+        user = get_current_user(request)
+        if user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Brak uprawnień. Wymagana rola: {', '.join(self.allowed_roles)}. Twoja rola: {user.role}."
+            )
+        return user
