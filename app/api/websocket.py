@@ -29,22 +29,30 @@ ws_manager = ConnectionManager()
 async def websocket_chat_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
     session_id = websocket.client.host if websocket.client else "anonymous"
+    
+    print(f"🔌 [AI WS] Otwarto połączenie dla: {session_id}")
+    
     try:
         while True:
             data = await websocket.receive_text()
+            print(f"📥 [AI WS] Otrzymałem: {data}")
 
             from app.services.chat_bot import process_driver_message
-            loop = asyncio.get_event_loop()
-            with Session(engine) as db_session:
-                response = await loop.run_in_executor(
-                    None,
-                    lambda: process_driver_message(data, db_session, session_id),
-                )
-
+            
+            try:
+                # TUTAJ BYŁ BŁĄD - teraz wywołujemy to asynchronicznie bez żadnych executorów
+                with Session(engine) as db_session:
+                    response = await process_driver_message(data, db_session, session_id)
+                
+                print(f"✅ [AI WS] AI odpowiedziało poprawnie")
+            except Exception as ai_err:
+                print(f"🔥 [AI WS] Błąd wewnątrz funkcji AI: {ai_err}")
+                response = '{"text": "Błąd: serwer AI nie odpowiedział.", "isHtml": false}'
+            
             await ws_manager.send_text(websocket, response)
-
     except WebSocketDisconnect:
+        print("🔌 [AI WS] Klient się rozłączył (Disconnect)")
         ws_manager.disconnect(websocket)
     except Exception as e:
-        print(f"❌ WebSocket error: {e}")
+        print(f"❌ [AI WS] WebSocket FATAL error: {e}")
         ws_manager.disconnect(websocket)

@@ -120,10 +120,23 @@ export default function ChatPage() {
 
   const connectAiWs = useCallback(() => {
     const ws = aiWsRef.current;
-    // Nie twórz nowego połączenia jeśli poprzednie jest w toku lub otwarte
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
-    const wsUrl = "wss://smartload-ai-production-01c5.up.railway.app/ws/chat";
+    // TWARDE SPRAWDZANIE: Gdzie jesteśmy odpaleni?
+    let baseUrl = "";
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "localhost") {
+        // Jeśli testujesz u siebie na kompie, bijemy do Twojego lokalnego Pythona
+        baseUrl = "ws://localhost:8000";
+      } else {
+        // Jeśli apka wisi na Railway, bijemy do chmury
+        baseUrl = "wss://smartload-ai-production-01c5.up.railway.app";
+      }
+    }
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") || "" : "";
+    const wsUrl = token ? `${baseUrl}/ws/chat?token=${token}` : `${baseUrl}/ws/chat`;
+
     const newWs = new WebSocket(wsUrl);
     aiWsRef.current = newWs;
 
@@ -140,10 +153,13 @@ export default function ChatPage() {
     };
     newWs.onclose = (e) => {
       console.log(`[AI WS] closed (code=${e.code}), reconnect in 5s...`);
+
+      // Jeśli serwer wyrzuci nas za brak autoryzacji - zatrzymujemy pętlę mielenia
+      if (e.code === 1008) return;
+
       setTimeout(connectAiWs, 5000);
     };
     newWs.onerror = () => {
-      // WS error events zawsze logują się jako pusty {} - to normalne
       console.warn("[AI WS] connection error — backend niedostępny?");
     };
   }, []);
@@ -256,13 +272,32 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages, humanMessages, aiTyping]);
 
-  function sendAi(text: string) {
-    const ws = aiWsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) { connectAiWs(); return; }
-    setAiMessages(prev => [...prev, { id: aiMsgId.current++, role: "user", text, time: now() }]);
-    ws.send(text);
+  const sendAi = useCallback((text: string) => {
+    // 1. Dodajemy Twoją wiadomość na ekran
+    setAiMessages(prev => [...prev, {
+      id: aiMsgId.current++,
+      role: "user",
+      text: text,
+      time: now()
+    }]);
+
+    // 2. Odpalamy animację ładowania
     setAiTyping(true);
-  }
+
+    // 3. WYSYŁAMY PRZEZ ODPOWIEDNI WEBSOCKET (aiWsRef)
+    const ws = aiWsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log("🚀 [AI WS] WYSYŁAM FIZYCZNIE DO SERWERA:", text);
+      ws.send(text);
+
+      // Jeśli Twój Python oczekuje JSONa (np. await websocket.receive_json()), 
+      // to zakomentuj linijkę wyżej i odkomentuj tę poniżej:
+      // ws.send(JSON.stringify({ text }));
+    } else {
+      console.warn("Brak połączenia z czatem AI!");
+      setAiTyping(false); // wyłączamy mielenie, skoro nie poszło
+    }
+  }, []);
 
   function sendMsg() {
     const text = input.trim();
