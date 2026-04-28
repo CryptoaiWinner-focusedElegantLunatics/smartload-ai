@@ -83,22 +83,25 @@ class MessageOut(BaseModel):
 
 # ─── Helper: wyciągnij usera z cookie WebSocketa ─────────────────────────────
 def _get_user_from_ws_cookie(websocket: WebSocket) -> User | None:
-    """Odczytuje access_token z cookie WS handshake i zwraca usera."""
     from jose import jwt as jose_jwt, JWTError
 
-    token_cookie = websocket.cookies.get("access_token")
-    if not token_cookie:
+    token = websocket.cookies.get("access_token")
+    print(f"🕵️ WS DEBUG CIASTKA: {token[:15]}..." if token else "🕵️ WS DEBUG CIASTKA: BRAK (None)!")
+    
+    if not token:
         return None
 
+    # Jeśli ciastko ma dopisek "Bearer ", usuwamy go. Jak nie ma, bierzemy całe.
+    if token.lower().startswith("bearer "):
+        token = token.split(" ", 1)[1]
+
     try:
-        scheme, _, token = token_cookie.partition(" ")
-        if scheme.lower() != "bearer" or not token:
-            return None
         payload = jose_jwt.decode(token, _get_secret(), algorithms=[ALGORITHM])
         username = payload.get("sub")
         if not username:
             return None
-    except JWTError:
+    except JWTError as e:
+        print(f"❌ WS BŁĄD DEKODOWANIA JWT: {e}")
         return None
 
     with Session(engine) as session:
