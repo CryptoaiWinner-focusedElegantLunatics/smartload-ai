@@ -86,7 +86,7 @@ def generate_cmr_pdf(doc: ParsedDocument) -> str:
         }
 
         # 4. Ładowanie Jinja2 i rendering HTML w pamięci
-        env = Environment(loader=FileSystemPath(str(TEMPLATES_DIR)))
+        env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
         template = env.get_template("cmr_template.html")
         rendered_html = template.render(template_vars)
 
