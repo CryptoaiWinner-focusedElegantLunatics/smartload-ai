@@ -12,8 +12,10 @@ from weasyprint import HTML
 
 logger = logging.getLogger(__name__)
 
-DOCS_DIR = Path("static/docs")
-TEMPLATES_DIR = Path("app/templates")
+# KULOODPORNE ŚCIEŻKI: __file__ wskazuje na ten skrypt, a parent.parent na główny folder 'app'
+BASE_DIR = Path(__file__).resolve().parent.parent
+TEMPLATES_DIR = BASE_DIR / "templates"
+DOCS_DIR = BASE_DIR / "static" / "docs"
 
 def _ensure_dirs():
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -34,7 +36,7 @@ def generate_cmr_pdf(doc: ParsedDocument) -> str:
             {"color": "#000000", "is_copy": True}
         ]
 
-        # 2. Przygotowanie danych do tabeli towarów (jeśli masz listę, iteruj, tu podaję fallback)
+        # 2. Przygotowanie danych do tabeli towarów
         items = []
         if getattr(doc, 'cargo_description', None):
             items.append({
@@ -86,7 +88,7 @@ def generate_cmr_pdf(doc: ParsedDocument) -> str:
         }
 
         # 4. Ładowanie Jinja2 i rendering HTML w pamięci
-        env = Environment(loader=FileSystemPath(str(TEMPLATES_DIR)))
+        env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
         template = env.get_template("cmr_template.html")
         rendered_html = template.render(template_vars)
 
@@ -100,5 +102,6 @@ def generate_cmr_pdf(doc: ParsedDocument) -> str:
         return str(filepath)
 
     except Exception as e:
-        logger.error(f"❌ Błąd generowania CMR PDF: {e}")
+        # exc_info=True wrzuci cały szczegółowy ślad błędu do logów!
+        logger.error(f"❌ Błąd generowania CMR PDF: {e}", exc_info=True)
         raise RuntimeError(f"Nie udało się wygenerować dokumentu CMR: {e}")
