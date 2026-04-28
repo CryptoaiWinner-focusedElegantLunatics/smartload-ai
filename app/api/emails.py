@@ -22,6 +22,7 @@ class CategoryUpdate(BaseModel):
 
 class CustomCategoryCreate(BaseModel):
     name: str
+    color: Optional[str] = "#64748b"
 
 
 class RescanRequest(BaseModel):
@@ -69,7 +70,7 @@ def get_emails(
 def get_custom_categories():
     with Session(engine) as session:
         categories = session.exec(select(CustomCategory)).all()
-        return [cat.name for cat in categories]
+        return [{"name": cat.name, "color": cat.color} for cat in categories]
 
 
 @router.post("/custom-categories")
@@ -79,10 +80,13 @@ def create_custom_category(payload: CustomCategoryCreate):
             select(CustomCategory).where(CustomCategory.name == payload.name)
         ).first()
         if not existing:
-            new_cat = CustomCategory(name=payload.name)
+            new_cat = CustomCategory(name=payload.name, color=payload.color)
             session.add(new_cat)
-            session.commit()
-        return {"status": "success", "name": payload.name}
+        else:
+            existing.color = payload.color
+            session.add(existing)
+        session.commit()
+        return {"status": "success", "name": payload.name, "color": payload.color}
 
 
 @router.put("/emails/{email_id}/category")

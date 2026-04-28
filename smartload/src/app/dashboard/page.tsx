@@ -16,8 +16,10 @@ const PALETTE: Record<string, string> = {
   INNE: "#64748b",
 };
 
-function colorFor(cat: string): string {
+function colorFor(cat: string, customPalette: Record<string, string> = {}): string {
   if (PALETTE[cat]) return PALETTE[cat];
+  if (customPalette[cat]) return customPalette[cat];
+  
   let h = 0;
   for (let i = 0; i < cat.length; i++) h = cat.charCodeAt(i) + ((h << 5) - h);
   return (
@@ -39,7 +41,131 @@ function animateCounter(el: HTMLElement, target: number, duration = 800) {
   }, 16);
 }
 
+const StatCard = ({ label, value, total, color }: { label: string, value: number, total: number, color: string }) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current) animateCounter(ref.current, value);
+    if (barRef.current) {
+      const pct = total > 0 ? (value / total) * 100 : 0;
+      barRef.current.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+    }
+  }, [value, total]);
+
+  return (
+    <div className="stat-card">
+      <p className="stat-label-dash">{label}</p>
+      <div className="stat-value-row">
+        <span className="stat-number-dash" ref={ref}>0</span>
+      </div>
+      <div className="stat-progress">
+        <div className="stat-bar" ref={barRef} style={{ background: color }} />
+      </div>
+    </div>
+  );
+};
+
 const CIRCUMFERENCE = 2 * Math.PI * 80;
+
+const EfficiencyChart = ({ stats, total, customPalette }: { stats: Stats; total: number; customPalette: Record<string, string> }) => {
+  const chartData = Object.entries(stats)
+    .filter(([, v]) => v > 0)
+    .map(([cat, val]) => ({
+      name: cat,
+      value: val,
+      color: colorFor(cat, customPalette),
+    }));
+
+  if (total === 0) return null;
+
+  const size = 260;
+  const radius = 80;
+  const strokeWidth = 30; // Pogrubiamy nieco dla lepszej widoczności
+  const circumference = 2 * Math.PI * radius;
+  
+  // Normalize lengths to ensure small values are visible but total is exactly circumference
+  let totalMinLength = 0;
+  const processedData = chartData.map(item => {
+    const rawLength = (item.value / total) * circumference;
+    const length = item.value > 0 ? Math.max(rawLength, circumference * 0.03) : 0; // min 3% for visibility
+    totalMinLength += length;
+    return { ...item, length };
+  });
+
+  // Re-scale to exactly circumference
+  const scale = totalMinLength > circumference ? circumference / totalMinLength : 1;
+  const finalData = processedData.map(item => ({
+    ...item,
+    length: item.length * scale
+  }));
+
+  // Start at the top
+  let currentOffset = -circumference / 4;
+
+  return (
+    <div className="chart-body">
+      <div className="donut-wrapper">
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 200 200`}
+          className="donut-svg"
+        >
+          <circle
+            cx="100"
+            cy="100"
+            r={radius}
+            fill="none"
+            stroke="var(--color-progress-bg)"
+            strokeWidth={strokeWidth}
+          />
+          {finalData.map((item) => {
+            const strokeDasharray = `${item.length} ${circumference - item.length}`;
+            const strokeDashoffset = currentOffset;
+
+            const segment = (
+              <circle
+                key={item.name}
+                cx="100"
+                cy="100"
+                r={radius}
+                className="donut-seg"
+                fill="none"
+                stroke={item.color}
+                strokeWidth={strokeWidth}
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="butt"
+              />
+            );
+
+            currentOffset -= item.length;
+            return segment;
+          })}
+        </svg>
+        <div className="donut-center">
+          <span className="donut-pct">100%</span>
+          <span className="donut-sublabel">Łącznie</span>
+        </div>
+      </div>
+      <div className="donut-legend">
+        {chartData.map((item) => (
+          <div key={item.name} className="donut-legend-item" title={item.name}>
+            <span
+              className="donut-legend-dot"
+              style={{ background: item.color }}
+            />
+            <span className="donut-legend-label">{item.name}</span>
+            <span className="donut-legend-val">
+              {item.value} ({Math.round((item.value / total) * 100)}%)
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({});
@@ -60,15 +186,7 @@ export default function DashboardPage() {
     return () => observer.disconnect();
   }, []);
 
-  const refOferta = useRef<HTMLSpanElement>(null);
-  const refZamowienie = useRef<HTMLSpanElement>(null);
-  const refFaktura = useRef<HTMLSpanElement>(null);
-  const refInne = useRef<HTMLSpanElement>(null);
   const refTotal = useRef<HTMLSpanElement>(null);
-  const barOferta = useRef<HTMLDivElement>(null);
-  const barZamowienie = useRef<HTMLDivElement>(null);
-  const barFaktura = useRef<HTMLDivElement>(null);
-  const barInne = useRef<HTMLDivElement>(null);
 
   async function loadStats() {
     setChartState("loading");
@@ -86,37 +204,25 @@ export default function DashboardPage() {
       }
       setChartState("ready");
 
-      const animate = (
-        ref: React.RefObject<HTMLSpanElement | null>,
-        val: number,
-      ) => {
-        if (ref.current) animateCounter(ref.current, val);
-      };
-      animate(refOferta, data["OFERTA"] || 0);
-      animate(refZamowienie, data["ZAMOWIENIE"] || 0);
-      animate(refFaktura, data["FAKTURA"] || 0);
-      animate(refInne, data["INNE"] || 0);
-      animate(refTotal, total);
-
-      setTimeout(() => {
-        const setBar = (
-          ref: React.RefObject<HTMLDivElement | null>,
-          val: number,
-        ) => {
-          if (ref.current)
-            ref.current.style.width = `${Math.round((val / total) * 100)}%`;
-        };
-        setBar(barOferta, data["OFERTA"] || 0);
-        setBar(barZamowienie, data["ZAMOWIENIE"] || 0);
-        setBar(barFaktura, data["FAKTURA"] || 0);
-        setBar(barInne, data["INNE"] || 0);
-      }, 400);
+      if (refTotal.current) animateCounter(refTotal.current, total);
     } catch {
       setChartState("empty");
     }
   }
 
+  const [customPalette, setCustomPalette] = useState<Record<string, string>>({});
+
   useEffect(() => {
+    fetch("/api/backend/api/custom-categories", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const p: Record<string, string> = {};
+          data.forEach((c: { name: string; color: string }) => (p[c.name] = c.color));
+          setCustomPalette(p);
+        }
+      })
+      .catch(() => {});
     loadStats();
   }, []);
 
@@ -147,11 +253,11 @@ export default function DashboardPage() {
     try {
       const usage = JSON.parse(
         localStorage.getItem("aiUsageTotal") ||
-          '{"prompt_tokens":0,"completion_tokens":0}',
+        '{"prompt_tokens":0,"completion_tokens":0}',
       );
       const t = usage.prompt_tokens + usage.completion_tokens;
       setApiUsage((t > 1000 ? (t / 1000).toFixed(1) + "k" : t) + " / 24h");
-    } catch {}
+    } catch { }
   }, []);
 
   return (
@@ -258,9 +364,42 @@ export default function DashboardPage() {
         .quick-card:hover { background:var(--color-primary); color:#fff; border-color:var(--color-primary); transform:scale(1.02); }
         .spinner { width:32px; height:32px; border:2px solid var(--color-primary); border-top-color:transparent; border-radius:50%; animation:spin 0.7s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
-        @media (max-width:1200px) { .insights-grid { grid-template-columns:1fr; } }
-        @media (max-width:1024px) { .modules-grid { grid-template-columns:1fr; } .dash-main { padding:1.5rem; } .quick-grid { grid-template-columns:repeat(2,1fr); } }
-        @media (max-width:768px) { .dash-main { padding:1rem; gap:1.5rem; } .stats-2col { grid-template-columns:1fr 1fr; gap:0.75rem; } .stat-number-dash { font-size:32px; } .total-base-number { font-size:44px; } .quick-grid { grid-template-columns:1fr 1fr; gap:0.75rem; } }
+        @media (max-width: 1024px) {
+          .dash-main { padding: 1.5rem; gap: 2rem; }
+          .modules-grid { grid-template-columns: 1fr !important; gap: 1.5rem; }
+          .insights-grid { grid-template-columns: 1fr !important; }
+          .stats-2col { grid-template-columns: 1fr 1fr !important; gap: 0.75rem; }
+          .chart-body { min-height: auto; }
+          .donut-legend { grid-template-columns: 1fr !important; width: 100% !important; margin-top: 2rem; }
+          .quick-grid { grid-template-columns: 1fr !important; gap: 1rem; }
+          .total-base-number { font-size: 48px; }
+          .chart-stats-row { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 768px) {
+          .dash-main { padding: 1rem; gap: 1.5rem; padding-top: 3.5rem; }
+          .stat-number-dash { font-size: 32px; }
+          .total-base-number { font-size: 40px; }
+          .module-title { font-size: 24px; }
+          .module-desc { font-size: 12px; }
+        }
+
+        /* --- Efficiency Chart Styles --- */
+        .chart-container { display: flex; flex-direction: column; align-items: center; gap: 2rem; }
+        .chart-visual { position: relative; width: 300px; height: 300px; }
+        .donut-chart { transform: rotate(0deg); }
+        .chart-bg { fill: none; stroke: var(--color-progress-bg); }
+        .chart-segment { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+        .chart-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: var(--color-text-primary); pointer-events: none; }
+        .chart-percentage { font-family: var(--font-headline); font-size: 54px; font-weight: 700; margin: 0; line-height: 1; }
+        .chart-label { font-size: 12px; font-weight: 700; color: var(--color-text-muted); margin: 6px 0 0 0; text-transform: uppercase; letter-spacing: 0.2em; }
+        .chart-legend-row { display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center; }
+        .chart-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--color-text-primary); }
+        .chart-legend-item .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .chart-legend-item .name { text-transform: uppercase; }
+        .chart-legend-item .value { color: var(--color-text-muted); }
+        @media (max-width: 900px) {
+          .mobile-top-bar { display: none !important; }
+        }
       `}</style>
 
       <div
@@ -283,7 +422,9 @@ export default function DashboardPage() {
           }}
         >
           {/* Top bar */}
+          {/* Top bar - Hidden on mobile if redundant with Sidebar hamburger */}
           <header
+            className="mobile-top-bar"
             style={{
               height: 56,
               flexShrink: 0,
@@ -293,6 +434,7 @@ export default function DashboardPage() {
               alignItems: "center",
               padding: "0 24px",
               gap: 16,
+              zIndex: 50
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -309,18 +451,6 @@ export default function DashboardPage() {
               >
                 Dashboard Główny
               </h2>
-              <p
-                style={{
-                  fontSize: 12,
-                  color: isDark ? "#888888" : "#94a3b8",
-                  margin: 0,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Centrum zarządzania SmartLoad AI
-              </p>
             </div>
           </header>
 
@@ -440,72 +570,15 @@ export default function DashboardPage() {
               <section className="insights-grid">
                 <div className="stats-col">
                   <div className="stats-2col">
-                    {[
-                      {
-                        key: "OFERTA",
-                        label: "Oferty",
-                        barClass: "bar-primary",
-                        barRef: barOferta,
-                        statRef: refOferta,
-                        trendClass: "stat-trend-pos",
-                        trend: "New",
-                      },
-                      {
-                        key: "ZAMOWIENIE",
-                        label: "Zamówienia",
-                        barClass: "bar-tertiary",
-                        barRef: barZamowienie,
-                        statRef: refZamowienie,
-                        trendClass: "stat-trend-new",
-                        trend: "New",
-                      },
-                      {
-                        key: "FAKTURA",
-                        label: "Faktury",
-                        barClass: "bar-violet",
-                        barRef: barFaktura,
-                        statRef: refFaktura,
-                        trendClass: null,
-                        trend: null,
-                      },
-                      {
-                        key: "INNE",
-                        label: "Inne",
-                        barClass: "bar-slate",
-                        barRef: barInne,
-                        statRef: refInne,
-                        trendClass: null,
-                        trend: null,
-                      },
-                    ].map(
-                      ({
-                        key,
-                        label,
-                        barClass,
-                        barRef,
-                        statRef,
-                        trendClass,
-                        trend,
-                      }) => (
-                        <div className="stat-card" key={key}>
-                          <p className="stat-label-dash">{label}</p>
-                          <div className="stat-value-row">
-                            <span className="stat-number-dash" ref={statRef}>
-                              0
-                            </span>
-                            {trend && trendClass && (
-                              <span className={trendClass}>{trend}</span>
-                            )}
-                          </div>
-                          <div className="stat-progress">
-                            <div
-                              className={`stat-bar ${barClass}`}
-                              ref={barRef}
-                            />
-                          </div>
-                        </div>
-                      ),
-                    )}
+                    {Object.entries(stats).sort((a,b) => b[1] - a[1]).slice(0, 6).map(([cat, val]) => (
+                      <StatCard 
+                        key={cat} 
+                        label={cat} 
+                        value={val} 
+                        total={total} 
+                        color={colorFor(cat, customPalette)} 
+                      />
+                    ))}
                   </div>
 
                   <div className="total-base-card">
@@ -533,17 +606,6 @@ export default function DashboardPage() {
                         gap: "1rem",
                       }}
                     >
-                      <div style={{ display: "flex", gap: "1.5rem" }}>
-                        {segments.map(({ cat, color }) => (
-                          <div className="legend-item" key={cat}>
-                            <span
-                              className="legend-dot"
-                              style={{ background: color }}
-                            />
-                            <span className="legend-label">{cat}</span>
-                          </div>
-                        ))}
-                      </div>
                       <button
                         onClick={loadStats}
                         title="Odśwież"
@@ -579,8 +641,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="chart-body">
-                    {chartState === "loading" && (
+                  {chartState === "loading" && (
+                    <div className="chart-body">
                       <div
                         style={{
                           display: "flex",
@@ -603,8 +665,11 @@ export default function DashboardPage() {
                           Ładowanie danych…
                         </p>
                       </div>
-                    )}
-                    {chartState === "empty" && (
+                    </div>
+                  )}
+
+                  {chartState === "empty" && (
+                    <div className="chart-body">
                       <div
                         style={{
                           display: "flex",
@@ -627,69 +692,12 @@ export default function DashboardPage() {
                           Brak danych
                         </p>
                       </div>
-                    )}
-                    {chartState === "ready" && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          width: "100%",
-                        }}
-                      >
-                        <div className="donut-wrapper">
-                          <svg
-                            className="donut-svg"
-                            width="260"
-                            height="260"
-                            viewBox="0 0 200 200"
-                          >
-                            <circle
-                              fill="none"
-                              stroke="var(--color-progress-bg)"
-                              strokeWidth="26"
-                              cx="100"
-                              cy="100"
-                              r="80"
-                            />
-                            {segments.map((seg, i) => (
-                              <circle
-                                key={i}
-                                className="donut-seg"
-                                fill="none"
-                                stroke={seg.color}
-                                strokeWidth="26"
-                                cx="100"
-                                cy="100"
-                                r="80"
-                                strokeLinecap="round"
-                                strokeDasharray={seg.dasharray}
-                                strokeDashoffset={seg.dashoffset}
-                              />
-                            ))}
-                          </svg>
-                          <div className="donut-center">
-                            <span className="donut-pct">100%</span>
-                            <span className="donut-sublabel">Efektywności</span>
-                          </div>
-                        </div>
-                        <div className="donut-legend">
-                          {entries.map(([cat, val]) => (
-                            <div className="donut-legend-item" key={cat}>
-                              <span
-                                className="donut-legend-dot"
-                                style={{ background: colorFor(cat) }}
-                              />
-                              <span className="donut-legend-label">{cat}</span>
-                              <span className="donut-legend-val">
-                                {val} ({Math.round((val / total) * 100)}%)
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+
+                  {chartState === "ready" && (
+                    <EfficiencyChart stats={stats} total={total} customPalette={customPalette} />
+                  )}
 
                   <div className="chart-stats-row">
                     <div className="chart-stat-pill">
