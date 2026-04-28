@@ -845,6 +845,27 @@ function MailPageInner() {
     localStorage.setItem("aiUsageTotal", JSON.stringify(stored));
   }
 
+  async function handleDeleteCat(e: React.MouseEvent, name: string) {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/backend/api/custom-categories/${name}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error();
+      setCustomCats((prev) => prev.filter((c) => c.name !== name));
+      if (catFilter === name) setCatFilter("");
+    } catch {
+      showPopup({
+        type: "error",
+        title: "Błąd",
+        message: "Nie udało się usunąć kategorii.",
+        confirmText: "OK",
+        hideCancel: true,
+      });
+    }
+  }
+
   async function handleSaveCat(name: string, color: string) {
     if (!name.trim()) return;
     try {
@@ -1169,17 +1190,35 @@ function MailPageInner() {
                         >
                           Wszystkie kategorie
                         </button>
-                        {allCats.map(c => (
-                          <button
-                            key={c}
-                            onClick={() => { setCatFilter(c); setIsCatDropdownOpen(false); }}
-                            style={{ width: "100%", padding: "0.5rem 0.75rem", border: "none", background: catFilter === c ? (isDark ? "rgba(59,130,246,0.1)" : "#f1f5f9") : "transparent", borderRadius: 8, textAlign: "left", cursor: "pointer", marginBottom: 2 }}
-                            onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f8fafc"}
-                            onMouseLeave={e => e.currentTarget.style.background = catFilter === c ? (isDark ? "rgba(59,130,246,0.1)" : "#f1f5f9") : "transparent"}
-                          >
-                            <CatPill cat={c} small customCats={customCats} />
-                          </button>
-                        ))}
+                        {allCats.map(c => {
+                          const isCustom = customCats.some(cc => cc.name === c);
+                          return (
+                            <div
+                              key={c}
+                              style={{ display: "flex", alignItems: "center", width: "100%", gap: 4, borderRadius: 8, transition: "background 0.2s", background: catFilter === c ? (isDark ? "rgba(59,130,246,0.1)" : "#f1f5f9") : "transparent" }}
+                              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f8fafc"}
+                              onMouseLeave={e => e.currentTarget.style.background = catFilter === c ? (isDark ? "rgba(59,130,246,0.1)" : "#f1f5f9") : "transparent"}
+                            >
+                              <button
+                                onClick={() => { setCatFilter(c); setIsCatDropdownOpen(false); }}
+                                style={{ flex: 1, padding: "0.5rem 0.75rem", border: "none", background: "transparent", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center" }}
+                              >
+                                <CatPill cat={c} small customCats={customCats} />
+                              </button>
+                              {isCustom && (
+                                <button
+                                  onClick={(e) => handleDeleteCat(e, c)}
+                                  title="Usuń kategorię"
+                                  style={{ padding: "0.5rem", background: "transparent", border: "none", color: cFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 6, marginRight: 4 }}
+                                  onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
+                                  onMouseLeave={e => e.currentTarget.style.color = cFaint}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

@@ -68,25 +68,56 @@ def get_emails(
 
 @router.get("/custom-categories")
 def get_custom_categories():
-    with Session(engine) as session:
-        categories = session.exec(select(CustomCategory)).all()
-        return [{"name": cat.name, "color": cat.color} for cat in categories]
+    try:
+        with Session(engine) as session:
+            categories = session.exec(select(CustomCategory)).all()
+            # Zwracamy pełne obiekty (z id)
+            return categories
+    except Exception as e:
+        print(f"❌ BŁĄD GET /custom-categories: {str(e)}")
+        return {"status": "error", "message": str(e)}, 500
 
 
 @router.post("/custom-categories")
 def create_custom_category(payload: CustomCategoryCreate):
     with Session(engine) as session:
-        existing = session.exec(
-            select(CustomCategory).where(CustomCategory.name == payload.name)
-        ).first()
-        if not existing:
-            new_cat = CustomCategory(name=payload.name, color=payload.color)
-            session.add(new_cat)
-        else:
-            existing.color = payload.color
-            session.add(existing)
-        session.commit()
-        return {"status": "success", "name": payload.name, "color": payload.color}
+        try:
+            existing = session.exec(
+                select(CustomCategory).where(CustomCategory.name == payload.name)
+            ).first()
+            if not existing:
+                new_cat = CustomCategory(name=payload.name, color=payload.color)
+                session.add(new_cat)
+                session.commit()
+                session.refresh(new_cat)
+                return new_cat
+            else:
+                existing.color = payload.color
+                session.add(existing)
+                session.commit()
+                session.refresh(existing)
+                return existing
+        except Exception as e:
+            session.rollback()
+            print(f"❌ BŁĄD POST /custom-categories: {str(e)}")
+            return {"status": "error", "message": str(e)}, 500
+
+
+@router.delete("/custom-categories/{name}")
+def delete_custom_category(name: str):
+    try:
+        with Session(engine) as session:
+            cat = session.exec(
+                select(CustomCategory).where(CustomCategory.name == name)
+            ).first()
+            if cat:
+                session.delete(cat)
+                session.commit()
+                return {"status": "success", "message": f"Category {name} deleted"}
+            return {"status": "error", "message": "Category not found"}, 404
+    except Exception as e:
+        print(f"❌ BŁĄD DELETE /custom-categories: {str(e)}")
+        return {"status": "error", "message": str(e)}, 500
 
 
 @router.put("/emails/{email_id}/category")

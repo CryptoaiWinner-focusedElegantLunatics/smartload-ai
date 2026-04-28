@@ -46,10 +46,13 @@ async def lifespan(app: FastAPI):
             session.exec(text(
                 "ALTER TABLE emaillog ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"
             ))
+            session.exec(text(
+                "ALTER TABLE custom_categories ADD COLUMN IF NOT EXISTS color VARCHAR DEFAULT '#64748b'"
+            ))
             session.commit()
         except Exception as e:
             session.rollback()
-            print(f"⚠️ MIGRACJA ZIGNOROWANA (być może kolumna już istnieje): {e}")
+            print(f"⚠️ MIGRACJA ZIGNOROWANA: {e}")
 
     await run_all_scrapers()
 
