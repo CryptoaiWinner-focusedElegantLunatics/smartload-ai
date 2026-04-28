@@ -39,11 +39,24 @@ export function useChatWebSocket({
     )) return;
 
     setStatus("connecting");
-    const ws = new WebSocket("ws://localhost:8000/ws/user-chat");
+
+    // Dynamiczny adres WebSocketa wspierający środowisko lokalne i produkcyjne (HTTPS -> WSS)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    let wsUrl = "";
+    if (apiUrl) {
+      wsUrl = apiUrl.replace(/^http/, "ws") + "/ws/user-chat";
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      wsUrl = `${protocol}//${host}/ws/user-chat`;
+    }
+
+    console.log("[P2P WS] Próba połączenia z:", wsUrl);
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("[P2P WS] connected ✓");
+      console.log("[P2P WS] Połączono!");
       // Cookie httponly wysyłane automatycznie
     };
 
@@ -66,15 +79,14 @@ export function useChatWebSocket({
       }
     };
 
-    ws.onerror = () => {
-      // WS error events zawsze logują się jako pusty {} - to normalne zachowanie przeglądarki
-      console.warn("[P2P WS] connection error — sprawdź czy backend działa na :8000");
+    ws.onerror = (error) => {
+      console.error("[P2P WS] Błąd połączenia:", error);
       setStatus("offline");
     };
 
-    ws.onclose = (e) => {
+    ws.onclose = (event) => {
       setStatus("offline");
-      console.log(`[P2P WS] closed (code=${e.code}), reconnect in 5s...`);
+      console.warn("[P2P WS] Zamknięto połączenie:", event.code, event.reason);
       reconnectTimer.current = setTimeout(() => connect(), 5000);
     };
   }, [onConnected, onError, onMessage]);
@@ -88,8 +100,8 @@ export function useChatWebSocket({
   }, [connect]);
 
   const sendMessage = useCallback((receiverId: number, content: string) => {
-    if (wsRef.current?.readyState !== WebSocket.OPEN) {
-      onError?.("Brak połączenia z serwerem P2P.");
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      onError?.("Brak połączenia z serwerem P2P. Spróbuj ponownie za chwilę.");
       return false;
     }
     const payload = JSON.stringify({ receiver_id: receiverId, content });
