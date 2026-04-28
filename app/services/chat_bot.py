@@ -1,10 +1,6 @@
 """
 SmartLoad Chat Bot – silnik AI dla komunikatora kierowców.
-
-Pipeline:
-  Krok A: Wykryj intencję (JSON: intent + city/plate_number)
-  Krok B: Wyszukaj oferty w DB (dla SZUKA_LADUNKU)
-  Krok C: Wygeneruj odpowiedź LLM lub dokument CMR
+Zaktualizowany o asynchroniczną obsługę generowania CMR.
 """
 import os
 import re
@@ -58,7 +54,6 @@ def _call_llm(prompt: str, max_tokens: int = 300) -> str:
 
 
 def _extract_intent(message: str, awaiting_plate: bool, last_action: str = None) -> dict:
-    # Guard na pusty input
     if not message or not message.strip():
         return {"intent": "INNE", "loading_city": None, "unloading_city": None, "plate_number": None}
 
@@ -143,19 +138,20 @@ Odpowiedź spedytora:"""
     return _call_llm(prompt, max_tokens=250)
 
 
-def _generate_cmr(offer: EmailLog, plate: str) -> str:
+async def _generate_cmr(offer: EmailLog, plate: str) -> str:
+    """Tworzy dokument CMR i zwraca link do pliku. Wykorzystuje asynchroniczny generator."""
     from app.models.document_schema import ParsedDocument
     from app.services.cmr_generator import generate_cmr_pdf
 
     doc_data = ParsedDocument(
         document_type="CMR",
-        sender_name=offer.sender or "Zleceniodawca",
-        sender_address=None,
-        receiver_name="Odbiorca",
-        receiver_address=None,
+        sender_name=offer.sender or "SmartLoad Partner",
+        sender_address="Giełda Transportowa",
+        receiver_name=offer.unloading_city or "Odbiorca",
+        receiver_address="Adres Odbiorcy",
         origin=f"{offer.loading_city or ''} {offer.loading_zip or ''}".strip() or None,
         destination=f"{offer.unloading_city or ''} {offer.unloading_zip or ''}".strip() or None,
-        cargo_description="Ładunek — szczegóły wg zlecenia",
+        cargo_description=offer.cargo_description or "Ładunek — szczegóły wg zlecenia",
         weight_kg=float(offer.weight_kg) if offer.weight_kg else None,
         vehicle_plate=plate.upper().strip(),
         price=offer.price,
@@ -163,7 +159,8 @@ def _generate_cmr(offer: EmailLog, plate: str) -> str:
     )
 
     try:
-        pdf_path = generate_cmr_pdf(doc_data)
+        # ASYNC AWAIT: Wywołujemy nowy asynchroniczny generator
+        pdf_path = await generate_cmr_pdf(doc_data)
         filename = os.path.basename(pdf_path)
         download_url = f"/static/docs/{filename}"
         route = f"{offer.loading_city} → {offer.unloading_city}"
@@ -178,7 +175,7 @@ def _generate_cmr(offer: EmailLog, plate: str) -> str:
             f"⬇️ Pobierz CMR ({filename})</a><br><br>"
             f"Szerokości drogi! 🚛"
         )
-    except RuntimeError as e:
+    except Exception as e:
         logger.error(f"❌ CMR error: {e}")
         return (
             "Dogadani! 🤝 Niestety mam chwilowy problem techniczny z generowaniem dokumentu — "
@@ -186,7 +183,8 @@ def _generate_cmr(offer: EmailLog, plate: str) -> str:
         )
 
 
-def process_driver_message(message: str, db_session: Session, session_id: str = "default") -> str:
+async def process_driver_message(message: str, db_session: Session, session_id: str = "default") -> str:
+    """Główna logika czatu - teraz asynchroniczna, aby nie blokować serwera."""
     sess = _session(session_id)
     last_action = "OFFER_MADE" if sess.get("last_offer") else None
     parsed = _extract_intent(message, sess["awaiting_plate"], last_action)
@@ -265,7 +263,7 @@ def process_driver_message(message: str, db_session: Session, session_id: str = 
     # ── PODAJ_REJESTRACJE → generuj CMR ──────────────────────────────
     if intent == "PODAJ_REJESTRACJE" and plate and sess.get("last_offer"):
         sess["awaiting_plate"] = False
-        return _generate_cmr(sess["last_offer"], plate)
+        return await _generate_cmr(sess["last_offer"], plate)
 
     # ── AKCEPTUJE_LADUNEK → zapytaj o rejestrację ────────────────────
     if intent == "AKCEPTUJE_LADUNEK":
@@ -328,7 +326,7 @@ def process_driver_message(message: str, db_session: Session, session_id: str = 
         if plate_match and sess["last_offer"]:
             plate = plate_match.group(1).strip()
             sess["awaiting_plate"] = False
-            return _generate_cmr(sess["last_offer"], plate)
+            return await _generate_cmr(sess["last_offer"], plate)
         return (
             "Jeszcze potrzebuję <b>numeru rejestracyjnego</b> Twojego auta, "
             "żeby wystawić CMR. Podaj go w formacie np. WA 12345. 🚛"
