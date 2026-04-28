@@ -144,8 +144,8 @@ Odpowiedź spedytora:"""
     return await _call_llm(prompt, max_tokens=250)
 
 
-async def _generate_cmr(offer: EmailLog, plate: str) -> str:
-    """Tworzy dokument CMR i zwraca link do pliku. Wykorzystuje asynchroniczny generator."""
+async def _generate_cmr(offer: EmailLog, plate: str, driver_id: int | None = None) -> str:
+    """Tworzy CMR + AssignedRoute (żeby trasa pojawiła się w my-routes)."""
     from app.models.document_schema import ParsedDocument
     from app.services.cmr_generator import generate_cmr_pdf
 
@@ -164,21 +164,44 @@ async def _generate_cmr(offer: EmailLog, plate: str) -> str:
     )
 
     try:
-        # ASYNC AWAIT: Wywołujemy nowy asynchroniczny generator
         pdf_path = await generate_cmr_pdf(doc_data)
         filename = os.path.basename(pdf_path)
         download_url = f"/static/docs/{filename}"
-        route = f"{offer.loading_city} → {offer.unloading_city}"
+        route_str = f"{offer.loading_city} → {offer.unloading_city}"
         price_str = f"{offer.price} {offer.currency}" if offer.price else "uzgodniona"
+
+        # Zapisz trasę w bazie (żeby kierowca widział ją w my-routes)
+        if driver_id:
+            try:
+                from app.models.assigned_route import AssignedRoute
+                from app.core.database import engine
+                from sqlmodel import Session as Sess
+
+                with Sess(engine) as s:
+                    ar = AssignedRoute(
+                        driver_id=driver_id,
+                        source_id=f"chat_offer_{offer.id}",
+                        loading_city=offer.loading_city or "?",
+                        unloading_city=offer.unloading_city or "?",
+                        weight_kg=float(offer.weight_kg or 0),
+                        price=float(offer.price or 0),
+                        status="PRZYPISANE",
+                        cmr_path=pdf_path,
+                    )
+                    s.add(ar)
+                    s.commit()
+                    logger.info(f"✅ AssignedRoute utworzony dla kierowcy {driver_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Nie udało się utworzyć AssignedRoute: {e}")
 
         return (
             f"Super, wszystko gotowe! 🤝<br>"
-            f"Trasa: <b>{route}</b> | Stawka: <b>{price_str}</b> | Auto: <b>{plate.upper()}</b><br><br>"
+            f"Trasa: <b>{route_str}</b> | Stawka: <b>{price_str}</b> | Auto: <b>{plate.upper()}</b><br><br>"
             f"📄 Twój list przewozowy CMR:<br>"
             f'<a href="{download_url}" target="_blank" '
             f'style="color:#60a5fa;font-weight:bold;text-decoration:underline;">'
             f"⬇️ Pobierz CMR ({filename})</a><br><br>"
-            f"Szerokości drogi! 🚛"
+            f"Trasa została dodana do panelu <b>Moje Trasy</b>. Szerokości drogi! 🚛"
         )
     except Exception as e:
         logger.error(f"❌ CMR error: {e}")
@@ -188,7 +211,7 @@ async def _generate_cmr(offer: EmailLog, plate: str) -> str:
         )
 
 
-async def process_driver_message(message: str, db_session: Session, session_id: str = "default") -> str:
+async def process_driver_message(message: str, db_session: Session, session_id: str = "default", driver_id: int | None = None) -> str:
     """Główna logika czatu - teraz asynchroniczna, aby nie blokować serwera."""
     sess = _session(session_id)
     last_action = "OFFER_MADE" if sess.get("last_offer") else None
@@ -240,19 +263,19 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
                 s.refresh(route)
                 route_id = route.id
 
-            # Wyślij powiadomienie WS do kierowcy
+            # Wyślij powiadomienie Pusher do kierowcy
             try:
-                from app.api.chat import chat_manager
-                notif = {
-                    "type": "notification",
-                    "message": f"🚛 Nowa trasa przypisana! {offer.loading_city} → {offer.unloading_city}. Sprawdź panel Moje Trasy.",
-                }
-                loop = asyncio.get_event_loop()
-                asyncio.run_coroutine_threadsafe(
-                    chat_manager.send_to_user(driver.id, notif), loop
+                from app.core.pusher_client import pusher_client
+                pusher_client.trigger(
+                    f"private-user-{driver.id}",
+                    "new-message",
+                    {
+                        "type": "notification",
+                        "content": f"🚛 Nowa trasa: {offer.loading_city} → {offer.unloading_city}. Sprawdź Moje Trasy.",
+                    },
                 )
             except Exception as e:
-                logger.warning(f"⚠️ WS notify failed: {e}")
+                logger.warning(f"⚠️ Pusher notify failed: {e}")
 
             sess["last_offer"] = None
             route_str = f"{offer.loading_city} → {offer.unloading_city}"
@@ -268,7 +291,7 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
     # ── PODAJ_REJESTRACJE → generuj CMR ──────────────────────────────
     if intent == "PODAJ_REJESTRACJE" and plate and sess.get("last_offer"):
         sess["awaiting_plate"] = False
-        return await _generate_cmr(sess["last_offer"], plate)
+        return await _generate_cmr(sess["last_offer"], plate, driver_id=driver_id)
 
     # ── AKCEPTUJE_LADUNEK → zapytaj o rejestrację ────────────────────
     if intent == "AKCEPTUJE_LADUNEK":

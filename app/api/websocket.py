@@ -30,7 +30,36 @@ async def websocket_chat_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
     session_id = websocket.client.host if websocket.client else "anonymous"
 
-    print(f"🔌 [AI WS] Otwarto połączenie dla: {session_id}")
+    # Wyciągnij driver_id z tokena (cookie httponly LUB query param)
+    driver_id = None
+    try:
+        from jose import jwt as jose_jwt, JWTError
+        from app.core.security import _get_secret, ALGORITHM
+        from sqlmodel import select
+        from app.models.user import User
+
+        # 1) Spróbuj z cookie (httponly — ustawiane przez /login)
+        token = websocket.cookies.get("access_token") or ""
+        if token.lower().startswith("bearer "):
+            token = token.split(" ", 1)[1]
+
+        # 2) Fallback: query param (?token=xxx)
+        if not token:
+            token = websocket.query_params.get("token") or ""
+
+        if token:
+            payload = jose_jwt.decode(token, _get_secret(), algorithms=[ALGORITHM])
+            username = payload.get("sub")
+            if username:
+                with Session(engine) as s:
+                    user = s.exec(select(User).where(User.username == username)).first()
+                    if user:
+                        driver_id = user.id
+                        session_id = f"user_{user.id}"
+    except Exception as e:
+        print(f"⚠️ [AI WS] Token decode failed: {e}")
+
+    print(f"🔌 [AI WS] Otwarto połączenie dla: {session_id} (driver_id={driver_id})")
 
     try:
         while True:
@@ -39,13 +68,8 @@ async def websocket_chat_endpoint(websocket: WebSocket):
 
             from app.services.chat_bot import process_driver_message
 
-            print("⏳ [AI WS] Uruchamiam process_driver_message...")
-
-            # process_driver_message jest async (await _generate_cmr → asyncio.to_thread).
-            # Wywołujemy bezpośrednio — NIE przez run_in_executor,
-            # bo asyncio.run() w wątku powoduje deadlock z zagnieżdżonymi event loopami.
             with Session(engine) as db_session:
-                response = await process_driver_message(data, db_session, session_id)
+                response = await process_driver_message(data, db_session, session_id, driver_id=driver_id)
 
             print(f"🔍 [AI WS] DEBUG WYNIKU: Typ: {type(response)} | Treść: {response}")
 

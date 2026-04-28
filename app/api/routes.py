@@ -5,6 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 import io
+import unicodedata
 
 from app.core.database import engine
 from app.core.security import RoleChecker, get_current_user
@@ -14,6 +15,12 @@ from app.models.document_schema import ParsedDocument
 from app.services.cmr_generator import generate_cmr_pdf
 
 router = APIRouter(prefix="/api", tags=["routes"])
+
+
+def _safe_filename(name: str) -> str:
+    """Usuwa polskie znaki diakrytyczne z nazwy pliku (HTTP headery wymagają ASCII)."""
+    nfkd = unicodedata.normalize("NFKD", name)
+    return nfkd.encode("ascii", "ignore").decode("ascii")
 
 
 # ─── Schematy ──────────────────────────────────────────────
@@ -56,6 +63,7 @@ class RouteOut(BaseModel):
     weight_kg: float
     price: float
     status: str
+    cmr_path: Optional[str] = None
     assigned_at: datetime
 
     class Config:
@@ -180,17 +188,20 @@ def assign_route_by_email(
             assigned_by_email=current_user.email or current_user.username,
         )
 
-    # Powiadomienie WS do kierowcy
+    # Powiadomienie Pusher do kierowcy
     try:
-        import asyncio
-        from app.api.chat import chat_manager
-        notif = {
-            "type": "notification",
-            "message": f"🚛 Nowa trasa przypisana przez {current_user.email or current_user.username}! "
-                       f"{payload.loading_city} → {payload.unloading_city}. Sprawdź panel Moje Trasy.",
-        }
-        loop = asyncio.get_event_loop()
-        asyncio.run_coroutine_threadsafe(chat_manager.send_to_user(driver.id, notif), loop)
+        from app.core.pusher_client import pusher_client
+        pusher_client.trigger(
+            f"private-user-{driver.id}",
+            "new-message",
+            {
+                "type": "notification",
+                "sender_id": current_user.id,
+                "receiver_id": driver.id,
+                "content": f"🚛 Nowa trasa przypisana: {payload.loading_city} → {payload.unloading_city}. Sprawdź Moje Trasy.",
+                "timestamp": route.assigned_at.isoformat(),
+            },
+        )
     except Exception:
         pass
 
@@ -226,8 +237,8 @@ def my_routes(
                 id=r.id, driver_id=r.driver_id, assigned_by_id=r.assigned_by_id,
                 source_id=r.source_id, loading_city=r.loading_city,
                 unloading_city=r.unloading_city, weight_kg=r.weight_kg,
-                price=r.price, status=r.status, assigned_at=r.assigned_at,
-                assigned_by_email=assigned_by_email,
+                price=r.price, status=r.status, cmr_path=r.cmr_path,
+                assigned_at=r.assigned_at, assigned_by_email=assigned_by_email,
             ))
     return result
 
@@ -295,56 +306,89 @@ def get_driver_context(
 
 
 @router.get("/routes/{route_id}/cmr")
-def generate_route_cmr(
+async def generate_route_cmr(
     route_id: int,
     current_user: User = Depends(RoleChecker(["KIEROWCA", "SPEDYTOR", "ADMIN"])),
 ):
-    """Generuje i pobiera list przewozowy CMR dla danej trasy jako PDF."""
+    """Generuje (lub zwraca istniejący) list przewozowy CMR dla danej trasy."""
+    import os
+
+    # 1) Pobierz dane trasy i kierowcy z sesji
     with Session(engine) as session:
         route = session.get(AssignedRoute, route_id)
         if not route:
             raise HTTPException(status_code=404, detail="Trasa nie znaleziona.")
 
-        # Kierowca może pobrać CMR tylko dla swoich tras
         if current_user.role == UserRole.KIEROWCA and route.driver_id != current_user.id:
             raise HTTPException(status_code=403, detail="Brak dostępu do tej trasy.")
 
-        # Pobierz dane kierowcy (do numeru rejestracyjnego)
-        driver = session.get(User, route.driver_id)
-        if not driver:
-            raise HTTPException(status_code=404, detail="Nie znaleziono kierowcy przypisanego do trasy.")
+        # Skopiuj dane ZANIM sesja się zamknie
+        cmr_path = route.cmr_path
+        loading_city = route.loading_city
+        unloading_city = route.unloading_city
+        weight_kg = route.weight_kg
+        price = route.price
+        r_driver_id = route.driver_id
 
-    # Budujemy ParsedDocument ze znanych danych trasy
+        driver = session.get(User, r_driver_id)
+        vehicle_plate = driver.vehicle_plate if driver else "—"
+
+    # 2) Jeśli CMR już istnieje — zwróć go
+    if cmr_path and os.path.exists(cmr_path):
+        with open(cmr_path, "rb") as f:
+            pdf_bytes = f.read()
+        filename = _safe_filename(f"CMR_{route_id}_{loading_city}-{unloading_city}.pdf")
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="{filename}"',
+                "Content-Length": str(len(pdf_bytes)),
+            },
+        )
+
+    # 3) Generuj nowy CMR (poza sesją — async)
     doc = ParsedDocument(
         sender_name="SmartLoad AI Sp. z o.o.",
         sender_address="ul. Logistyczna 1, 00-001 Warszawa",
         receiver_name="Odbiorca",
-        receiver_address=route.unloading_city,
-        weight_kg=route.weight_kg,
-        origin=route.loading_city,
-        destination=route.unloading_city,
-        vehicle_plate=driver.vehicle_plate or "—",
-        price=route.price,
+        receiver_address=unloading_city,
+        weight_kg=weight_kg,
+        origin=loading_city,
+        destination=unloading_city,
+        vehicle_plate=vehicle_plate,
+        price=price,
         currency="EUR",
         document_type="CMR",
     )
 
     try:
-        pdf_path = generate_cmr_pdf(doc)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        pdf_path = await generate_cmr_pdf(doc)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Błąd generowania CMR: {e}")
 
-    # Wczytaj wygenerowany plik do pamięci i odeślij jako streaming
+    # 4) Zapisz ścieżkę CMR na trasie (nowa sesja)
+    try:
+        with Session(engine) as session:
+            route = session.get(AssignedRoute, route_id)
+            if route:
+                route.cmr_path = pdf_path
+                session.add(route)
+                session.commit()
+    except Exception:
+        pass  # CMR wygenerowany — nie blokuj odpowiedzi
+
+    # 5) Zwróć PDF
     with open(pdf_path, "rb") as f:
         pdf_bytes = f.read()
 
-    filename = f"CMR_{route_id}_{route.loading_city}-{route.unloading_city}.pdf"
-
+    filename = _safe_filename(f"CMR_{route_id}_{loading_city}-{unloading_city}.pdf")
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": f'inline; filename="{filename}"',
             "Content-Length": str(len(pdf_bytes)),
         },
     )
+

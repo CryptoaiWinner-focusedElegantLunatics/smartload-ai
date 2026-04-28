@@ -15,6 +15,7 @@ interface AssignedRoute {
   weight_kg: number;
   price: number;
   status: string;
+  cmr_path: string | null;
   assigned_at: string;
 }
 
@@ -150,45 +151,68 @@ function RouteCard({
           );
         })}
 
-        {/* Przycisk CMR - wysunięty na prawo */}
+        {/* Przycisk CMR */}
         <div style={{ marginLeft: "auto" }}>
-          <button
-            onClick={() => onDownloadCMR(route.id)}
-            disabled={isGeneratingCMR}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "7px 16px", borderRadius: 8, border: "none",
-              background: isGeneratingCMR
-                ? "rgba(99,102,241,0.35)"
-                : "linear-gradient(135deg, #6366f1, #4f46e5)",
-              color: "#fff", fontSize: 12, fontWeight: 700,
-              cursor: isGeneratingCMR ? "not-allowed" : "pointer",
-              boxShadow: isGeneratingCMR ? "none" : "0 4px 12px rgba(99,102,241,0.35)",
-              transition: "all 0.2s",
-              opacity: isGeneratingCMR ? 0.7 : 1,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {isGeneratingCMR ? (
-              <>
-                <svg style={{ animation: "spin 1s linear infinite" }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M21 12a9 9 0 11-6.219-8.56" />
-                </svg>
-                Generowanie…
-              </>
-            ) : (
-              <>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                  <line x1="10" y1="9" x2="8" y2="9" />
-                </svg>
-                Generuj CMR
-              </>
-            )}
-          </button>
+          {route.cmr_path ? (
+            /* CMR już wygenerowany — otwórz w nowej karcie */
+            <button
+              onClick={() => onDownloadCMR(route.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 16px", borderRadius: 8, border: "none",
+                background: "linear-gradient(135deg, #10b981, #059669)",
+                color: "#fff", fontSize: 12, fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(16,185,129,0.35)",
+                transition: "all 0.2s", whiteSpace: "nowrap",
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              Pokaż CMR
+            </button>
+          ) : (
+            /* Brak CMR — generuj */
+            <button
+              onClick={() => onDownloadCMR(route.id)}
+              disabled={isGeneratingCMR}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 16px", borderRadius: 8, border: "none",
+                background: isGeneratingCMR
+                  ? "rgba(99,102,241,0.35)"
+                  : "linear-gradient(135deg, #6366f1, #4f46e5)",
+                color: "#fff", fontSize: 12, fontWeight: 700,
+                cursor: isGeneratingCMR ? "not-allowed" : "pointer",
+                boxShadow: isGeneratingCMR ? "none" : "0 4px 12px rgba(99,102,241,0.35)",
+                transition: "all 0.2s",
+                opacity: isGeneratingCMR ? 0.7 : 1,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isGeneratingCMR ? (
+                <>
+                  <svg style={{ animation: "spin 1s linear infinite" }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M21 12a9 9 0 11-6.219-8.56" />
+                  </svg>
+                  Generowanie…
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <line x1="10" y1="9" x2="8" y2="9" />
+                  </svg>
+                  Generuj CMR
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -250,6 +274,15 @@ function MyRoutesInner() {
   };
 
   const handleDownloadCMR = async (routeId: number) => {
+    const route = routes.find(r => r.id === routeId);
+
+    // Jeśli CMR istnieje — otwórz w nowej karcie
+    if (route?.cmr_path) {
+      window.open(`/api/backend/api/routes/${routeId}/cmr`, "_blank");
+      return;
+    }
+
+    // Generuj nowy CMR
     setGeneratingCMR((prev) => new Set(prev).add(routeId));
     try {
       const res = await fetch(`/api/backend/api/routes/${routeId}/cmr`, {
@@ -262,17 +295,14 @@ function MyRoutesInner() {
         throw new Error(data.detail || `Błąd serwera (${res.status})`);
       }
 
+      // Otwórz PDF w nowej karcie
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `CMR_${routeId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      window.open(url, "_blank");
 
-      setToast("✓ CMR pobrany pomyślnie!");
+      // Zaktualizuj stan — route ma teraz CMR
+      setRoutes((prev) => prev.map((r) => r.id === routeId ? { ...r, cmr_path: "generated" } : r));
+      setToast("✓ CMR wygenerowany pomyślnie!");
       setTimeout(() => setToast(null), 3000);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Błąd generowania CMR");

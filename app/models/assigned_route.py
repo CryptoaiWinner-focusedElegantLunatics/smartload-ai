@@ -17,4 +17,5 @@ class AssignedRoute(SQLModel, table=True):
     weight_kg: float = Field(default=0.0)
     price: float = Field(default=0.0)
     status: str = Field(default="PRZYPISANE")  # PRZYPISANE | W DRODZE | ROZŁADOWANE
+    cmr_path: Optional[str] = Field(default=None)  # ścieżka do wygenerowanego PDF CMR
     assigned_at: datetime = Field(default_factory=datetime.utcnow)

@@ -64,6 +64,10 @@ async def lifespan(app: FastAPI):
             session.exec(text(
                 "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS vehicle_plate VARCHAR"
             ))
+            # CMR path na trasach
+            session.exec(text(
+                "ALTER TABLE assigned_routes ADD COLUMN IF NOT EXISTS cmr_path VARCHAR"
+            ))
             session.commit()
         except Exception as e:
             session.rollback()
