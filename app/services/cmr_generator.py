@@ -4,6 +4,7 @@ Serwis generowania dokumentów CMR jako PDF za pomocą szablonów HTML (Jinja2) 
 import os
 import uuid
 import logging
+import asyncio
 from pathlib import Path
 from datetime import datetime
 from app.models.document_schema import ParsedDocument
@@ -12,23 +13,25 @@ from weasyprint import HTML
 
 logger = logging.getLogger(__name__)
 
-# KULOODPORNE ŚCIEŻKI: __file__ wskazuje na ten skrypt, a parent.parent na główny folder 'app'
+# KULOODPORNE ŚCIEŻKI ABSOLUTNE
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = BASE_DIR / "templates"
 DOCS_DIR = BASE_DIR / "static" / "docs"
 
 def _ensure_dirs():
+    """Upewnia się, że foldery na dokumenty istnieją."""
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
-def generate_cmr_pdf(doc: ParsedDocument) -> str:
+def _generate_cmr_pdf_sync(doc: ParsedDocument) -> str:
     """
-    Generuje list przewozowy CMR w formacie PDF na podstawie obiektu ParsedDocument i szablonu HTML.
+    Synchroniczna (blokująca) funkcja wykonująca faktyczne renderowanie PDF.
+    Wywoływana w osobnym wątku przez asyncio.to_thread.
     """
     _ensure_dirs()
 
     try:
-        # 1. Konfiguracja struktury stron (Czerwona, Niebieska, Zielona, Czarna Kopia)
+        # Konfiguracja stron CMR (Czerwona, Niebieska, Zielona, Czarna Kopia)
         pages = [
             {"color": "#e30613", "number": "1", "text": "Egzemplarz dla nadawcy<br>Exemplar fur den Absender<br>Copy for sender"},
             {"color": "#005bb5", "number": "2", "text": "Egzemplarz dla odbiorcy<br>Exemplar fur den Empfanger<br>Copy for consignee"},
@@ -36,7 +39,7 @@ def generate_cmr_pdf(doc: ParsedDocument) -> str:
             {"color": "#000000", "is_copy": True}
         ]
 
-        # 2. Przygotowanie danych do tabeli towarów
+        # Przygotowanie danych towarów
         items = []
         if getattr(doc, 'cargo_description', None):
             items.append({
@@ -49,7 +52,6 @@ def generate_cmr_pdf(doc: ParsedDocument) -> str:
                 "volume": ""
             })
 
-        # 3. Zmienne wpadające do szablonu HTML
         now_str = datetime.utcnow().strftime("%d/%m/%Y")
         load_date_str = doc.load_date.strftime("%d/%m/%Y") if getattr(doc, 'load_date', None) else now_str
 
@@ -60,7 +62,7 @@ def generate_cmr_pdf(doc: ParsedDocument) -> str:
             "sender_address": doc.sender_address or "",
             "receiver_name": doc.receiver_name or "",
             "receiver_address": doc.receiver_address or "",
-            "carrier_name": "SmartLoad AI", # ew. z doc
+            "carrier_name": "SmartLoad AI",
             "carrier_address": "Polska",
             "vehicle_plate": doc.vehicle_plate or "",
             "destination": doc.destination or "",
@@ -87,21 +89,26 @@ def generate_cmr_pdf(doc: ParsedDocument) -> str:
             "cod_amount": ""
         }
 
-        # 4. Ładowanie Jinja2 i rendering HTML w pamięci
+        # Ładowanie szablonu
         env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
         template = env.get_template("cmr_template.html")
         rendered_html = template.render(template_vars)
 
-        # 5. Zapis z WeasyPrint bezpośrednio do PDF
+        # Generowanie PDF
         filename = f"cmr_{uuid.uuid4().hex[:8]}.pdf"
         filepath = DOCS_DIR / filename
         
         HTML(string=rendered_html).write_pdf(str(filepath))
         
-        logger.info(f"✅ Nowoczesny CMR PDF wygenerowany pomyślnie: {filepath}")
+        logger.info(f"✅ CMR PDF wygenerowany: {filepath}")
         return str(filepath)
 
     except Exception as e:
-        # exc_info=True wrzuci cały szczegółowy ślad błędu do logów!
-        logger.error(f"❌ Błąd generowania CMR PDF: {e}", exc_info=True)
-        raise RuntimeError(f"Nie udało się wygenerować dokumentu CMR: {e}")
+        logger.error(f"❌ Błąd w synchronizacji WeasyPrint: {e}", exc_info=True)
+        raise RuntimeError(f"Błąd WeasyPrint: {e}")
+
+async def generate_cmr_pdf(doc: ParsedDocument) -> str:
+    """
+    ASYNC Wrapper: Zapobiega zawieszaniu serwera przez oddelegowanie pracy do wątku.
+    """
+    return await asyncio.to_thread(_generate_cmr_pdf_sync, doc)
