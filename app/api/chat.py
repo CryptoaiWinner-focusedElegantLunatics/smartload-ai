@@ -149,7 +149,9 @@ async def user_chat_ws(websocket: WebSocket):
                     continue
 
                 receiver_id = payload.get("receiver_id")
+                print("Receiver ID: ", receiver_id)
                 content = (payload.get("content") or "").strip()
+                print("Content: ", content)
 
                 if not receiver_id or not content:
                     await websocket.send_text(json.dumps({"type": "error", "message": "Wymagane pola: receiver_id (int), content (str)"}))
