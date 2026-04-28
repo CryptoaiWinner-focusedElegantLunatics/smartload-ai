@@ -142,14 +142,14 @@ async def user_chat_ws(websocket: WebSocket):
             try:
                 # ── Parsuj JSON ──
                 try:
-                    data = json.loads(raw)
+                    payload = json.loads(raw)
                 except json.JSONDecodeError as e:
                     logger.warning(f"[WS:{current_user_id}] Zły JSON: {e} | raw={raw!r}")
                     await websocket.send_text(json.dumps({"type": "error", "message": "Nieprawidłowy format JSON"}))
                     continue
 
-                receiver_id = data.get("receiver_id")
-                content = (data.get("content") or "").strip()
+                receiver_id = payload.get("receiver_id")
+                content = (payload.get("content") or "").strip()
 
                 if not receiver_id or not content:
                     await websocket.send_text(json.dumps({"type": "error", "message": "Wymagane pola: receiver_id (int), content (str)"}))
@@ -161,8 +161,8 @@ async def user_chat_ws(websocket: WebSocket):
                 try:
                     with Session(engine) as session:
                         msg = ChatMessage(
-                            sender_id=int(current_user_id),   # upewniamy się, że to integer
-                            receiver_id=int(receiver_id),     # j.w.
+                            sender_id=int(current_user_id),   # to z tokena/sesji
+                            receiver_id=receiver_id,          # to z payloadu!
                             content=content,
                         )
                         session.add(msg)

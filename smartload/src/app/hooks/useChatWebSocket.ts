@@ -104,6 +104,7 @@ export function useChatWebSocket({
       onError?.("Brak połączenia z serwerem P2P. Spróbuj ponownie za chwilę.");
       return false;
     }
+    console.log("Wysyłam do receiver_id:", receiverId);
     const payload = JSON.stringify({ receiver_id: receiverId, content });
     console.log("[P2P WS] sending:", payload);
     wsRef.current.send(payload);
