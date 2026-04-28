@@ -154,7 +154,7 @@ function MailPageInner() {
       .then((data) => {
         if (Array.isArray(data)) setCustomCats(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const [modal, setModal] = useState<Email | null>(null);
@@ -404,7 +404,7 @@ function MailPageInner() {
     setOpenDropdown(null);
     try {
       await fetch(`/api/backend/api/emails/${id}/category`, {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ category: newCat }),
@@ -502,7 +502,7 @@ function MailPageInner() {
       });
       return;
     }
-    
+
     try {
       const r = await fetch("/api/backend/api/custom-categories", {
         method: "POST",
@@ -511,7 +511,7 @@ function MailPageInner() {
         body: JSON.stringify({ name: cat }),
       });
       if (!r.ok) throw new Error();
-      
+
       const next = [...customCats, cat];
       setCustomCats(next);
       setCatModal(false);
