@@ -42,7 +42,23 @@ Skoro masz czystą bazę, musimy wrzucić do niej jakieś ładunki do testów. Z
 ```Bash
 docker-compose exec backend python -m app.seed
 ```
-🎉 Gotowe! Otwórz przeglądarkę i wejdź na adres: ```http://localhost:8000/db-check.``` Jeśli widzisz status sukcesu i liczbę załadowanych ładunków, masz idealnie skonfigurowane środowisko.
+
+### Krok 5: Konta Testowe (Logowanie)
+Podczas startu system automatycznie tworzy testowe konta z przypisanymi rolami. Użyj ich do przetestowania działania aplikacji:
+
+| Rola | Login (Username) | Email | Hasło |
+|------|------------------|-------|-------|
+| 👑 **Admin** | `admin` | `admin@smartload.ai` | `admin123` |
+| 🧑‍💼 **Spedytor** | `spedytor1` | `spedytor1@smartload.ai` | `sped123` |
+| 🧑‍💼 **Spedytor** | `spedytor2` | `spedytor2@smartload.ai` | `sped123` |
+| 🧑‍💼 **Spedytor** | `spedytor3` | `spedytor3@smartload.ai` | `sped123` |
+| 🚚 **Kierowca** | `kierowca1` | `kierowca1@smartload.ai` | `kier123` |
+| 🚚 **Kierowca** | `kierowca2` | `kierowca2@smartload.ai` | `kier123` |
+| 🚚 **Kierowca** | `kierowca3` | `kierowca3@smartload.ai` | `kier123` |
+| 🚚 **Kierowca** | `kierowca4` | `kierowca4@smartload.ai` | `kier123` |
+| 🚚 **Kierowca** | `kierowca5` | `kierowca5@smartload.ai` | `kier123` |
+
+🎉 Gotowe! Otwórz przeglądarkę i zaloguj się na `http://localhost:3000` (albo `http://localhost:8000`). Jeśli wszystko działa, masz idealnie skonfigurowane środowisko.
 
 📂 Struktura Projektu (Clean Architecture)
 Zanim zaczniesz pisać kod, zobacz, gdzie co leży:
@@ -69,12 +85,20 @@ aplikacja-spedycyjna-ai/
 
 | Metoda | Ścieżka | Opis |
 |--------|---------|------|
-| `GET` | `/` | Główny dashboard (wymaga auth) |
+| `GET` | `/` | Główny dashboard |
 | `GET` | `/login` | Strona logowania |
-| `POST` | `/login` | Formularz logowania, ustawia cookie JWT |
-| `GET` | `/logout` | Wylogowanie, kasuje cookie |
 | `GET` | `/mail` | Widok skrzynki mailowej (wymaga auth) |
 | `GET` | `/chat` | Widok chatu z AI (wymaga auth) |
+
+---
+
+### 🔐 Autoryzacja i Profil (`/api`)
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `POST` | `/login` | Logowanie – ustawia bezpieczne ciasteczko (HTTPOnly JWT) |
+| `POST` | `/api/logout` | Wylogowanie użytkownika (usuwa ciasteczko) |
+| `GET`  | `/api/me` | Zwraca dane bieżącego użytkownika (np. username, role, vehicle_plate) |
 
 ---
 
@@ -173,15 +197,16 @@ aplikacja-spedycyjna-ai/
 
 ---
 
-### 🔧 Narzędzia / Debug
+### 🛠 Admin i Debug (Tylko rola ADMIN - `/admin`)
 
 | Metoda | Ścieżka | Opis |
 |--------|---------|------|
-| `GET` | `/db-check` | Sprawdzenie połączenia z bazą, liczba ładunków |
-| `GET` | `/loads` | Bezpośredni odczyt ładunków z DB (legacy) |
-| `POST` | `/sync-emails` | Ręczne wyzwolenie synchronizacji IMAP w tle |
-| `POST` | `/sync-loads` | Ręczne uruchomienie scrapera |
+| `GET` | `/admin/db-check` | Status bazy i liczba załadowanych ładunków |
+| `GET` | `/admin/seed-data` | Podstawowy seed testowych maili |
+| `GET` | `/admin/seed-all` | Pełny seed bazy danych (wszystkie encje) |
+| `POST`| `/admin/seed-timocom` | Seed danych testowych dla ofert Timocom |
+| `GET` | `/admin/seed-roles` | Ręczne zasilenie ról RBAC |
+| `POST`| `/sync-emails` | Ręczne wyzwolenie synchronizacji IMAP w tle |
+| `POST`| `/sync-loads` | Ręczne uruchomienie scrapera |
 | `GET` | `/test-ai-triage` | Raport testowy triażu AI na 5 przykładowych mailach |
-| `GET` | `/seed-danych` | Załadowanie testowych danych do DB |
-| `GET` | `/magiczny-guzik` | Tworzenie superusera admina |
 | `WebSocket` | `/ws/chat` | WebSocket – chat z AI dla kierowcy |
