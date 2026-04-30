@@ -1,20 +1,36 @@
 import type { NextConfig } from "next";
 
+/**
+ * BACKEND_URL:
+ * - lokalnie:  automatycznie http://localhost:8000 (fallback)
+ * - Railway:   ustaw jako Build Variable w dashboardzie:
+ *              BACKEND_URL=https://twoj-backend.up.railway.app
+ *              LUB (jeśli oba serwisy w tym samym projekcie Railway):
+ *              BACKEND_URL=http://backend.railway.internal:8000
+ */
+const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8000";
+
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
 
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8000";
     return [
-      { source: "/api/backend/:path*", destination: `${backendUrl}/:path*` },
-      { source: "/static/:path*", destination: `${backendUrl}/static/:path*` },
+      {
+        source: "/api/backend/:path*",
+        destination: `${backendUrl}/:path*`,
+      },
+      {
+        // Pliki statyczne backendu (np. /static/uploads/...)
+        // UWAGA: nie koliduje z /_next/static/ bo Next używa innej ścieżki
+        source: "/static/:path*",
+        destination: `${backendUrl}/static/:path*`,
+      },
     ];
   },
 
   async headers() {
-    // ✅ Chronione trasy — przeglądarka NIE może ich cache'ować
     const noStorePaths = [
       "/dashboard/:path*",
       "/mail/:path*",
@@ -32,7 +48,6 @@ const nextConfig: NextConfig = {
       },
       { key: "Pragma", value: "no-cache" },
       { key: "Expires", value: "0" },
-      // ✅ Bezpieczeństwo
       { key: "X-Frame-Options", value: "DENY" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
