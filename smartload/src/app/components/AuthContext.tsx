@@ -106,6 +106,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
+  useEffect(() => {
+  refreshAuth();
+
+  // Sprawdź sesję gdy użytkownik wraca do zakładki
+  const onFocus = () => refreshAuth();
+  window.addEventListener("focus", onFocus);
+
+  // ✅ Wyloguj gdy użytkownik zamknie kartę/okno
+  const onUnload = () => {
+    navigator.sendBeacon("/api/backend/api/logout");
+  };
+  window.addEventListener("pagehide", onUnload);
+
+  return () => {
+    window.removeEventListener("focus", onFocus);
+    window.removeEventListener("pagehide", onUnload);
+  };
+}, []);
+
   return (
     <AuthContext.Provider value={{ ...state, logout, refreshAuth }}>
       {children}
