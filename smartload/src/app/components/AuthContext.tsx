@@ -106,16 +106,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
-  useEffect(() => {
+// AuthContext.tsx — zastąp tylko useEffect
+
+useEffect(() => {
   refreshAuth();
 
-  // Sprawdź sesję gdy użytkownik wraca do zakładki
+  // ✅ Licznik otwartych kart (współdzielony między kartami przez localStorage)
+  const tabCount = parseInt(localStorage.getItem("smartload_tabs") || "0") + 1;
+  localStorage.setItem("smartload_tabs", String(tabCount));
+
   const onFocus = () => refreshAuth();
   window.addEventListener("focus", onFocus);
 
-  // ✅ Wyloguj gdy użytkownik zamknie kartę/okno
   const onUnload = () => {
-    navigator.sendBeacon("/api/backend/api/logout");
+    const remaining = parseInt(localStorage.getItem("smartload_tabs") || "1") - 1;
+    localStorage.setItem("smartload_tabs", String(Math.max(0, remaining)));
+
+    // ✅ Wyloguj TYLKO gdy zamykana jest ostatnia karta
+    if (remaining <= 0) {
+      localStorage.removeItem("smartload_tabs");
+      navigator.sendBeacon("/api/backend/api/logout");
+    }
   };
   window.addEventListener("pagehide", onUnload);
 
