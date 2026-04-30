@@ -21,6 +21,9 @@ export const config = {
     "/mail/:path*",
     "/chat/:path*",
     "/loads/:path*",
+    "/my-routes/:path*",
+    "/compare/:path*",
+    "/settings/:path*",
     "/login",
   ],
 };

@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 from typing import Optional, List
+import os
 
 from fastapi import Request, HTTPException
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlmodel import Session, select
+
 
 # ──────────────────────────────────────────────
 # Config
@@ -13,22 +15,29 @@ def _get_secret() -> str:
     from app.core.config import settings
     return getattr(settings, "SECRET_KEY", "SUPER_SECRET_SMARTLOAD_KEY_CHANGE_ME_IN_PROD")
 
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8
+
+_IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None
+
 
 # ──────────────────────────────────────────────
 # Password hashing (bcrypt)
 # ──────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
+
 # ──────────────────────────────────────────────
-# JWT Token — zawiera teraz pole `role`
+# JWT Token
 # ──────────────────────────────────────────────
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -36,11 +45,22 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, _get_secret(), algorithm=ALGORITHM)
 
+
+def cookie_kwargs() -> dict:
+    return {
+        "httponly": True,
+        "secure": _IS_PRODUCTION,
+        "samesite": "none" if _IS_PRODUCTION else "lax",
+        "max_age": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        "path": "/",
+    }
+
+
 # ──────────────────────────────────────────────
 # Dependency: get_current_user
 # ──────────────────────────────────────────────
 def get_current_user(request: Request):
-    from app.models.user import User  
+    from app.models.user import User
     from app.core.database import engine
 
     _redirect = HTTPException(
@@ -72,6 +92,7 @@ def get_current_user(request: Request):
 
     return user
 
+
 # ──────────────────────────────────────────────
 # Dependency: RoleChecker
 # ──────────────────────────────────────────────
@@ -85,7 +106,7 @@ class RoleChecker:
 
     def __call__(self, request: Request):
         user = get_current_user(request)
-        user_role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+        user_role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
         if user_role_str not in self.allowed_roles:
             raise HTTPException(
                 status_code=403,

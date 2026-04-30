@@ -2,9 +2,14 @@ from fastapi import APIRouter, Request, Form, Depends, status
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
+
 from app.core.database import engine
-from app.core.security import verify_password, create_access_token, get_current_user
+from app.core.security import (
+    verify_password, create_access_token,
+    get_current_user, cookie_kwargs, _IS_PRODUCTION
+)
 from app.models.user import User
+
 
 router = APIRouter(tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
@@ -24,16 +29,15 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
                 status_code=401,
                 content={"detail": "Nieprawidłowy login lub hasło."}
             )
-        # Dodajemy rolę do payload JWT
-        role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+
+        role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
         access_token = create_access_token(data={"sub": user.username, "role": role_str})
+
         response = JSONResponse(content={"ok": True, "role": role_str})
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
-            httponly=True,
-            samesite="none",
-            secure=True,
+            **cookie_kwargs()
         )
         return response
 
@@ -43,16 +47,16 @@ def logout():
     response = JSONResponse(content={"status": "success"})
     response.delete_cookie(
         key="access_token",
-        samesite="none",
-        secure=True,
+        samesite="none" if _IS_PRODUCTION else "lax",
+        secure=_IS_PRODUCTION,
+        path="/",
     )
     return response
 
 
 @router.get("/api/me")
 def get_me(user: User = Depends(get_current_user)):
-    """Zwraca profil zalogowanego użytkownika (username + rola)."""
-    role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+    role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
     return {
         "id": user.id,
         "username": user.username,
