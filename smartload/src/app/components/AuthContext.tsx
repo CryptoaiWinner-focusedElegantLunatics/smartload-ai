@@ -109,22 +109,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 // AuthContext.tsx — zastąp tylko useEffect
 
 useEffect(() => {
-  refreshAuth();
+  // sessionStorage jest per-karta i przeżywa nawigację wewnątrz tej samej karty
+  // ale znika gdy karta zostaje zamknięta
+  let tabId = sessionStorage.getItem("smartload_tab_id");
+  if (!tabId) {
+    tabId = crypto.randomUUID();
+    sessionStorage.setItem("smartload_tab_id", tabId);
+  }
 
-  // ✅ Licznik otwartych kart (współdzielony między kartami przez localStorage)
-  const tabCount = parseInt(localStorage.getItem("smartload_tabs") || "0") + 1;
-  localStorage.setItem("smartload_tabs", String(tabCount));
+  // Zarejestruj tę kartę w localStorage (współdzielonym)
+  const registerTab = () => {
+    const tabs = JSON.parse(localStorage.getItem("smartload_open_tabs") || "{}");
+    tabs[tabId!] = Date.now();
+    localStorage.setItem("smartload_open_tabs", JSON.stringify(tabs));
+  };
+  registerTab();
+
+  refreshAuth();
 
   const onFocus = () => refreshAuth();
   window.addEventListener("focus", onFocus);
 
   const onUnload = () => {
-    const remaining = parseInt(localStorage.getItem("smartload_tabs") || "1") - 1;
-    localStorage.setItem("smartload_tabs", String(Math.max(0, remaining)));
+    const tabs = JSON.parse(localStorage.getItem("smartload_open_tabs") || "{}");
+    delete tabs[tabId!];
+    localStorage.setItem("smartload_open_tabs", JSON.stringify(tabs));
 
-    // ✅ Wyloguj TYLKO gdy zamykana jest ostatnia karta
-    if (remaining <= 0) {
-      localStorage.removeItem("smartload_tabs");
+    // Logout tylko gdy to ostatnia karta
+    if (Object.keys(tabs).length === 0) {
+      localStorage.removeItem("smartload_open_tabs");
       navigator.sendBeacon("/api/backend/api/logout");
     }
   };
