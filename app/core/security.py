@@ -8,23 +8,16 @@ from passlib.context import CryptContext
 from sqlmodel import Session, select
 
 
-# ──────────────────────────────────────────────
-# Config
-# ──────────────────────────────────────────────
 def _get_secret() -> str:
     from app.core.config import settings
     return getattr(settings, "SECRET_KEY", "SUPER_SECRET_SMARTLOAD_KEY_CHANGE_ME_IN_PROD")
 
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8h ważność JWT
 
 _IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None
 
-
-# ──────────────────────────────────────────────
-# Password hashing (bcrypt)
-# ──────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -36,12 +29,11 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-# ──────────────────────────────────────────────
-# JWT Token
-# ──────────────────────────────────────────────
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, _get_secret(), algorithm=ALGORITHM)
 
@@ -51,14 +43,12 @@ def cookie_kwargs() -> dict:
         "httponly": True,
         "secure": _IS_PRODUCTION,
         "samesite": "none" if _IS_PRODUCTION else "lax",
-        "max_age": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        # ✅ BRAK max_age i expires → session cookie
+        # Przeglądarka usuwa je automatycznie przy zamknięciu okna/karty
         "path": "/",
     }
 
 
-# ──────────────────────────────────────────────
-# Dependency: get_current_user
-# ──────────────────────────────────────────────
 def get_current_user(request: Request):
     from app.models.user import User
     from app.core.database import engine
@@ -93,14 +83,7 @@ def get_current_user(request: Request):
     return user
 
 
-# ──────────────────────────────────────────────
-# Dependency: RoleChecker
-# ──────────────────────────────────────────────
 class RoleChecker:
-    """
-    Dependency FastAPI sprawdzająca, czy zalogowany użytkownik ma jedną z dozwolonych ról.
-    Użycie: Depends(RoleChecker(["ADMIN", "SPEDYTOR"]))
-    """
     def __init__(self, allowed_roles: List[str]):
         self.allowed_roles = allowed_roles
 
@@ -110,6 +93,6 @@ class RoleChecker:
         if user_role_str not in self.allowed_roles:
             raise HTTPException(
                 status_code=403,
-                detail=f"Brak uprawnień. Wymagana rola: {', '.join(self.allowed_roles)}. Twoja rola: {user_role_str}."
+                detail=f"Brak uprawnień. Wymagana rola: {', '.join(self.allowed_roles)}.",
             )
         return user

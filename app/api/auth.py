@@ -21,7 +21,11 @@ def render_login(request: Request):
 
 
 @router.post("/login")
-def login(request: Request, username: str = Form(...), password: str = Form(...)):
+def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...)
+):
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == username)).first()
         if not user or not verify_password(password, user.hashed_password):
@@ -45,10 +49,12 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 @router.post("/api/logout")
 def logout():
     response = JSONResponse(content={"status": "success"})
+    # ✅ Parametry muszą być identyczne jak przy set_cookie
     response.delete_cookie(
         key="access_token",
-        samesite="none" if _IS_PRODUCTION else "lax",
+        httponly=True,
         secure=_IS_PRODUCTION,
+        samesite="none" if _IS_PRODUCTION else "lax",
         path="/",
     )
     return response

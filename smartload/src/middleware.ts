@@ -1,42 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
 
-function isTokenExpired(token: string): boolean {
+function extractToken(raw?: string): string | null {
+  if (!raw) return null;
+  return raw.startsWith("Bearer ") ? raw.slice(7) : raw;
+}
+
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false;
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp * 1000 < Date.now();
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(Buffer.from(base64, "base64").toString("utf-8"));
+    return typeof payload.exp === "number" && payload.exp * 1000 > Date.now();
   } catch {
-    return true;
+    return false;
   }
 }
 
+const PROTECTED = [
+  "/dashboard",
+  "/mail",
+  "/chat",
+  "/loads",
+  "/my-routes",
+  "/compare",
+  "/settings",
+];
+
 export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  const isLoginPage = pathname.startsWith("/login");
+  const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
+
   const rawCookie = req.cookies.get("access_token")?.value;
-  const isLoginPage = req.nextUrl.pathname.startsWith("/login");
+  const token = extractToken(rawCookie);
+  const valid = isTokenValid(token);
 
-  const token = rawCookie?.startsWith("Bearer ")
-    ? rawCookie.slice(7)
-    : rawCookie;
-
-  const isValidToken = !!token && !isTokenExpired(token);
-
-  if (!isValidToken && !isLoginPage) {
-    const response = NextResponse.redirect(new URL("/login", req.url));
-    response.cookies.delete("access_token");
-    // ✅ Zakaz cache'owania odpowiedzi redirectu
-    response.headers.set("Cache-Control", "no-store");
-    return response;
+  // Chroniona trasa bez ważnego tokenu → na login
+  if (isProtected && !valid) {
+    const res = NextResponse.redirect(new URL("/login", req.url));
+    res.cookies.delete("access_token");
+    res.headers.set("Cache-Control", "no-store");
+    return res;
   }
 
-  if (isValidToken && isLoginPage) {
-    const response = NextResponse.redirect(new URL("/dashboard", req.url));
-    response.headers.set("Cache-Control", "no-store");
-    return response;
+  // Login z ważnym tokenem → na dashboard (już zalogowany)
+  if (isLoginPage && valid) {
+    const res = NextResponse.redirect(new URL("/dashboard", req.url));
+    res.headers.set("Cache-Control", "no-store");
+    return res;
   }
 
-  // ✅ Dla chronionych stron — zakaz cache przy każdym przejściu
-  const response = NextResponse.next();
-  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-  return response;
+  const res = NextResponse.next();
+
+  // Zakaz cache'owania chronionych stron
+  if (isProtected) {
+    res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  }
+
+  return res;
 }
 
 export const config = {

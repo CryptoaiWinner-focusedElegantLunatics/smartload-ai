@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 
 export default function LandingPage() {
+  useEffect(() => {
+    // ✅ Wejście na landing page = koniec sesji
+    fetch("/api/backend/api/logout", {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
+  }, []);
+
   return (
     <>
       {/* NAV */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../components/AuthContext";
@@ -8,11 +8,21 @@ import "./login.css";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { refreshAuth } = useAuth();
+  const { refreshAuth, role, isLoading } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // ✅ Jeśli wchodzimy na /login mając aktywną sesję → dashboard
+  useEffect(() => {
+    if (!isLoading && role !== null) {
+      router.replace("/dashboard");
+    }
+  }, [isLoading, role, router]);
+
+  // Pokaż blank podczas ładowania (zapobiega flashowi formularza)
+  if (isLoading) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +30,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Backend przyjmuje Form data, nie JSON
       const formData = new URLSearchParams();
       formData.append("username", username);
       formData.append("password", password);
@@ -30,13 +39,17 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: formData.toString(),
         credentials: "include",
+        cache: "no-store",
       });
 
-      // Backend robi redirect 302 przy sukcesie
       if (res.ok) {
-        // Czekamy na odświeżenie globalnego stanu autoryzacji (pobranie roli itp.)
-        await refreshAuth();
-        router.replace("/dashboard");
+        // ✅ Potwierdź sesję przez /api/me zanim zrobimy redirect
+        const ok = await refreshAuth();
+        if (ok) {
+          router.replace("/dashboard");
+        } else {
+          setError("Nie udało się potwierdzić sesji. Spróbuj ponownie.");
+        }
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.detail || "Nieprawidłowy login lub hasło.");
@@ -83,7 +96,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel - form */}
+      {/* Right panel */}
       <div className="login-right">
         <div className="login-card">
           <div className="login-card-header">
@@ -106,7 +119,6 @@ export default function LoginPage() {
                 autoComplete="username"
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="password">
                 Hasło
@@ -122,7 +134,6 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
-
             <button
               type="submit"
               className="btn-login-submit"
