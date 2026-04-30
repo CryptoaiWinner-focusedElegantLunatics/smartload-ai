@@ -36,7 +36,7 @@ export default function LoginPage() {
       if (res.ok) {
         // Czekamy na odświeżenie globalnego stanu autoryzacji (pobranie roli itp.)
         await refreshAuth();
-        router.push("/dashboard");
+        router.replace("/dashboard");
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.detail || "Nieprawidłowy login lub hasło.");

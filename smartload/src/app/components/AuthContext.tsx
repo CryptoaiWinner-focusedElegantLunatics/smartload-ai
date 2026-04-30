@@ -9,7 +9,7 @@ interface AuthState {
   role: UserRole;
   vehiclePlate: string | null;
   isLoading: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
 
@@ -18,30 +18,53 @@ const AuthContext = createContext<AuthState>({
   role: null,
   vehiclePlate: null,
   isLoading: true,
-  logout: () => {},
+  logout: async () => {},
   refreshAuth: async () => {},
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<Omit<AuthState, "logout" | "refreshAuth">>({
-    username: null,
-    role: null,
-    vehiclePlate: null,
-    isLoading: true,
-  });
+const PROTECTED_PATHS = [
+  "/dashboard",
+  "/mail",
+  "/chat",
+  "/loads",
+  "/my-routes",
+  "/compare",
+  "/settings",
+];
 
-  const logout = () => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<Omit<AuthState, "logout" | "refreshAuth">>(
+    {
+      username: null,
+      role: null,
+      vehiclePlate: null,
+      isLoading: true,
+    },
+  );
+
+  const logout = async () => {
+    try {
+      await fetch("/api/backend/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // ignoruj błąd sieci
+    }
     setState({
       username: null,
       role: null,
       vehiclePlate: null,
       isLoading: false,
     });
+    window.location.replace("/login");
   };
 
   const refreshAuth = async () => {
     try {
-      const res = await fetch("/api/backend/api/me", { credentials: "include" });
+      const res = await fetch("/api/backend/api/me", {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Unauthenticated");
       const data = await res.json();
       setState({
@@ -57,11 +80,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         vehiclePlate: null,
         isLoading: false,
       });
+
+      // ✅ Redirect tylko z chronionych stron — landing page "/" zostaje nieruszona
+      if (typeof window !== "undefined") {
+        const path = window.location.pathname;
+        const isProtected = PROTECTED_PATHS.some((p) => path.startsWith(p));
+        if (isProtected) {
+          window.location.replace("/login");
+        }
+      }
     }
   };
 
   useEffect(() => {
     refreshAuth();
+
+    const onFocus = () => refreshAuth();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   return (
