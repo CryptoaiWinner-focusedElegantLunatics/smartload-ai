@@ -326,12 +326,12 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     # No full hline between header and data in goods table (matches reference CMR)
 
     cols = [
-        (0.18, "6",  ["Cechy i numery","Kennzeichen und Nummern","Marks and Nos"]),
-        (0.14, "7",  ["Ilość sztuk","Anzahl der Packstücke","Number of packages"]),
+        (0.17, "6",  ["Cechy i numery","Kennzeichen und Nummern","Marks and Nos"]),
+        (0.13, "7",  ["Ilość sztuk","Anzahl der Packstücke","Number of packages"]),
         (0.14, "8",  ["Sposób opakowania","Art der Verpackung","Method of packing"]),
         (0.16, "9",  ["Rodzaj towaru","Bezeichnung des Gutes","Nature of the goods"]),
-        (0.13, "10", ["Numer statystyczny","Statistiknummer","Statistical number"]),
-        (0.13, "11", ["Waga brutto w kg","Bruttogewicht in kg","Gross weight in kg"]),
+        (0.14, "10", ["Numer statystyczny","Statistiknummer","Statistical number"]),
+        (0.14, "11", ["Waga brutto w kg","Bruttogewicht in kg","Gross weight in kg"]),
         (0.12, "12", ["Objętość w m³","Umfang m³","Volume in m³"]),
     ]
     cx = ML
@@ -343,9 +343,9 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
         cx_label = cx
         c.setFont(_FB, 9); c.setFillColor(accent)
         c.drawString(cx_label+1*mm, Y-4.5*mm, num)
-        c.setFont(_F, 4.5)
+        c.setFont(_F, 4.2)
         ty = Y-4*mm
-        lbl_offset = 7*mm if len(num) > 1 else 5*mm
+        lbl_offset = 6.5*mm if len(num) > 1 else 4.5*mm
         for lbl in labels:
             c.drawString(cx_label+lbl_offset, ty, lbl); ty -= 1.8*mm
         cx += cw
@@ -371,7 +371,7 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     # ADR row
     adr_h = 8*mm
     _hline(c, ML, ML+FW, Y-adr_h, accent)
-    _vline(c, ML+FW*0.62, Y, Y-adr_h, accent, 0.3)
+    _vline(c, ML+FW*0.60, Y, Y-adr_h, accent, 0.3)
     c.setFont(_F, 5); c.setFillColor(accent)
     cx = ML+8*mm
     for lbl in ["Klasa / Klasse / Class", "Liczba / Ziffer / Number", "Litera / Buchstabe / Letter", "(ADR*)"]:
