@@ -52,12 +52,12 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         color: var(--main-color);
     }
     .margin-small {
         font-size: 6px;
-        line-height: 1.1;
+        line-height: 1.2;
     }
     .margin-large {
         font-size: 16px;
@@ -201,7 +201,7 @@
     .payment-table th, .payment-table td {
         border: 1px solid var(--main-color);
         font-size: 6px;
-        padding: 2px;
+        padding: 3px 2px;
         text-align: left;
         color: var(--main-color);
     }
@@ -359,10 +359,10 @@
             <table class="goods-table">
                 <thead>
                     <tr>
-                        <th class="no-rb" style="width: 25%;"><div class="box-num">6</div>Cechy i numery<br>Kennzeichen und Nummern<br>Marks and Nos</th>
-                        <th class="no-rb" style="width: 10%;"><div class="box-num">7</div>Ilosc sztuk<br>Anzahl der Packstucke<br>Number of packages</th>
-                        <th class="no-rb" style="width: 18%;"><div class="box-num">8</div>Sposob opakowania<br>Art der Verpackung<br>Method of packing</th>
-                        <th class="rb" style="width: 18%;"><div class="box-num">9</div>Rodzaj towaru<br>Bezeichnung des Gutes<br>Nature of the goods</th>
+                        <th style="width: 25%; border-right: none;"><div class="box-num">6</div>Cechy i numery<br>Kennzeichen und Nummern<br>Marks and Nos</th>
+                        <th style="width: 10%; border-right: none;"><div class="box-num">7</div>Ilosc sztuk<br>Anzahl der Packstucke<br>Number of packages</th>
+                        <th style="width: 18%; border-right: none;"><div class="box-num">8</div>Sposob opakowania<br>Art der Verpackung<br>Method of packing</th>
+                        <th style="width: 18%; border-right: 1px solid var(--main-color);"><div class="box-num">9</div>Rodzaj towaru<br>Bezeichnung des Gutes<br>Nature of the goods</th>
                         <th class="rb" style="width: 10%;"><div class="box-num">10</div>Numer statystyczny<br>Statistiknummer<br>Statistical number</th>
                         <th class="rb" style="width: 10%;"><div class="box-num">11</div>Waga brutto w kg<br>Bruttogewicht in kg<br>Gross weight in kg</th>
                         <th style="width: 9%; border-right: none;"><div class="box-num">12</div>Objetosc w m3<br>Umfang m3<br>Volume in m3</th>
@@ -371,17 +371,17 @@
                 <tbody>
                     {% for item in items %}
                     <tr>
-                        <td class="no-rb">{{ item.marks }}</td>
-                        <td class="no-rb">{{ item.packages }}</td>
-                        <td class="no-rb">{{ item.method }}</td>
-                        <td class="rb">{{ item.nature }}</td>
+                        <td style="border-right: none;">{{ item.marks }}</td>
+                        <td style="border-right: none;">{{ item.packages }}</td>
+                        <td style="border-right: none;">{{ item.method }}</td>
+                        <td style="border-right: 1px solid var(--main-color);">{{ item.nature }}</td>
                         <td class="rb">{{ item.stat_no }}</td>
                         <td class="rb">{{ item.weight }}</td>
                         <td>{{ item.volume }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td class="no-rb"><br><br></td><td class="no-rb"></td><td class="no-rb"></td><td class="rb"></td><td class="rb"></td><td class="rb"></td><td></td>
+                        <td style="border-right: none;"><br><br></td><td style="border-right: none;"></td><td style="border-right: none;"></td><td style="border-right: 1px solid var(--main-color);"></td><td class="rb"></td><td class="rb"></td><td></td>
                     </tr>
                     {% endfor %}
                     <tr style="border-top: 1px solid var(--main-color);">
@@ -414,7 +414,7 @@
                     <div class="user-data" style="margin-top: 8px; margin-left: 20px; text-align: left; font-weight: bold;">
                         {{ payment_instructions }}
                     </div>
-                    <div class="box-title" style="margin-top: 5px; margin-left: 20px;">
+                    <div class="box-title" style="margin-top: 5px; margin-left: 4px;">
                         Przewozne zaplacone / frei / Carriage paid<br>
                         Przewozne nieoplacone / Unfrei / Carriage forward
                     </div>
@@ -520,7 +520,7 @@
             <div class="col-33">
                 <div class="box" style="padding-left: 8px;">
                     <div class="box-num">24</div>
-                    <div class="box-title" style="margin-left: 15px;">Przesylke otrzymano / Gut empfangen<br>Goods received</div>
+                    <div class="box-title" style="margin-left: 15px;">Przesylke otrzymano / Gut empfangen<br>/ Goods received</div>
                     <div style="display: flex; justify-content: space-between; margin-top: 10px; padding: 0 10px; color: var(--main-color); font-size: 6px;">
                         <div>Miejscowosc<br>Ort<br>Place</div>
                         <div>dnia<br>am<br>on</div>
@@ -536,7 +536,7 @@
 
     </div>
 
-    <div class="footer">
+    <div class="footer" style="border: none;">
         Wzór CMR/IRU/Polska z 1976 dla międzynarodowych przewozów drogowych odpowiada ustaleniom, które zostały dokonane przez Międzynarodową Unię Transportu Drogowego (IRU).
     </div>
 </div>

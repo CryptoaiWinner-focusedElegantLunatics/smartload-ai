@@ -129,49 +129,58 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     c.setPageSize(A4)
     Y = H - MT
 
-    # ═══ LEFT MARGIN — rotated text ═══
+    # ═══ LEFT MARGIN — rotated text (bottom→top: Do wypełnienia, 1-15, włącznie, 19+20+22, Rubryki) ═══
+    margin_x = ML - 5*mm
+
+    # 1) "Do wypełnienia..." — bottommost
     c.saveState()
-    c.translate(ML - 7*mm, H/2 + 50*mm)
+    c.translate(margin_x, 52*mm)
     c.rotate(90)
     c.setFont(_F, 4.8)
     c.setFillColor(accent)
-    c.drawString(0, 0, "Do wypełnienia pod odpowiedzialnością nadawcy")
-    c.drawString(0, -1.8*mm, "Auszufüllen unter der Verantwortung des Absenders")
-    c.drawString(0, -3.6*mm, "To be completed on the sender's responsibility")
+    c.drawString(0, 2*mm, "Do wypełnienia pod odpowiedzialnością nadawcy")
+    c.drawString(0, 0, "Auszufüllen unter der Verantwortung des Absenders")
+    c.drawString(0, -2*mm, "To be completed on the sender's responsibility")
     c.restoreState()
 
+    # 2) "1 - 15"
     c.saveState()
-    c.translate(ML - 2*mm, H/2 + 50*mm)
+    c.translate(margin_x, 105*mm)
     c.rotate(90)
     c.setFont(_FB, 14)
     c.setFillColor(accent)
     c.drawString(0, 0, "1 - 15")
     c.restoreState()
 
+    # 3) "włącznie oraz..."
     c.saveState()
-    c.translate(ML - 7*mm, H/2 - 10*mm)
+    c.translate(margin_x, 125*mm)
     c.rotate(90)
     c.setFont(_F, 4.8)
     c.setFillColor(accent)
-    c.drawString(0, 0, "włącznie oraz / einschließlich / including and")
+    c.drawString(0, 2*mm, "włącznie oraz")
+    c.drawString(0, 0, "einschließlich")
+    c.drawString(0, -2*mm, "including and")
     c.restoreState()
 
+    # 4) "19 + 20 + 22"
     c.saveState()
-    c.translate(ML - 2*mm, H/2 - 10*mm)
+    c.translate(margin_x, 155*mm)
     c.rotate(90)
     c.setFont(_FB, 14)
     c.setFillColor(accent)
     c.drawString(0, 0, "19 + 20 + 22")
     c.restoreState()
 
+    # 5) "Rubryki obwiedzione..." — topmost
     c.saveState()
-    c.translate(ML - 7*mm, H/2 - 70*mm)
+    c.translate(margin_x, 195*mm)
     c.rotate(90)
     c.setFont(_F, 4.2)
     c.setFillColor(accent)
-    c.drawString(0, 0, "Rubryki obwiedzione tłustymi liniami wypełnia przewoźnik.")
-    c.drawString(0, -1.6*mm, "Die mit fett gedruckten Linien eingerahmten Rubriken müssen vom Frachtführer ausgefüllt werden.")
-    c.drawString(0, -3.2*mm, "The spaces framed with heavy lines must be filled by the carrier.")
+    c.drawString(0, 2*mm, "Rubryki obwiedzione tłustymi liniami wypełnia przewoźnik.")
+    c.drawString(0, 0, "Die mit fett gedruckten Linien eingerahmten Rubriken müssen vom Frachtführer ausgefüllt werden.")
+    c.drawString(0, -2*mm, "The spaces framed with heavy lines must be filled by the carrier.")
     c.restoreState()
 
     # ═══ RIGHT MARGIN — vertical text (ADR info) ═══
@@ -314,6 +323,8 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
 
     # ══════════ GOODS TABLE HEADER (6-12) ══════════
     th = 12*mm
+    # Horizontal line under header — only for cols 10-12 area (skip for 6-9)
+    # Full hline separates the header row from the data row
     _hline(c, ML, ML+FW, Y-th, accent)
 
     cols = [
@@ -325,16 +336,21 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
         (0.13, "11", ["Waga brutto w kg","Bruttogewicht in kg","Gross weight in kg"]),
         (0.12, "12", ["Objętość w m³","Umfang m³","Volume in m³"]),
     ]
+    # Calculate x-position where col 10 starts (border between group 6-9 and 10-12)
+    col9_end_x = ML + FW * (0.22 + 0.10 + 0.15 + 0.18)
     cx = ML
     for frac, num, labels in cols:
         cw = FW * frac
-        _vline(c, cx, Y, Y-th, accent, 0.3)
+        # Vertical lines: only draw between groups (at col 10, 11, 12 boundaries)
+        if num in ("10", "11", "12"):
+            _vline(c, cx, Y, Y-th, accent, 0.3)
+        cx_label = cx
         c.setFont(_FB, 9); c.setFillColor(accent)
-        c.drawString(cx+1*mm, Y-4.5*mm, num)
+        c.drawString(cx_label+1*mm, Y-4.5*mm, num)
         c.setFont(_F, 4.5)
         ty = Y-4*mm
         for lbl in labels:
-            c.drawString(cx+7*mm, ty, lbl); ty -= 1.8*mm
+            c.drawString(cx_label+7*mm, ty, lbl); ty -= 1.8*mm
         cx += cw
 
     Y -= th
@@ -347,7 +363,9 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     c.setFont(_F, 7.5); c.setFillColor(black)
     for i, (frac, *_rest) in enumerate(cols):
         cw = FW * frac
-        _vline(c, cx, Y, Y-dr, accent, 0.3)
+        # Vertical lines in data row: only between groups (cols 10, 11, 12)
+        if cols[i][1] in ("10", "11", "12"):
+            _vline(c, cx, Y, Y-dr, accent, 0.3)
         c.drawString(cx+2*mm, Y-4.5*mm, vals[i])
         cx += cw
 
@@ -387,8 +405,8 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     ], accent)
     _udata(c, ML, Y-rh13, price_str, offset_y=12)
     c.setFont(_F, 4.5); c.setFillColor(accent)
-    c.drawString(ML+14*mm, Y-rh13-24*mm, "Przewoźne zapłacone / frei / Carriage paid")
-    c.drawString(ML+14*mm, Y-rh13-26.5*mm, "Przewoźne nieopłacone / Unfrei / Carriage forward")
+    c.drawString(ML+11*mm, Y-rh13-24*mm, "Przewoźne zapłacone / frei / Carriage paid")
+    c.drawString(ML+11*mm, Y-rh13-26.5*mm, "Przewoźne nieopłacone / Unfrei / Carriage forward")
 
     # Prawa: 19
     _hline(c, ML+HALF, ML+FW, Y-rh19, accent)
@@ -406,18 +424,37 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
         "To be paid by"
     ], accent)
 
-    # Nagłówki kolumn tabeli 20
+    # Vertical divider positions for table 20 columns
+    pay_col_positions = [
+        ML+HALF+28*mm,   # after "Do zapłacenia" label
+        ML+HALF+44*mm,   # after "Nadawca"
+        ML+HALF+52*mm,   # spacer
+        ML+HALF+60*mm,   # after "Waluta"
+        ML+HALF+68*mm,   # spacer
+        ML+HALF+76*mm,   # after "Odbiorca"
+    ]
+    # Draw vertical dividers for table 20
+    pay_top = Y - rh19
+    pay_bottom = Y - rh_left
+    for vx in pay_col_positions:
+        _vline(c, vx, pay_top, pay_bottom, accent, 0.3)
+
+    # Nagłówki kolumn tabeli 20 — shifted down for more top margin
     ptx = ML+HALF+28*mm
-    pty = Y-rh19-4*mm
+    pty = Y-rh19-6*mm   # extra margin from top
     c.setFont(_F, 4.2); c.setFillColor(accent)
-    for h in ["Nadawca\nAbsender\nSender", "Waluta\nWährung\nCurrency", "Odbiorca\nEmpfänger\nConsignee"]:
+    header_positions = [
+        (ML+HALF+29*mm, "Nadawca\nAbsender\nSender"),
+        (ML+HALF+53*mm, "Waluta\nWährung\nCurrency"),
+        (ML+HALF+69*mm, "Odbiorca\nEmpfänger\nConsignee"),
+    ]
+    for hx, h in header_positions:
         lines_h = h.split("\n")
         tty = pty
         for lh in lines_h:
-            c.drawString(ptx, tty, lh); tty -= 1.6*mm
-        ptx += 16*mm
+            c.drawString(hx, tty, lh); tty -= 1.6*mm
 
-    # Wiersze tabeli 20
+    # Wiersze tabeli 20 — shifted down
     pay_rows = [
         "Przewoźne / Fracht / Carriage charges",
         "Bonifikaty / Ermässigungen / Deductions",
@@ -470,7 +507,7 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     sigs = [
         ("22", ["Podpis i stempel nadawcy","Unterschrift und Stempel des Absenders","Signature and stamp of the sender"]),
         ("23", ["Podpis i stempel przewoźnika","Unterschrift und Stempel des Frachtführers","Signature and stamp of the carrier"]),
-        ("24", ["Przesyłkę otrzymano / Gut empfangen / Goods received"]),
+        ("24", []),
     ]
     for i, (num, lines) in enumerate(sigs):
         bx = ML + THIRD * i
@@ -482,23 +519,34 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
         for line in lines:
             c.drawString(bx+4*mm, by, line); by -= 1.8*mm
 
-    # Box 24 extra: Miejscowość/dnia
+    # Box 24 extra: title (smaller font matching box-title size)
     bx24 = ML + THIRD * 2
-    if len(sigs[2][1]) == 1:
-        c.setFont(_F, 7); c.setFillColor(accent)
-        c.drawString(bx24+12*mm, Y-8*mm, "Przesyłkę otrzymano / Gut empfangen / Goods received")
-        c.setFont(_F, 4.5)
-        c.drawString(bx24+4*mm, Y-15*mm, "Miejscowość / Ort / Place")
-        c.drawString(bx24+THIRD-20*mm, Y-15*mm, "dnia / am / on")
+    c.setFont(_F, 4.5); c.setFillColor(accent)
+    c.drawString(bx24+12*mm, Y-5*mm, "Przesyłkę otrzymano / Gut empfangen")
+    c.drawString(bx24+12*mm, Y-7*mm, "/ Goods received")
+    # "Miejscowość / Ort / Place" written vertically (3 lines)
+    c.setFont(_F, 4.5)
+    c.drawString(bx24+4*mm, Y-11*mm, "Miejscowość")
+    c.drawString(bx24+4*mm, Y-13*mm, "Ort")
+    c.drawString(bx24+4*mm, Y-15*mm, "Place")
+    # "dnia / am / on" written vertically (3 lines)
+    c.drawString(bx24+THIRD-16*mm, Y-11*mm, "dnia")
+    c.drawString(bx24+THIRD-16*mm, Y-13*mm, "am")
+    c.drawString(bx24+THIRD-16*mm, Y-15*mm, "on")
+    # Signature text at bottom of box 24
+    c.setFont(_F, 4.5); c.setFillColor(accent)
+    by24 = Y - rh + 8*mm
+    for sig_line in ["Podpis i stempel odbiorcy","Unterschrift und Stempel des Empfängers","Signature and stamp of the consignee"]:
+        c.drawString(bx24+4*mm, by24, sig_line); by24 -= 1.8*mm
 
     _hline(c, ML, ML+FW, Y-rh, accent, 1.8)
 
     Y -= rh
 
-    # ══════════ FOOTER ══════════
+    # ══════════ FOOTER (no border — plain text below the form frame) ══════════
     c.setFont(_F, 4)
     c.setFillColor(accent)
-    c.drawCentredString(W/2, Y-3*mm,
+    c.drawCentredString(W/2, Y-4*mm,
         "Wzór CMR/IRU/Polska z 1976 dla międzynarodowych przewozów drogowych odpowiada ustaleniom IRU.")
 
 
