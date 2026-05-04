@@ -214,7 +214,7 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
 
     # ═══ OUTER BORDER ═══
     form_top = Y
-    form_h = 256*mm
+    form_h = 244*mm
     _box(c, ML, form_top, FW, form_h, accent, lw=1.8)
 
     # ══════════ ROW 1: (1) Nadawca | CMR Info ══════════
@@ -323,21 +323,18 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
 
     # ══════════ GOODS TABLE HEADER (6-12) ══════════
     th = 12*mm
-    # Horizontal line under header — only for cols 10-12 area (skip for 6-9)
-    # Full hline separates the header row from the data row
-    _hline(c, ML, ML+FW, Y-th, accent)
+    # No full hline between header and data in goods table (matches reference CMR)
 
     cols = [
-        (0.22, "6",  ["Cechy i numery","Kennzeichen und Nummern","Marks and Nos"]),
-        (0.10, "7",  ["Ilość sztuk","Anzahl der Packstücke","Number of packages"]),
+        (0.20, "6",  ["Cechy i numery","Kennzeichen und Nummern","Marks and Nos"]),
+        (0.12, "7",  ["Ilość sztuk","Anzahl der Packstücke","Number of packages"]),
         (0.15, "8",  ["Sposób opakowania","Art der Verpackung","Method of packing"]),
         (0.18, "9",  ["Rodzaj towaru","Bezeichnung des Gutes","Nature of the goods"]),
         (0.10, "10", ["Numer statystyczny","Statistiknummer","Statistical number"]),
         (0.13, "11", ["Waga brutto w kg","Bruttogewicht in kg","Gross weight in kg"]),
         (0.12, "12", ["Objętość w m³","Umfang m³","Volume in m³"]),
     ]
-    # Calculate x-position where col 10 starts (border between group 6-9 and 10-12)
-    col9_end_x = ML + FW * (0.22 + 0.10 + 0.15 + 0.18)
+    col9_end_x = ML + FW * (0.20 + 0.12 + 0.15 + 0.18)
     cx = ML
     for frac, num, labels in cols:
         cw = FW * frac
@@ -466,13 +463,13 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     ]
     pty -= 5*mm
     for i, row_label in enumerate(pay_rows):
-        c.setFont(_F, 3.8); c.setFillColor(accent)
-        c.drawString(ML+HALF+11*mm, pty, row_label)
+        c.setFont(_F, 3.0); c.setFillColor(accent)
+        c.drawString(ML+HALF+2*mm, pty, row_label)
         _hline(c, ML+HALF, ML+FW, pty+1.5*mm, accent, 0.3)
         if i == 0 or i == 6:
-            c.setFont(_FB, 5.5); c.setFillColor(black)
-            c.drawString(ML+HALF+48*mm, pty, str(getattr(doc, 'price', '') or ''))
-            c.drawString(ML+HALF+64*mm, pty, str(getattr(doc, 'currency', 'PLN')))
+            c.setFont(_FB, 5); c.setFillColor(black)
+            c.drawString(ML+HALF+30*mm, pty, str(getattr(doc, 'price', '') or ''))
+            c.drawString(ML+HALF+54*mm, pty, str(getattr(doc, 'currency', 'PLN')))
         pty -= 3.5*mm
 
     Y -= rh_left
@@ -503,7 +500,7 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     Y -= rh
 
     # ══════════ SIGNATURES: (22)(23)(24) ══════════
-    rh = 26*mm
+    rh = 50*mm
     sigs = [
         ("22", ["Podpis i stempel nadawcy","Unterschrift und Stempel des Absenders","Signature and stamp of the sender"]),
         ("23", ["Podpis i stempel przewoźnika","Unterschrift und Stempel des Frachtführers","Signature and stamp of the carrier"]),
@@ -515,7 +512,7 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
         c.setFont(_FB, 12); c.setFillColor(accent)
         c.drawString(bx+2*mm, Y-5*mm, num)
         c.setFont(_F, 4.5); c.setFillColor(accent)
-        by = Y - rh + 8*mm
+        by = Y - rh + 4*mm
         for line in lines:
             c.drawString(bx+4*mm, by, line); by -= 1.8*mm
 
@@ -535,7 +532,7 @@ def _draw_page(c, pg, doc_nr, now_str, load_date, doc, weight_str, price_str):
     c.drawString(bx24+THIRD-16*mm, Y-15*mm, "on")
     # Signature text at bottom of box 24
     c.setFont(_F, 4.5); c.setFillColor(accent)
-    by24 = Y - rh + 8*mm
+    by24 = Y - rh + 4*mm
     for sig_line in ["Podpis i stempel odbiorcy","Unterschrift und Stempel des Empfängers","Signature and stamp of the consignee"]:
         c.drawString(bx24+4*mm, by24, sig_line); by24 -= 1.8*mm
 

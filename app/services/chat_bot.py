@@ -74,9 +74,11 @@ Zwróć WYŁĄCZNIE JSON: {{"intent": "...", "loading_city": "...", "unloading_c
 
 Intencje:
 - SZUKA_LADUNKU: pyta o wolne trasy / podaje lokalizację
-- AKCEPTUJE_LADUNEK: zgadza się na Twoją propozycję (synonimy: pasuje mi, biorę to, git, wchodzę w to, ok)
+- AKCEPTUJE_LADUNEK: zgadza się na propozycję (synonimy: pasuje mi, biorę to, git, wchodzę w to, ok)
 - PODAJ_REJESTRACJE: podaje numer rejestracyjny
 - PRZYPISZ_TRASE: prosi o przypisanie trasy do kierowcy (zawiera "daj", "przypisz", "kierowca nr", "dla kierowcy") — wyciągnij driver_id jako liczbę
+- POKAZ_MOJE_TRASY: pyta o swoje własne, przypisane mu trasy (np. "jakie mam trasy", "moje trasy", "gdzie jadę")
+- SPRAWDZ_TRASY_KIEROWCY: spedytor pyta o trasy przypisane do konkretnego kierowcy (np. "jakie trasy ma kierowca 3", "trasy dla kierowcy nr 5") — wyciągnij driver_id jako liczbę
 - INNE: reszta
 
 Kontekst: {context_hint}
@@ -90,7 +92,7 @@ JSON:"""
     try:
         result = json.loads(raw)
         intent = result.get("intent", "INNE")
-        if intent not in ("SZUKA_LADUNKU", "AKCEPTUJE_LADUNEK", "PODAJ_REJESTRACJE", "PRZYPISZ_TRASE", "INNE"):
+        if intent not in ("SZUKA_LADUNKU", "AKCEPTUJE_LADUNEK", "PODAJ_REJESTRACJE", "PRZYPISZ_TRASE", "POKAZ_MOJE_TRASY", "SPRAWDZ_TRASY_KIEROWCY", "INNE"):
             intent = "INNE"
         return {
             "intent": intent,
@@ -347,6 +349,65 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
             return json.dumps(payload, ensure_ascii=False)
         else:
             return (await _build_offer_response(message, loading_city, [])) or f"Niestety brak ofert z {loading_city} 😔 Odezwę się jak coś się pojawi!"
+
+    # ── POKAZ_MOJE_TRASY ──────────────────────────────────────────────
+    if intent == "POKAZ_MOJE_TRASY":
+        if not driver_id:
+            return "Nie jestem w stanie zidentyfikować Twojego konta. Zaloguj się poprawnie, aby zobaczyć swoje trasy."
+        try:
+            from app.models.assigned_route import AssignedRoute
+            from app.core.database import engine
+            from sqlmodel import Session as Sess, select
+            
+            with Sess(engine) as s:
+                routes = s.exec(select(AssignedRoute).where(AssignedRoute.driver_id == driver_id)).all()
+                if not routes:
+                    return "Nie masz aktualnie żadnych przypisanych tras. Szerokości! 🚛"
+                
+                routes_html = []
+                for r in routes:
+                    cmr_link = f' | <a href="/api/backend/api/routes/{r.id}/cmr" target="_blank" style="color:#60a5fa;font-weight:bold;text-decoration:underline;">📄 Zobacz CMR</a>' if r.cmr_path else ""
+                    routes_html.append(f"<li><b>{r.loading_city} → {r.unloading_city}</b> (Status: <b>{r.status}</b>){cmr_link}</li>")
+                    
+                html_list = "".join(routes_html)
+                return f"Twoje przypisane trasy to:<br><ul>{html_list}</ul>"
+        except Exception as e:
+            logger.error(f"❌ POKAZ_MOJE_TRASY error: {e}", exc_info=True)
+            return "Wystąpił błąd podczas pobierania tras."
+
+    # ── SPRAWDZ_TRASY_KIEROWCY ────────────────────────────────────────
+    if intent == "SPRAWDZ_TRASY_KIEROWCY":
+        if not driver_id_from_llm:
+            m = re.search(r'(?:kierowca?|driver)[^\d]*(\d+)', message, re.IGNORECASE)
+            driver_id_from_llm = int(m.group(1)) if m else None
+
+        if not driver_id_from_llm:
+            return "Podaj numer ID kierowcy, którego trasy chcesz sprawdzić (np. 'pokaż trasy kierowcy nr 3')."
+        try:
+            from app.models.user import User
+            from app.models.assigned_route import AssignedRoute
+            from app.core.database import engine
+            from sqlmodel import Session as Sess, select
+            
+            with Sess(engine) as s:
+                driver = s.get(User, int(driver_id_from_llm))
+                if not driver:
+                    return f"Nie znalazłem kierowcy o ID {driver_id_from_llm} w systemie."
+                    
+                routes = s.exec(select(AssignedRoute).where(AssignedRoute.driver_id == driver.id)).all()
+                if not routes:
+                    return f"Kierowca <b>{driver.username}</b> (ID: {driver.id}) nie ma aktualnie przypisanych tras."
+                
+                routes_html = []
+                for r in routes:
+                    cmr_link = f' | <a href="/api/backend/api/routes/{r.id}/cmr" target="_blank" style="color:#60a5fa;font-weight:bold;text-decoration:underline;">📄 Zobacz CMR</a>' if r.cmr_path else ""
+                    routes_html.append(f"<li><b>{r.loading_city} → {r.unloading_city}</b> (Status: <b>{r.status}</b>){cmr_link}</li>")
+                    
+                html_list = "".join(routes_html)
+                return f"Trasy przypisane do kierowcy <b>{driver.username}</b> (ID: {driver.id}):<br><ul>{html_list}</ul>"
+        except Exception as e:
+            logger.error(f"❌ SPRAWDZ_TRASY_KIEROWCY error: {e}", exc_info=True)
+            return "Wystąpił błąd podczas pobierania tras kierowcy."
 
     # ── Czekamy na tablice, ale LLM sklasyfikował INNE ───────────────
     if sess["awaiting_plate"]:
