@@ -106,6 +106,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
+// AuthContext.tsx — zastąp tylko useEffect
+
+useEffect(() => {
+  // sessionStorage jest per-karta i przeżywa nawigację wewnątrz tej samej karty
+  // ale znika gdy karta zostaje zamknięta
+  let tabId = sessionStorage.getItem("smartload_tab_id");
+  if (!tabId) {
+    tabId = crypto.randomUUID();
+    sessionStorage.setItem("smartload_tab_id", tabId);
+  }
+
+  // Zarejestruj tę kartę w localStorage (współdzielonym)
+  const registerTab = () => {
+    const tabs = JSON.parse(localStorage.getItem("smartload_open_tabs") || "{}");
+    tabs[tabId!] = Date.now();
+    localStorage.setItem("smartload_open_tabs", JSON.stringify(tabs));
+  };
+  registerTab();
+
+  refreshAuth();
+
+  const onFocus = () => refreshAuth();
+  window.addEventListener("focus", onFocus);
+
+  const onUnload = () => {
+    const tabs = JSON.parse(localStorage.getItem("smartload_open_tabs") || "{}");
+    delete tabs[tabId!];
+    localStorage.setItem("smartload_open_tabs", JSON.stringify(tabs));
+
+    // Logout tylko gdy to ostatnia karta
+    if (Object.keys(tabs).length === 0) {
+      localStorage.removeItem("smartload_open_tabs");
+      navigator.sendBeacon("/api/backend/api/logout");
+    }
+  };
+  window.addEventListener("pagehide", onUnload);
+
+  return () => {
+    window.removeEventListener("focus", onFocus);
+    window.removeEventListener("pagehide", onUnload);
+  };
+}, []);
+
   return (
     <AuthContext.Provider value={{ ...state, logout, refreshAuth }}>
       {children}

@@ -1,0 +1,1 @@
+Dalsze uporządkowanie projektu, i dodanie nowych endpointów
