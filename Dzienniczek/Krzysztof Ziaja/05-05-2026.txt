@@ -1,0 +1,5 @@
+Naprawa błędó:
+- dostęp do tras w chat bocie
+- UI do tras w chat bocie
+- naprawa dostępu kierowcy do wyznaczania tras
+- naprawa łądowania email, przy pustej skrzynce
