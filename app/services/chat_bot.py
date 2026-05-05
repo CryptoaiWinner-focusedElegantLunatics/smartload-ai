@@ -368,13 +368,22 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
                 if not routes:
                     return "Nie masz aktualnie żadnych przypisanych tras. Szerokości! 🚛"
                 
-                routes_html = []
+                route_list = []
                 for r in routes:
-                    cmr_link = f' | <a href="/api/backend/api/routes/{r.id}/cmr" target="_blank" style="color:#60a5fa;font-weight:bold;text-decoration:underline;">📄 Zobacz CMR</a>' if r.cmr_path else ""
-                    routes_html.append(f"<li><b>{r.loading_city} → {r.unloading_city}</b> (Status: <b>{r.status}</b>){cmr_link}</li>")
+                    route_list.append({
+                        "id": r.id,
+                        "loading_city": r.loading_city,
+                        "unloading_city": r.unloading_city,
+                        "status": r.status,
+                        "cmr_link": f"/api/backend/api/routes/{r.id}/cmr" if r.cmr_path else None
+                    })
                     
-                html_list = "".join(routes_html)
-                return f"Twoje przypisane trasy to:<br><ul>{html_list}</ul>"
+                payload = {
+                    "type": "assigned_routes",
+                    "message": "Twoje przypisane trasy to:",
+                    "routes": route_list
+                }
+                return json.dumps(payload, ensure_ascii=False)
         except Exception as e:
             logger.error(f"❌ POKAZ_MOJE_TRASY error: {e}", exc_info=True)
             return "Wystąpił błąd podczas pobierania tras."
@@ -406,13 +415,22 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
                 if not routes:
                     return f"Kierowca <b>{driver.username}</b> (ID: {driver.id}) nie ma aktualnie przypisanych tras."
                 
-                routes_html = []
+                route_list = []
                 for r in routes:
-                    cmr_link = f' | <a href="/api/backend/api/routes/{r.id}/cmr" target="_blank" style="color:#60a5fa;font-weight:bold;text-decoration:underline;">📄 Zobacz CMR</a>' if r.cmr_path else ""
-                    routes_html.append(f"<li><b>{r.loading_city} → {r.unloading_city}</b> (Status: <b>{r.status}</b>){cmr_link}</li>")
+                    route_list.append({
+                        "id": r.id,
+                        "loading_city": r.loading_city,
+                        "unloading_city": r.unloading_city,
+                        "status": r.status,
+                        "cmr_link": f"/api/backend/api/routes/{r.id}/cmr" if r.cmr_path else None
+                    })
                     
-                html_list = "".join(routes_html)
-                return f"Trasy przypisane do kierowcy <b>{driver.username}</b> (ID: {driver.id}):<br><ul>{html_list}</ul>"
+                payload = {
+                    "type": "assigned_routes",
+                    "message": f"Trasy przypisane do kierowcy **{driver.username}** (ID: {driver.id}):",
+                    "routes": route_list
+                }
+                return json.dumps(payload, ensure_ascii=False)
         except Exception as e:
             logger.error(f"❌ SPRAWDZ_TRASY_KIEROWCY error: {e}", exc_info=True)
             return "Wystąpił błąd podczas pobierania tras kierowcy."

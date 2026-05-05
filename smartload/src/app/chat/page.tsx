@@ -12,6 +12,14 @@ interface OfferCard {
   id: string; route_from: string; route_to: string;
   price: string; weight: string;
 }
+interface AssignedRoute {
+  id: number;
+  loading_city: string;
+  unloading_city: string;
+  status: string;
+  cmr_link: string | null;
+}
+
 interface AiMsg {
   id: number;
   role: "ai" | "user";
@@ -20,6 +28,7 @@ interface AiMsg {
   offerCards?: OfferCard[];
   selectedOfferIdx?: number;       // która karta jest wybrana
   offerState?: "pending" | "accepted" | "rejected";
+  assignedRoutes?: AssignedRoute[];
   isHtml?: boolean;
 }
 
@@ -28,7 +37,7 @@ function now() {
 }
 
 // ── Parse AI response ──
-function parseAiResponse(raw: string): { text: string; offerCards?: OfferCard[]; isHtml?: boolean } {
+function parseAiResponse(raw: string): { text: string; offerCards?: OfferCard[]; assignedRoutes?: AssignedRoute[]; isHtml?: boolean } {
   const trimmed = raw.trim();
   if (trimmed.startsWith("{")) {
     try {
@@ -38,10 +47,90 @@ function parseAiResponse(raw: string): { text: string; offerCards?: OfferCard[];
         const cards: OfferCard[] = p.offers ?? (p.offer ? [p.offer] : []);
         return { text: p.message || "Znalazłem oferty!", offerCards: cards.length > 0 ? cards : undefined };
       }
+      if (p.type === "assigned_routes") {
+        return { text: p.message || "Znalezione trasy:", assignedRoutes: p.routes };
+      }
     } catch { /* not JSON */ }
   }
   const isHtml = /<[a-z]/.test(trimmed);
   return { text: trimmed, isHtml };
+}
+
+function AssignedRoutesList({ routes, cCard, cBorder, cText, cFaint, cPrimary }: any) {
+  const [showCompleted, setShowCompleted] = useState(false);
+  const activeRoutes = routes.filter((r: AssignedRoute) => r.status !== "ROZŁADOWANE");
+  const completedRoutes = routes.filter((r: AssignedRoute) => r.status === "ROZŁADOWANE");
+
+  return (
+    <div className="flex flex-col gap-3">
+      {activeRoutes.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <div className="text-sm font-semibold" style={{ color: cText }}>Aktywne trasy ({activeRoutes.length})</div>
+          {activeRoutes.map((r: AssignedRoute) => (
+            <div key={r.id} className="p-4 rounded-xl border flex flex-col gap-3" style={{ background: cCard, borderColor: cBorder }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold" style={{ color: cText }}>{r.loading_city}</span>
+                  <span style={{ color: cFaint }}>→</span>
+                  <span className="text-sm font-bold" style={{ color: cText }}>{r.unloading_city}</span>
+                </div>
+                <div className="text-xs px-2 py-1 rounded-md font-semibold" style={{ background: r.status === 'PRZYPISANE' ? '#fef08a' : '#bfdbfe', color: '#1e293b' }}>
+                  {r.status}
+                </div>
+              </div>
+              {r.cmr_link && (
+                <div className="flex justify-end mt-1">
+                  <a href={r.cmr_link} target="_blank" rel="noreferrer" className="text-xs font-semibold hover:underline" style={{ color: cPrimary }}>
+                    📄 Zobacz CMR
+                  </a>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-sm italic" style={{ color: cFaint }}>Brak aktywnych tras.</div>
+      )}
+
+      {completedRoutes.length > 0 && (
+        <div className="mt-2 border-t pt-3" style={{ borderColor: cBorder }}>
+          <button 
+            onClick={() => setShowCompleted(!showCompleted)} 
+            className="text-xs font-semibold hover:underline flex items-center gap-1" 
+            style={{ color: cFaint }}
+          >
+            {showCompleted ? "Ukryj" : "Pokaż"} zakończone trasy ({completedRoutes.length})
+          </button>
+          
+          {showCompleted && (
+            <div className="flex flex-col gap-3 mt-3 opacity-80">
+              {completedRoutes.map((r: AssignedRoute) => (
+                <div key={r.id} className="p-3 rounded-xl border flex flex-col gap-2" style={{ background: cCard, borderColor: cBorder }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold" style={{ color: cText }}>{r.loading_city}</span>
+                      <span style={{ color: cFaint }}>→</span>
+                      <span className="text-sm font-bold" style={{ color: cText }}>{r.unloading_city}</span>
+                    </div>
+                    <div className="text-xs px-2 py-1 rounded-md font-semibold bg-gray-200 text-gray-700">
+                      {r.status}
+                    </div>
+                  </div>
+                  {r.cmr_link && (
+                    <div className="flex justify-end">
+                      <a href={r.cmr_link} target="_blank" rel="noreferrer" className="text-xs hover:underline" style={{ color: cPrimary }}>
+                        📄 Zobacz CMR
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ChatPage() {
@@ -472,6 +561,11 @@ export default function ChatPage() {
                             )}
                             {msg.offerState === "accepted" && <div style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#22c55e", padding: "9px 0", background: isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, marginTop: 8 }}>✅ Zaakceptowano!</div>}
                             {msg.offerState === "rejected" && <div style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: cFaint, padding: "9px 0", background: isDark ? "#111" : cBg, border: `1px solid ${cBorder}`, borderRadius: 10, marginTop: 8 }}>❌ Odrzucono</div>}
+                          </>
+                        ) : msg.assignedRoutes && msg.assignedRoutes.length > 0 ? (
+                          <>
+                            <p style={{ margin: "0 0 10px", fontSize: 13, color: cText, lineHeight: 1.6 }}>{msg.text}</p>
+                            <AssignedRoutesList routes={msg.assignedRoutes} cCard={cCard} cBorder={cBorder} cText={cText} cFaint={cFaint} cPrimary={cPrimary} />
                           </>
                         ) : msg.isHtml ? (
                           <p style={{ margin: 0, fontSize: 13, color: msg.role === "user" ? "#fff" : cText, lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: msg.text }} />
