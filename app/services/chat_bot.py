@@ -228,7 +228,7 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
 
     # Zablokuj kierowcom dostęp do funkcji spedytora
     if user_role == "KIEROWCA" and intent in ("SZUKA_LADUNKU", "AKCEPTUJE_LADUNEK", "PRZYPISZ_TRASE", "SPRAWDZ_TRASY_KIEROWCY"):
-        return "Jako **Kierowca** masz dostęp tylko do podglądu swoich tras. Opcje wyszukiwania i przypisywania ładunków są zarezerwowane dla spedytorów. Wpisz np. *pokaż moje trasy*."
+        return "Jako kierowca masz dostęp tylko do podglądu swoich tras. Opcje wyszukiwania i przypisywania ładunków są zarezerwowane dla spedytorów. Wpisz np. \"Pokaż moje trasy.\""
 
     # ── PRZYPISZ_TRASE → przypisz ofertę do kierowcy i powiadom ─────
     if intent == "PRZYPISZ_TRASE":

@@ -548,6 +548,7 @@ function MailPageInner() {
         ? data
         : data.emails || data.items || [];
       setAllEmails(emails);
+      setLoadState(emails.length ? "table" : "empty");
     } catch {
       setLoadState("empty");
     }
@@ -577,9 +578,10 @@ function MailPageInner() {
       return matchSearch && matchCat && matchStatus;
     });
     setFiltered(list);
-    setLoadState(
-      list.length ? "table" : allEmails.length ? "empty" : "loading",
-    );
+    setLoadState((prev) => {
+      if (prev === "loading") return "loading";
+      return list.length ? "table" : "empty";
+    });
   }, [allEmails, search, catFilter, statusFilter, readIds, starredIds]);
 
   useEffect(() => {
