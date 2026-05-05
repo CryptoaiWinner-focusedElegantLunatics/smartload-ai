@@ -229,11 +229,12 @@ export default function ChatPage() {
         newWs.onopen = () => console.log("[AI WS] connected ✓");
         newWs.onmessage = (e) => {
           setAiTyping(false);
-          const { text, offerCards, isHtml } = parseAiResponse(e.data);
+          const { text, offerCards, assignedRoutes, isHtml } = parseAiResponse(e.data);
           setAiMessages(prev => [...prev, {
             id: aiMsgId.current++, role: "ai", text, time: now(),
             offerCards,
             offerState: offerCards ? "pending" : undefined,
+            assignedRoutes,
             isHtml,
           }]);
         };
