@@ -1,0 +1,1 @@
+Dodanie histori do chatbota i jej filtrowanie. Uzupełnienie zaległych wpisów do dziennika.

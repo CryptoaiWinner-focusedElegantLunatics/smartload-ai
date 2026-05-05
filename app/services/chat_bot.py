@@ -215,6 +215,57 @@ async def _generate_cmr(offer: EmailLog, plate: str, driver_id: int | None = Non
 
 async def process_driver_message(message: str, db_session: Session, session_id: str = "default", driver_id: int | None = None, user_role: str | None = None) -> str:
     """Główna logika czatu - teraz asynchroniczna, aby nie blokować serwera."""
+    if message.startswith("[CMD: ANALIZUJ_DOKUMENT]"):
+        import re
+        from app.services.llm_service import extract_shipment_data
+        
+        doc_text = message.replace("[CMD: ANALIZUJ_DOKUMENT]", "").strip()
+        filename = "Dokument"
+        
+        # Ekstrakcja nazwy pliku
+        filename_match = re.match(r'^FILENAME:\s*(.+?)\n', doc_text)
+        if filename_match:
+            filename = filename_match.group(1).strip()
+            doc_text = doc_text[filename_match.end():].strip()
+
+        # Najpierw szybki test czy to w ogóle transport
+        check_prompt = f"""Oceń, czy poniższy tekst pochodzi z dokumentu transportowego, logistycznego lub spedycyjnego (np. list CMR, zlecenie, faktura transportowa).
+Odpowiedz tylko TAK lub NIE.
+Tekst: {doc_text[:1000]}"""
+        
+        is_transport = await _call_llm(check_prompt, max_tokens=10)
+        if "NIE" in is_transport.upper():
+            return "Przepraszam, ale analizuję wyłącznie dokumenty związane z transportem i logistyką."
+
+        # Używamy potężnego modelu Llama 3 przez usługę extract_shipment_data
+        shipment_data = await extract_shipment_data(doc_text)
+        
+        # Budujemy dane do formatu wymaganego przez frontend
+        parsed_data = []
+        if shipment_data.sender: parsed_data.append({"key": "Nadawca", "value": shipment_data.sender})
+        if shipment_data.recipient: parsed_data.append({"key": "Odbiorca", "value": shipment_data.recipient})
+        if shipment_data.cargo_description: parsed_data.append({"key": "Towar", "value": shipment_data.cargo_description})
+        if shipment_data.weight_kg: parsed_data.append({"key": "Waga", "value": f"{shipment_data.weight_kg} kg"})
+        if shipment_data.origin: parsed_data.append({"key": "Załadunek", "value": shipment_data.origin})
+        if shipment_data.destination: parsed_data.append({"key": "Rozładunek", "value": shipment_data.destination})
+        if shipment_data.pickup_date: parsed_data.append({"key": "Data załadunku", "value": shipment_data.pickup_date})
+        if shipment_data.delivery_date: parsed_data.append({"key": "Data rozładunku", "value": shipment_data.delivery_date})
+        if shipment_data.price: 
+            currency = shipment_data.currency or ""
+            parsed_data.append({"key": "Cena", "value": f"{shipment_data.price} {currency}".strip()})
+
+        if not parsed_data:
+            parsed_data.append({"key": "Wynik analizy", "value": "Brak informacji"})
+
+        # Zwracamy czysty JSON dla frontendu
+        import json
+        return json.dumps({
+            "type": "parsed_document",
+            "document_name": filename,
+            "category": "Wyciąg z dokumentu (AI)",
+            "data": parsed_data
+        }, ensure_ascii=False)
+
     sess = _session(session_id)
     last_action = "OFFER_MADE" if sess.get("last_offer") else None
     parsed = await _extract_intent(message, sess["awaiting_plate"], last_action)
