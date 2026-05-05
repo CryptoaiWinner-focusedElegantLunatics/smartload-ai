@@ -49,6 +49,12 @@ interface AiMsg {
   offerState?: "pending" | "accepted" | "rejected";
   assignedRoutes?: AssignedRoute[];
   isHtml?: boolean;
+  fileName?: string;
+  parsedDocument?: {
+    document_name: string;
+    category: string;
+    data: { key: string; value: string }[];
+  };
 }
 
 function now() {
@@ -56,7 +62,7 @@ function now() {
 }
 
 // ── Parse AI response ──
-function parseAiResponse(raw: string): { text: string; offerCards?: OfferCard[]; assignedRoutes?: AssignedRoute[]; isHtml?: boolean } {
+function parseAiResponse(raw: string): { text: string; offerCards?: OfferCard[]; assignedRoutes?: AssignedRoute[]; isHtml?: boolean; parsedDocument?: any } {
   const trimmed = raw.trim();
   if (trimmed.startsWith("{")) {
     try {
@@ -68,6 +74,9 @@ function parseAiResponse(raw: string): { text: string; offerCards?: OfferCard[];
       }
       if (p.type === "assigned_routes") {
         return { text: p.message || "Znalezione trasy:", assignedRoutes: p.routes };
+      }
+      if (p.type === "parsed_document") {
+        return { text: p.message || "Przeanalizowano dokument:", parsedDocument: p };
       }
     } catch { /* not JSON */ }
   }
@@ -400,13 +409,14 @@ export default function ChatPage() {
         newWs.onopen = () => console.log("[AI WS] connected ✓");
         newWs.onmessage = (e) => {
           setAiTyping(false);
-          const { text, offerCards, assignedRoutes, isHtml } = parseAiResponse(e.data);
+          const { text, offerCards, assignedRoutes, isHtml, parsedDocument } = parseAiResponse(e.data);
           setAiMessages(prev => [...prev, {
             id: aiMsgId.current++, role: "ai", text, time: now(),
             offerCards,
             offerState: offerCards ? "pending" : undefined,
             assignedRoutes,
             isHtml,
+            parsedDocument
           }]);
         };
         newWs.onclose = (e) => {
@@ -530,17 +540,56 @@ export default function ChatPage() {
 
   // ── Input ──
   const [input, setInput] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages, humanMessages, aiTyping]);
 
-  const sendAi = useCallback((text: string) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    e.target.value = ""; // reset
+    
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      alert("Proszę wgrać plik w formacie PDF.");
+      return;
+    }
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await fetch("/api/backend/documents/parse", {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
+      
+      if (!res.ok) throw new Error("Błąd podczas wgrywania dokumentu");
+      const data = await res.json();
+      
+      if (data.text) {
+        sendAi(`[CMD: ANALIZUJ_DOKUMENT] FILENAME: ${file.name}\n\n${data.text}`, file.name);
+      } else {
+        alert("Dokument jest pusty lub nie udało się odczytać tekstu.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Wystąpił błąd podczas analizy pliku.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const sendAi = useCallback((text: string, fileName?: string) => {
     // 1. Dodajemy Twoją wiadomość na ekran
     setAiMessages(prev => [...prev, {
       id: aiMsgId.current++,
       role: "user",
       text: text,
-      time: now()
+      time: now(),
+      fileName
     }]);
 
     // 2. Odpalamy animację ładowania
@@ -640,6 +689,7 @@ export default function ChatPage() {
         @keyframes slideInR{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
         @keyframes blink{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
         @keyframes offerPulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.4)}50%{box-shadow:0 0 0 6px rgba(59,130,246,0)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
         .bbl{animation:slideInL .2s ease}.bbr{animation:slideInR .2s ease}
         .td1{animation:blink 1.2s infinite}.td2{animation:blink 1.2s .2s infinite}.td3{animation:blink 1.2s .4s infinite}
         .contact-btn:hover{background:${isDark ? "#191919" : "#f1f5f9"}!important}
@@ -737,7 +787,37 @@ export default function ChatPage() {
                     {msg.role === "ai" && <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#3b82f6,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 9, fontWeight: 800, flexShrink: 0 }}>AI</div>}
                     <div style={{ maxWidth: "80%" }}>
                       <div style={{ background: msg.role === "user" ? cPrimary : cCard, border: msg.role === "ai" ? `1px solid ${cBorder}` : "none", borderRadius: msg.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "10px 14px" }}>
-                        {msg.offerCards && msg.offerCards.length > 0 ? (
+                        {msg.fileName ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>📄</div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{msg.fileName}</div>
+                              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>Wysłano dokument do analizy</div>
+                            </div>
+                          </div>
+                        ) : msg.parsedDocument ? (
+                          <>
+                            <div style={{ background: isDark ? "#0d0d0d" : "#f8fafc", border: `1px solid ${cBorder}`, borderRadius: 12, padding: "14px 16px", marginBottom: 6 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, alignItems: "flex-start" }}>
+                                <div>
+                                  <div style={{ fontWeight: 800, fontSize: 14, color: cText }}>📄 {msg.parsedDocument.document_name}</div>
+                                  <div style={{ fontSize: 11, color: cFaint, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>{msg.parsedDocument.category}</div>
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                {msg.parsedDocument.data.map((item: any, idx: number) => (
+                                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: cPrimary, flexShrink: 0 }} />
+                                    <div style={{ flex: 1, display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "6px" }}>
+                                      <span style={{ fontSize: 12, fontWeight: 800, color: cFaint }}>{item.key}:</span>
+                                      <span style={{ fontSize: 13, fontWeight: 700, color: cText }}>{item.value}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        ) : msg.offerCards && msg.offerCards.length > 0 ? (
                           <>
                             <p style={{ margin: "0 0 10px", fontSize: 13, color: cText, lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: msg.text }} />
                             {msg.offerCards.map((card, idx) => (
@@ -821,7 +901,17 @@ export default function ChatPage() {
           {/* Input */}
           <div style={{ flexShrink: 0, background: cSurface, borderTop: `1px solid ${cBorder}`, padding: "12px 20px" }}>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-end", maxWidth: 860, margin: "0 auto" }}>
-              <div style={{ flex: 1, background: cBg, border: `1px solid ${cBorder}`, borderRadius: 18, padding: "10px 16px", display: "flex" }}>
+              <div style={{ flex: 1, background: cBg, border: `1px solid ${cBorder}`, borderRadius: 18, padding: "10px 16px", display: "flex", alignItems: "center" }}>
+                {selectedContact === "ai" && (
+                  <label style={{ cursor: isUploading ? "default" : "pointer", marginRight: 12, display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 8, background: isDark ? "#1e1e1e" : "#f1f5f9", color: isUploading ? cPrimary : cFaint, transition: "all 0.15s" }} title="Wgraj dokument (PDF)">
+                    <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handleFileUpload} disabled={isUploading} />
+                    {isUploading ? (
+                      <div style={{ width: 14, height: 14, border: "2px solid", borderColor: `${cPrimary} transparent transparent transparent`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    )}
+                  </label>
+                )}
                 <textarea
                   ref={textareaRef} rows={1}
                   placeholder={selectedContact === "ai" ? "Napisz do AI… (Enter = wyślij)" : `Napisz do ${activeContact?.username ?? "kontaktu"}…`}
