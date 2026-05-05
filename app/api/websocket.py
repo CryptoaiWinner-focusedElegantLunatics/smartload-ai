@@ -1,10 +1,20 @@
 import json
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from datetime import timedelta
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlmodel import Session
 from app.core.database import engine
+from app.models.user import User
+from app.core.security import get_current_user, create_access_token
 
 router = APIRouter(tags=["websocket"])
 
+@router.get("/api/ws-ticket")
+def get_ws_ticket(user: User = Depends(get_current_user)):
+    ticket = create_access_token(
+        data={"sub": user.username, "type": "ws_ticket"},
+        expires_delta=timedelta(minutes=1)
+    )
+    return {"ticket": ticket}
 
 class ConnectionManager:
     def __init__(self):

@@ -125,39 +125,44 @@ export default function ChatPage() {
     const ws = aiWsRef.current;
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    let wsUrl = `${protocol}//${window.location.host}/api/backend/ws/chat`;
+    const initWs = async () => {
+      try {
+        const res = await fetch("/api/backend/api/ws-ticket", { credentials: "include" });
+        const data = await res.json();
+        const token = data.ticket || "";
 
-    // Dla Railway można ewentualnie zostawić bezpośredni URL jeśli proxy by nie działało dla WS:
-    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-      wsUrl = "wss://smartload-ai-production-01c5.up.railway.app/ws/chat";
-    }
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/api/backend/ws/chat?token=${token}`;
 
-    const newWs = new WebSocket(wsUrl);
-    aiWsRef.current = newWs;
+        const newWs = new WebSocket(wsUrl);
+        aiWsRef.current = newWs;
 
-    newWs.onopen = () => console.log("[AI WS] connected ✓");
-    newWs.onmessage = (e) => {
-      setAiTyping(false);
-      const { text, offerCards, isHtml } = parseAiResponse(e.data);
-      setAiMessages(prev => [...prev, {
-        id: aiMsgId.current++, role: "ai", text, time: now(),
-        offerCards,
-        offerState: offerCards ? "pending" : undefined,
-        isHtml,
-      }]);
+        newWs.onopen = () => console.log("[AI WS] connected ✓");
+        newWs.onmessage = (e) => {
+          setAiTyping(false);
+          const { text, offerCards, isHtml } = parseAiResponse(e.data);
+          setAiMessages(prev => [...prev, {
+            id: aiMsgId.current++, role: "ai", text, time: now(),
+            offerCards,
+            offerState: offerCards ? "pending" : undefined,
+            isHtml,
+          }]);
+        };
+        newWs.onclose = (e) => {
+          console.log(`[AI WS] closed (code=${e.code}), reconnect in 5s...`);
+          if (e.code === 1008) return;
+          setTimeout(connectAiWs, 5000);
+        };
+        newWs.onerror = () => {
+          console.warn("[AI WS] connection error — backend niedostępny?");
+        };
+      } catch (err) {
+        console.error("[AI WS] Failed to get ticket", err);
+        setTimeout(connectAiWs, 5000);
+      }
     };
-    newWs.onclose = (e) => {
-      console.log(`[AI WS] closed (code=${e.code}), reconnect in 5s...`);
-
-      // Jeśli serwer wyrzuci nas za brak autoryzacji - zatrzymujemy pętlę mielenia
-      if (e.code === 1008) return;
-
-      setTimeout(connectAiWs, 5000);
-    };
-    newWs.onerror = () => {
-      console.warn("[AI WS] connection error — backend niedostępny?");
-    };
+    
+    initWs();
   }, []);
 
   useEffect(() => { connectAiWs(); return () => aiWsRef.current?.close(); }, [connectAiWs]);
