@@ -125,20 +125,13 @@ export default function ChatPage() {
     const ws = aiWsRef.current;
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
-    // TWARDE SPRAWDZANIE: Gdzie jesteśmy odpaleni?
-    let baseUrl = "";
-    if (typeof window !== "undefined") {
-      if (window.location.hostname === "localhost") {
-        // Jeśli testujesz u siebie na kompie, bijemy do Twojego lokalnego Pythona
-        baseUrl = "ws://localhost:8000";
-      } else {
-        // Jeśli apka wisi na Railway, bijemy do chmury
-        baseUrl = "wss://smartload-ai-production-01c5.up.railway.app";
-      }
-    }
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    let wsUrl = `${protocol}//${window.location.host}/api/backend/ws/chat`;
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") || "" : "";
-    const wsUrl = token ? `${baseUrl}/ws/chat?token=${token}` : `${baseUrl}/ws/chat`;
+    // Dla Railway można ewentualnie zostawić bezpośredni URL jeśli proxy by nie działało dla WS:
+    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+      wsUrl = "wss://smartload-ai-production-01c5.up.railway.app/ws/chat";
+    }
 
     const newWs = new WebSocket(wsUrl);
     aiWsRef.current = newWs;
