@@ -42,6 +42,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
 
     # Wyciągnij driver_id z tokena (cookie httponly LUB query param)
     driver_id = None
+    user_role = None
     try:
         from jose import jwt as jose_jwt, JWTError
         from app.core.security import _get_secret, ALGORITHM
@@ -66,11 +67,12 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                     user = s.exec(select(User).where(User.username == username)).first()
                     if user:
                         driver_id = user.id
+                        user_role = user.role
                         session_id = f"user_{user.id}"
     except Exception as e:
         print(f"⚠️ [AI WS] Token decode failed: {e}")
 
-    print(f"🔌 [AI WS] Otwarto połączenie dla: {session_id} (driver_id={driver_id})")
+    print(f"🔌 [AI WS] Otwarto połączenie dla: {session_id} (driver_id={driver_id}, role={user_role})")
 
     try:
         while True:
@@ -80,7 +82,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
             from app.services.chat_bot import process_driver_message
 
             with Session(engine) as db_session:
-                response = await process_driver_message(data, db_session, session_id, driver_id=driver_id)
+                response = await process_driver_message(data, db_session, session_id, driver_id=driver_id, user_role=user_role)
 
             print(f"🔍 [AI WS] DEBUG WYNIKU: Typ: {type(response)} | Treść: {response}")
 

@@ -242,6 +242,19 @@ export default function ChatPage() {
     id: 0, role: "ai", time: now(),
     text: "Cześć! 👋 Jestem Twoim asystentem SmartLoad AI.\nPowiedz mi skąd szukasz ładunku — sprawdzę co mamy! 🚛",
   }]);
+
+  useEffect(() => {
+    if (role === "KIEROWCA") {
+      setAiMessages(prev => {
+        const newMsg = [...prev];
+        if (newMsg[0].id === 0) {
+          newMsg[0].text = "Cześć! 👋 Jestem Twoim asystentem SmartLoad AI.\nZapytaj mnie o swoje przypisane trasy, chętnie je wyświetlę! 🚛";
+        }
+        return newMsg;
+      });
+    }
+  }, [role]);
+
   const [aiTyping, setAiTyping] = useState(false);
   const aiWsRef = useRef<WebSocket | null>(null);
   const aiMsgId = useRef(1);

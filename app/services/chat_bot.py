@@ -213,7 +213,7 @@ async def _generate_cmr(offer: EmailLog, plate: str, driver_id: int | None = Non
         )
 
 
-async def process_driver_message(message: str, db_session: Session, session_id: str = "default", driver_id: int | None = None) -> str:
+async def process_driver_message(message: str, db_session: Session, session_id: str = "default", driver_id: int | None = None, user_role: str | None = None) -> str:
     """Główna logika czatu - teraz asynchroniczna, aby nie blokować serwera."""
     sess = _session(session_id)
     last_action = "OFFER_MADE" if sess.get("last_offer") else None
@@ -224,7 +224,11 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
     plate = parsed.get("plate_number")
     driver_query = parsed.get("driver_query")
 
-    logger.info(f"🎯 intent={intent} | loading={loading_city} | unloading={unloading_city} | plate={plate} | driver_query={driver_query}")
+    logger.info(f"🎯 intent={intent} | loading={loading_city} | unloading={unloading_city} | plate={plate} | driver_query={driver_query} | role={user_role}")
+
+    # Zablokuj kierowcom dostęp do funkcji spedytora
+    if user_role == "KIEROWCA" and intent in ("SZUKA_LADUNKU", "AKCEPTUJE_LADUNEK", "PRZYPISZ_TRASE", "SPRAWDZ_TRASY_KIEROWCY"):
+        return "Jako **Kierowca** masz dostęp tylko do podglądu swoich tras. Opcje wyszukiwania i przypisywania ładunków są zarezerwowane dla spedytorów. Wpisz np. *pokaż moje trasy*."
 
     # ── PRZYPISZ_TRASE → przypisz ofertę do kierowcy i powiadom ─────
     if intent == "PRZYPISZ_TRASE":
