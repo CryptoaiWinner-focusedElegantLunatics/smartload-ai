@@ -18,6 +18,10 @@ interface AssignedRoute {
   unloading_city: string;
   status: string;
   cmr_link: string | null;
+  weight_kg?: number;
+  price?: number;
+  source_id?: string;
+  assigned_at?: string;
 }
 
 interface AiMsg {
@@ -56,7 +60,75 @@ function parseAiResponse(raw: string): { text: string; offerCards?: OfferCard[];
   return { text: trimmed, isHtml };
 }
 
-function AssignedRoutesList({ routes, cCard, cBorder, cText, cFaint, cPrimary }: any) {
+const STATUS_STYLE: Record<string, { color: string; bg: string; border: string }> = {
+  PRZYPISANE:  { color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)"  },
+  "W DRODZE":  { color: "#3b82f6", bg: "rgba(59,130,246,0.12)",  border: "rgba(59,130,246,0.3)"  },
+  ROZŁADOWANE: { color: "#10b981", bg: "rgba(16,185,129,0.12)",  border: "rgba(16,185,129,0.3)"  },
+};
+
+function Chip({ icon, label, isDark }: { icon: string; label: string; isDark: boolean }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", border: `1px solid ${isDark ? "rgba(255,255,255,0.07)" : "#e2e8f0"}`, color: isDark ? "#94a3b8" : "#475569" }}>
+      {icon} {label}
+    </span>
+  );
+}
+
+function AssignedRouteCard({ route, isDark }: { route: AssignedRoute; isDark: boolean }) {
+  const style = STATUS_STYLE[route.status] ?? STATUS_STYLE["PRZYPISANE"];
+  const date = route.assigned_at ? new Date(route.assigned_at).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+
+  const cardBg = isDark ? "#191919" : "#ffffff";
+  const cardBorder = isDark ? "#252525" : "#e2e8f0";
+  const textColor = isDark ? "#f1f5f9" : "#1e293b";
+  const mutedColor = isDark ? "#64748b" : "#94a3b8";
+
+  return (
+    <div style={{ borderRadius: 14, background: cardBg, border: `1px solid ${cardBorder}`, padding: "1.25rem", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "linear-gradient(135deg, #3b82f6, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(59,130,246,0.3)" }}>
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+            <rect x="1" y="3" width="15" height="13" />
+            <polyline points="16 8 20 8 23 11 23 16 16 16" />
+            <circle cx="5.5" cy="18.5" r="2.5" />
+            <circle cx="18.5" cy="18.5" r="2.5" />
+          </svg>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", color: textColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {route.loading_city} <span style={{ margin: "0 6px", color: "#3b82f6" }}>→</span> {route.unloading_city}
+          </div>
+          {date && <div style={{ fontSize: 11, color: mutedColor, marginTop: 2 }}>Przypisano: {date}</div>}
+        </div>
+
+        <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", padding: "4px 10px", borderRadius: 100, color: style.color, background: style.bg, border: `1px solid ${style.border}`, flexShrink: 0 }}>
+          {route.status}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+        {route.weight_kg != null && <Chip icon="⚖️" label={`${route.weight_kg.toLocaleString("pl-PL")} kg`} isDark={isDark} />}
+        {route.price != null && route.price > 0 && <Chip icon="💶" label={`${route.price.toLocaleString("pl-PL", { minimumFractionDigits: 0 })} EUR`} isDark={isDark} />}
+        {route.source_id && <Chip icon="🔗" label={`ID: ${route.source_id.slice(0, 10)}…`} isDark={isDark} />}
+      </div>
+
+      {route.cmr_link && (
+        <div style={{ display: "flex", justifyContent: "flex-end", borderTop: `1px solid ${cardBorder}`, paddingTop: 12, marginTop: 4 }}>
+          <a href={route.cmr_link} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", fontSize: 11, fontWeight: 700, textDecoration: "none", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Pokaż CMR
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AssignedRoutesList({ routes, cCard, cBorder, cText, cFaint, cPrimary, isDark }: any) {
   const [showCompleted, setShowCompleted] = useState(false);
   const activeRoutes = routes.filter((r: AssignedRoute) => r.status !== "ROZŁADOWANE");
   const completedRoutes = routes.filter((r: AssignedRoute) => r.status === "ROZŁADOWANE");
@@ -67,25 +139,7 @@ function AssignedRoutesList({ routes, cCard, cBorder, cText, cFaint, cPrimary }:
         <div className="flex flex-col gap-3">
           <div className="text-sm font-semibold" style={{ color: cText }}>Aktywne trasy ({activeRoutes.length})</div>
           {activeRoutes.map((r: AssignedRoute) => (
-            <div key={r.id} className="p-4 rounded-xl border flex flex-col gap-3" style={{ background: cCard, borderColor: cBorder }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold" style={{ color: cText }}>{r.loading_city}</span>
-                  <span style={{ color: cFaint }}>→</span>
-                  <span className="text-sm font-bold" style={{ color: cText }}>{r.unloading_city}</span>
-                </div>
-                <div className="text-xs px-2 py-1 rounded-md font-semibold" style={{ background: r.status === 'PRZYPISANE' ? '#fef08a' : '#bfdbfe', color: '#1e293b' }}>
-                  {r.status}
-                </div>
-              </div>
-              {r.cmr_link && (
-                <div className="flex justify-end mt-1">
-                  <a href={r.cmr_link} target="_blank" rel="noreferrer" className="text-xs font-semibold hover:underline" style={{ color: cPrimary }}>
-                    📄 Zobacz CMR
-                  </a>
-                </div>
-              )}
-            </div>
+            <AssignedRouteCard key={r.id} route={r} isDark={isDark} />
           ))}
         </div>
       ) : (
@@ -97,7 +151,7 @@ function AssignedRoutesList({ routes, cCard, cBorder, cText, cFaint, cPrimary }:
           <button 
             onClick={() => setShowCompleted(!showCompleted)} 
             className="text-xs font-semibold hover:underline flex items-center gap-1" 
-            style={{ color: cFaint }}
+            style={{ color: cFaint, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
           >
             {showCompleted ? "Ukryj" : "Pokaż"} zakończone trasy ({completedRoutes.length})
           </button>
@@ -105,25 +159,7 @@ function AssignedRoutesList({ routes, cCard, cBorder, cText, cFaint, cPrimary }:
           {showCompleted && (
             <div className="flex flex-col gap-3 mt-3 opacity-80">
               {completedRoutes.map((r: AssignedRoute) => (
-                <div key={r.id} className="p-3 rounded-xl border flex flex-col gap-2" style={{ background: cCard, borderColor: cBorder }}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold" style={{ color: cText }}>{r.loading_city}</span>
-                      <span style={{ color: cFaint }}>→</span>
-                      <span className="text-sm font-bold" style={{ color: cText }}>{r.unloading_city}</span>
-                    </div>
-                    <div className="text-xs px-2 py-1 rounded-md font-semibold bg-gray-200 text-gray-700">
-                      {r.status}
-                    </div>
-                  </div>
-                  {r.cmr_link && (
-                    <div className="flex justify-end">
-                      <a href={r.cmr_link} target="_blank" rel="noreferrer" className="text-xs hover:underline" style={{ color: cPrimary }}>
-                        📄 Zobacz CMR
-                      </a>
-                    </div>
-                  )}
-                </div>
+                <AssignedRouteCard key={r.id} route={r} isDark={isDark} />
               ))}
             </div>
           )}
@@ -566,7 +602,7 @@ export default function ChatPage() {
                         ) : msg.assignedRoutes && msg.assignedRoutes.length > 0 ? (
                           <>
                             <p style={{ margin: "0 0 10px", fontSize: 13, color: cText, lineHeight: 1.6 }}>{msg.text}</p>
-                            <AssignedRoutesList routes={msg.assignedRoutes} cCard={cCard} cBorder={cBorder} cText={cText} cFaint={cFaint} cPrimary={cPrimary} />
+                            <AssignedRoutesList routes={msg.assignedRoutes} cCard={cCard} cBorder={cBorder} cText={cText} cFaint={cFaint} cPrimary={cPrimary} isDark={isDark} />
                           </>
                         ) : msg.isHtml ? (
                           <p style={{ margin: 0, fontSize: 13, color: msg.role === "user" ? "#fff" : cText, lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: msg.text }} />

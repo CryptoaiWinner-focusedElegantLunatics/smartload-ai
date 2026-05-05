@@ -375,7 +375,11 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
                         "loading_city": r.loading_city,
                         "unloading_city": r.unloading_city,
                         "status": r.status,
-                        "cmr_link": f"/api/backend/api/routes/{r.id}/cmr" if r.cmr_path else None
+                        "cmr_link": f"/api/backend/api/routes/{r.id}/cmr" if r.cmr_path else None,
+                        "weight_kg": r.weight_kg,
+                        "price": r.price,
+                        "source_id": r.source_id,
+                        "assigned_at": r.assigned_at.isoformat() if r.assigned_at else None
                     })
                     
                 payload = {
@@ -422,7 +426,11 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
                         "loading_city": r.loading_city,
                         "unloading_city": r.unloading_city,
                         "status": r.status,
-                        "cmr_link": f"/api/backend/api/routes/{r.id}/cmr" if r.cmr_path else None
+                        "cmr_link": f"/api/backend/api/routes/{r.id}/cmr" if r.cmr_path else None,
+                        "weight_kg": r.weight_kg,
+                        "price": r.price,
+                        "source_id": r.source_id,
+                        "assigned_at": r.assigned_at.isoformat() if r.assigned_at else None
                     })
                     
                 payload = {
