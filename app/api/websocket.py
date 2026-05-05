@@ -79,6 +79,20 @@ async def websocket_chat_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             print(f"📥 [AI WS] Otrzymałem: {data}")
 
+            # Zapisz wiadomość użytkownika do historii AI
+            if driver_id:
+                try:
+                    from app.models.ai_chat_message import AiChatMessage
+                    with Session(engine) as save_session:
+                        save_session.add(AiChatMessage(
+                            user_id=driver_id,
+                            role="user",
+                            content=data,
+                        ))
+                        save_session.commit()
+                except Exception as save_err:
+                    print(f"⚠️ [AI WS] Błąd zapisu wiadomości usera: {save_err}")
+
             from app.services.chat_bot import process_driver_message
 
             with Session(engine) as db_session:
@@ -93,6 +107,20 @@ async def websocket_chat_endpoint(websocket: WebSocket):
             if not isinstance(response, str):
                 response = json.dumps(response, ensure_ascii=False, default=str)
 
+            # Zapisz odpowiedź AI do historii
+            if driver_id:
+                try:
+                    from app.models.ai_chat_message import AiChatMessage
+                    with Session(engine) as save_session:
+                        save_session.add(AiChatMessage(
+                            user_id=driver_id,
+                            role="ai",
+                            content=response,
+                        ))
+                        save_session.commit()
+                except Exception as save_err:
+                    print(f"⚠️ [AI WS] Błąd zapisu odpowiedzi AI: {save_err}")
+
             await ws_manager.send_text(websocket, response)
             print("📤 [AI WS] Odpowiedź wysłana do Reacta!")
 
@@ -102,3 +130,4 @@ async def websocket_chat_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"🔥 [AI WS] FATAL ERROR: {e}")
         ws_manager.disconnect(websocket)
+

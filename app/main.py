@@ -12,6 +12,7 @@ from app.core.database import engine
 from app.models.custom_category import CustomCategory
 from app.models.assigned_route import AssignedRoute  # noqa: F401 — needed for create_all
 from app.models.chat_message import ChatMessage  # noqa: F401 — needed for create_all
+from app.models.ai_chat_message import AiChatMessage  # noqa: F401 — needed for create_all
 from app.scraper.runner import run_all_scrapers
 from app.services.tasks import process_emails_task
 from app.seeds.seed_firetms import seed_all

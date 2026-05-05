@@ -8,6 +8,21 @@ import { usePusherChat, ChatMsg } from "../hooks/usePusherChat";
 // ── Types ──
 interface Contact { id: number; username: string; role: string; }
 
+interface AiHistoryMsg {
+  id: number;
+  user_id: number;
+  role: string;
+  content: string;
+  timestamp: string;
+}
+
+interface AiChatUser {
+  id: number;
+  username: string;
+  role: string;
+  message_count: number;
+}
+
 interface OfferCard {
   id: string; route_from: string; route_to: string;
   price: string; weight: string;
@@ -189,6 +204,113 @@ export default function ChatPage() {
   const cText = isDark ? "#e8e8e8" : "#0f172a";
   const cFaint = isDark ? "#555" : "#94a3b8";
   const cPrimary = "#3b82f6";
+  const cAccent = isDark ? "#f59e0b" : "#3b82f6";
+
+  // ── AI History ──
+  const [showHistory, setShowHistory] = useState(false);
+  const [aiHistory, setAiHistory] = useState<AiHistoryMsg[]>([]);
+  const [aiHistoryLoading, setAiHistoryLoading] = useState(false);
+  const [aiChatUsers, setAiChatUsers] = useState<AiChatUser[]>([]);
+  const [selectedHistoryUserId, setSelectedHistoryUserId] = useState<number | null>(null);
+  const historyEndRef = useRef<HTMLDivElement>(null);
+
+  // ── AI History Search/Filter ──
+  const [historySearchQuery, setHistorySearchQuery] = useState("");
+  const [historyDateFrom, setHistoryDateFrom] = useState("");
+  const [historyDateTo, setHistoryDateTo] = useState("");
+
+  // Filtrowane wiadomości (po słowach + dacie)
+  const filteredAiHistory = aiHistory.filter(msg => {
+    // Filtr tekstowy
+    if (historySearchQuery.trim()) {
+      const q = historySearchQuery.toLowerCase();
+      const parsed = parseHistoryContent(msg.content, msg.role).toLowerCase();
+      if (!parsed.includes(q)) return false;
+    }
+    // Filtr daty OD
+    if (historyDateFrom) {
+      const msgDate = new Date(msg.timestamp).toISOString().slice(0, 10);
+      if (msgDate < historyDateFrom) return false;
+    }
+    // Filtr daty DO
+    if (historyDateTo) {
+      const msgDate = new Date(msg.timestamp).toISOString().slice(0, 10);
+      if (msgDate > historyDateTo) return false;
+    }
+    return true;
+  });
+
+  const hasActiveFilters = historySearchQuery.trim() !== "" || historyDateFrom !== "" || historyDateTo !== "";
+
+  function clearHistoryFilters() {
+    setHistorySearchQuery("");
+    setHistoryDateFrom("");
+    setHistoryDateTo("");
+  }
+
+  // Pobierz listę userów z AI rozmowami (tylko admin)
+  const fetchAiUsers = useCallback(async () => {
+    if (role !== "ADMIN") return;
+    try {
+      const res = await fetch("/api/backend/api/chat/ai-users", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setAiChatUsers(data);
+      }
+    } catch { /* ignore */ }
+  }, [role]);
+
+  // Pobierz historię AI czatu
+  const fetchAiHistory = useCallback(async (userId?: number) => {
+    setAiHistoryLoading(true);
+    try {
+      const url = userId
+        ? `/api/backend/api/chat/ai-history/${userId}`
+        : "/api/backend/api/chat/ai-history";
+      const res = await fetch(url, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setAiHistory(data);
+      } else {
+        setAiHistory([]);
+      }
+    } catch {
+      setAiHistory([]);
+    } finally {
+      setAiHistoryLoading(false);
+    }
+  }, []);
+
+  // Po otwarciu panelu historii
+  useEffect(() => {
+    if (showHistory) {
+      if (role === "ADMIN") {
+        fetchAiUsers();
+      }
+      fetchAiHistory(selectedHistoryUserId ?? undefined);
+    }
+  }, [showHistory, selectedHistoryUserId, role, fetchAiHistory, fetchAiUsers]);
+
+  // Scroll do dołu historii
+  useEffect(() => {
+    if (showHistory) {
+      setTimeout(() => historyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
+  }, [aiHistory, showHistory]);
+
+  // Parsuj treść AI (wyciągnij czytelny tekst z JSONa)
+  function parseHistoryContent(raw: string, msgRole: string): string {
+    if (msgRole === "user") return raw;
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("{")) {
+      try {
+        const p = JSON.parse(trimmed);
+        if (p.type === "offer_card" && p.message) return p.message;
+        if (p.text) return p.text;
+      } catch { /* not json */ }
+    }
+    return trimmed;
+  }
 
   // ── Contacts ──
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -567,7 +689,36 @@ export default function ChatPage() {
             {selectedContact === "ai" ? (
               <>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#3b82f6,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 13 }}>AI</div>
-                <div><div style={{ fontSize: 14, fontWeight: 700, color: cText }}>SmartLoad Spedytor AI</div><div style={{ fontSize: 11, color: cFaint }}>Asystent — szuka ładunków</div></div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: cText }}>SmartLoad Spedytor AI</div><div style={{ fontSize: 11, color: cFaint }}>Asystent — szuka ładunków</div></div>
+                {/* Przycisk Historia */}
+                <button
+                  id="btn-ai-history"
+                  onClick={() => setShowHistory(true)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "8px 16px", borderRadius: 10,
+                    border: `1px solid ${cBorder}`,
+                    background: isDark ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.08)",
+                    color: cAccent,
+                    fontSize: 12, fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = isDark ? "rgba(245,158,11,0.2)" : "rgba(59,130,246,0.15)";
+                    e.currentTarget.style.borderColor = cAccent;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = isDark ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.08)";
+                    e.currentTarget.style.borderColor = cBorder;
+                  }}
+                >
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Historia
+                </button>
               </>
             ) : activeContact ? (
               <>
@@ -819,6 +970,356 @@ export default function ChatPage() {
               </>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Panel historii czatu AI ── */}
+      {showHistory && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{
+            background: cSurface, border: `1px solid ${cBorder}`, borderRadius: 20,
+            width: "90vw", maxWidth: 720, height: "85vh", maxHeight: 700,
+            display: "flex", flexDirection: "column",
+            boxShadow: "0 32px 80px rgba(0,0,0,0.5)",
+            overflow: "hidden",
+          }}>
+            {/* Header historii */}
+            <div style={{
+              flexShrink: 0, padding: "16px 24px",
+              borderBottom: `1px solid ${cBorder}`,
+              display: "flex", alignItems: "center", gap: 12,
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: "linear-gradient(135deg,#3b82f6,#7c3aed)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontWeight: 800, fontSize: 13,
+              }}>AI</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: cText }}>Historia czatu AI</div>
+                <div style={{ fontSize: 11, color: cFaint }}>
+                  {role === "ADMIN" && selectedHistoryUserId
+                    ? `Rozmowy użytkownika: ${aiChatUsers.find(u => u.id === selectedHistoryUserId)?.username ?? ""}`
+                    : "Twoje rozmowy z Doradcą AI"}
+                </div>
+              </div>
+
+              {/* Admin: dropdown wyboru konta */}
+              {role === "ADMIN" && (
+                <div style={{ position: "relative" }}>
+                  <select
+                    id="history-user-select"
+                    value={selectedHistoryUserId ?? ""}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setSelectedHistoryUserId(val ? Number(val) : null);
+                    }}
+                    style={{
+                      padding: "7px 30px 7px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${cBorder}`,
+                      background: cBg,
+                      color: cText,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      outline: "none",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 8px center",
+                    }}
+                  >
+                    <option value="">Moje rozmowy</option>
+                    {aiChatUsers.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.username} ({u.role}) — {u.message_count} wiad.
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Przycisk zamknij */}
+              <button
+                onClick={() => { setShowHistory(false); setSelectedHistoryUserId(null); clearHistoryFilters(); }}
+                style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  border: `1px solid ${cBorder}`,
+                  background: "transparent",
+                  color: cFaint, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s", flexShrink: 0,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = isDark ? "#1e1e1e" : "#f1f5f9"; e.currentTarget.style.color = cText; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = cFaint; }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* ── Pasek wyszukiwania i filtrów ── */}
+            <div style={{
+              flexShrink: 0, padding: "12px 24px",
+              borderBottom: `1px solid ${cBorder}`,
+              background: isDark ? "#0d0d0d" : "#f8fafc",
+              display: "flex", flexDirection: "column", gap: 10,
+            }}>
+              {/* Wyszukiwanie po słowach */}
+              <div style={{ position: "relative" }}>
+                <svg
+                  width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke={cFaint} strokeWidth="2"
+                  style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+                >
+                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input
+                  id="history-search-input"
+                  type="text"
+                  placeholder="Szukaj w wiadomościach…"
+                  value={historySearchQuery}
+                  onChange={e => setHistorySearchQuery(e.target.value)}
+                  style={{
+                    width: "100%", boxSizing: "border-box",
+                    padding: "9px 14px 9px 34px",
+                    borderRadius: 10,
+                    border: `1px solid ${historySearchQuery ? cAccent : cBorder}`,
+                    background: cSurface,
+                    color: cText,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    outline: "none",
+                    transition: "border-color 0.2s",
+                    fontFamily: 'inherit',
+                  }}
+                />
+                {historySearchQuery && (
+                  <button
+                    onClick={() => setHistorySearchQuery("")}
+                    style={{
+                      position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                      width: 20, height: 20, borderRadius: "50%",
+                      border: "none",
+                      background: isDark ? "#333" : "#e2e8f0",
+                      color: cFaint, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 11, fontWeight: 800,
+                    }}
+                  >✕</button>
+                )}
+              </div>
+
+              {/* Filtry daty */}
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <label style={{ fontSize: 11, color: cFaint, fontWeight: 600, whiteSpace: "nowrap" }}>Od:</label>
+                  <input
+                    id="history-date-from"
+                    type="date"
+                    value={historyDateFrom}
+                    onChange={e => setHistoryDateFrom(e.target.value)}
+                    style={{
+                      padding: "6px 10px", borderRadius: 8,
+                      border: `1px solid ${historyDateFrom ? cAccent : cBorder}`,
+                      background: cSurface, color: cText,
+                      fontSize: 11, fontWeight: 500,
+                      outline: "none", fontFamily: "inherit",
+                      cursor: "pointer",
+                      colorScheme: isDark ? "dark" : "light",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <label style={{ fontSize: 11, color: cFaint, fontWeight: 600, whiteSpace: "nowrap" }}>Do:</label>
+                  <input
+                    id="history-date-to"
+                    type="date"
+                    value={historyDateTo}
+                    onChange={e => setHistoryDateTo(e.target.value)}
+                    style={{
+                      padding: "6px 10px", borderRadius: 8,
+                      border: `1px solid ${historyDateTo ? cAccent : cBorder}`,
+                      background: cSurface, color: cText,
+                      fontSize: 11, fontWeight: 500,
+                      outline: "none", fontFamily: "inherit",
+                      cursor: "pointer",
+                      colorScheme: isDark ? "dark" : "light",
+                    }}
+                  />
+                </div>
+
+                {/* Przycisk wyczyść filtry */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearHistoryFilters}
+                    style={{
+                      marginLeft: "auto",
+                      padding: "5px 12px", borderRadius: 8,
+                      border: `1px solid ${isDark ? "rgba(239,68,68,0.3)" : "#fecaca"}`,
+                      background: isDark ? "rgba(239,68,68,0.1)" : "#fef2f2",
+                      color: isDark ? "#f87171" : "#dc2626",
+                      fontSize: 11, fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 4,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                    Wyczyść filtry
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Treść historii */}
+            <div style={{
+              flex: 1, overflowY: "auto", padding: "1.25rem 1.5rem",
+              display: "flex", flexDirection: "column", gap: "0.75rem",
+              background: cBg,
+            }}>
+              {aiHistoryLoading ? (
+                <div style={{ textAlign: "center", padding: "3rem", color: cFaint, fontSize: 13 }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>⏳</div>
+                  Ładowanie historii…
+                </div>
+              ) : aiHistory.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "4rem", color: cFaint }}>
+                  <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📭</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Brak historii</div>
+                  <div style={{ fontSize: 12 }}>Nie ma jeszcze żadnych rozmów z Doradcą AI</div>
+                </div>
+              ) : filteredAiHistory.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "4rem", color: cFaint }}>
+                  <div style={{ fontSize: 40, marginBottom: 14, opacity: 0.5 }}>🔍</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Brak wyników</div>
+                  <div style={{ fontSize: 12, marginBottom: 14 }}>Nie znaleziono wiadomości pasujących do filtrów</div>
+                  <button
+                    onClick={clearHistoryFilters}
+                    style={{
+                      padding: "7px 18px", borderRadius: 8,
+                      border: `1px solid ${cBorder}`,
+                      background: isDark ? "rgba(59,130,246,0.1)" : "rgba(59,130,246,0.08)",
+                      color: cPrimary, fontSize: 12, fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >Wyczyść filtry</button>
+                </div>
+              ) : (
+                <>
+                  {/* Separator daty */}
+                  {(() => {
+                    let lastDate = "";
+                    return filteredAiHistory.map(msg => {
+                      const date = new Date(msg.timestamp).toLocaleDateString("pl-PL", { day: "2-digit", month: "long", year: "numeric" });
+                      const showDate = date !== lastDate;
+                      lastDate = date;
+                      const parsed = parseHistoryContent(msg.content, msg.role);
+                      const isHtml = /<[a-z]/.test(parsed);
+
+                      // Podświetlanie szukanej frazy
+                      function highlightText(text: string): string {
+                        if (!historySearchQuery.trim()) return text;
+                        const q = historySearchQuery.trim();
+                        const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                        return text.replace(regex, `<mark style="background:${isDark ? 'rgba(245,158,11,0.35)' : 'rgba(59,130,246,0.25)'};color:inherit;border-radius:2px;padding:0 1px">$1</mark>`);
+                      }
+
+                      const displayContent = historySearchQuery.trim()
+                        ? highlightText(isHtml ? parsed : parsed.replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+                        : null;
+
+                      return (
+                        <div key={msg.id}>
+                          {showDate && (
+                            <div style={{
+                              textAlign: "center", margin: "12px 0 8px",
+                              fontSize: 10, fontWeight: 800, textTransform: "uppercase",
+                              letterSpacing: "0.15em", color: cFaint,
+                            }}>
+                              <span style={{
+                                background: cSurface, border: `1px solid ${cBorder}`,
+                                padding: "4px 14px", borderRadius: 100,
+                              }}>{date}</span>
+                            </div>
+                          )}
+                          <div className={msg.role === "user" ? "bbr" : "bbl"}
+                            style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}
+                          >
+                            {msg.role === "ai" && (
+                              <div style={{
+                                width: 28, height: 28, borderRadius: 8,
+                                background: "linear-gradient(135deg,#3b82f6,#7c3aed)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                color: "#fff", fontSize: 9, fontWeight: 800, flexShrink: 0,
+                              }}>AI</div>
+                            )}
+                            <div style={{ maxWidth: "80%" }}>
+                              <div style={{
+                                background: msg.role === "user" ? cPrimary : cCard,
+                                border: msg.role === "ai" ? `1px solid ${cBorder}` : "none",
+                                borderRadius: msg.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                                padding: "10px 14px",
+                              }}>
+                                {displayContent ? (
+                                  <p style={{ margin: 0, fontSize: 13, color: msg.role === "user" ? "#fff" : cText, lineHeight: 1.6 }}
+                                    dangerouslySetInnerHTML={{ __html: displayContent }} />
+                                ) : isHtml ? (
+                                  <p style={{ margin: 0, fontSize: 13, color: msg.role === "user" ? "#fff" : cText, lineHeight: 1.6 }}
+                                    dangerouslySetInnerHTML={{ __html: parsed }} />
+                                ) : (
+                                  <p style={{ margin: 0, fontSize: 13, color: msg.role === "user" ? "#fff" : cText, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                                    {parsed}
+                                  </p>
+                                )}
+                              </div>
+                              <div style={{ fontSize: 10, color: cFaint, marginTop: 2, textAlign: msg.role === "user" ? "right" : "left", padding: "0 4px" }}>
+                                {msg.role === "user" ? "Ty" : "SmartLoad AI"} · {new Date(msg.timestamp).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                  <div ref={historyEndRef} />
+                </>
+              )}
+            </div>
+
+            {/* Footer historii */}
+            <div style={{
+              flexShrink: 0, padding: "12px 24px",
+              borderTop: `1px solid ${cBorder}`,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: cSurface,
+            }}>
+              <div style={{ fontSize: 11, color: cFaint }}>
+                {hasActiveFilters
+                  ? `${filteredAiHistory.length} z ${aiHistory.length} wiadomości`
+                  : (aiHistory.length > 0 ? `${aiHistory.length} wiadomości` : "")}
+              </div>
+              <button
+                onClick={() => { setShowHistory(false); setSelectedHistoryUserId(null); clearHistoryFilters(); }}
+                style={{
+                  padding: "8px 20px", borderRadius: 8,
+                  border: `1px solid ${cBorder}`,
+                  background: "transparent",
+                  color: cText, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = isDark ? "#1e1e1e" : "#f1f5f9"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+              >
+                Zamknij
+              </button>
+            </div>
           </div>
         </div>
       )}

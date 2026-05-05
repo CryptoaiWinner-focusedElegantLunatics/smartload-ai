@@ -18,6 +18,7 @@ from app.core.security import RoleChecker, _get_secret, ALGORITHM
 from app.core.pusher_client import pusher_client
 from app.models.user import User, UserRole
 from app.models.chat_message import ChatMessage
+from app.models.ai_chat_message import AiChatMessage
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
@@ -40,6 +41,28 @@ class MessageOut(BaseModel):
     content: str
     timestamp: datetime
     is_read: bool
+
+    class Config:
+        from_attributes = True
+
+
+class AiMessageOut(BaseModel):
+    id: int
+    user_id: int
+    role: str
+    content: str
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AiChatUserOut(BaseModel):
+    """Użytkownik, który prowadził rozmowę z AI."""
+    id: int
+    username: str
+    role: str
+    message_count: int
 
     class Config:
         from_attributes = True
@@ -213,3 +236,90 @@ def get_chat_contacts(
                 select(User).where(User.role.in_([UserRole.SPEDYTOR, UserRole.ADMIN]))  # type: ignore[attr-defined]
             ).all()
     return contacts
+
+
+# ─── REST: Historia czatu AI ─────────────────────────────────────────────────
+@router.get("/api/chat/ai-history", response_model=list[AiMessageOut])
+def get_own_ai_history(
+    current_user: User = Depends(RoleChecker(["ADMIN", "SPEDYTOR", "KIEROWCA"])),
+):
+    """Pobiera historię czatu AI zalogowanego użytkownika."""
+    with Session(engine) as session:
+        msgs = session.exec(
+            select(AiChatMessage)
+            .where(AiChatMessage.user_id == current_user.id)
+            .order_by(AiChatMessage.timestamp)
+        ).all()
+
+        return [
+            AiMessageOut(
+                id=m.id,
+                user_id=m.user_id,
+                role=m.role,
+                content=m.content,
+                timestamp=m.timestamp,
+            )
+            for m in msgs
+        ]
+
+
+@router.get("/api/chat/ai-history/{user_id}", response_model=list[AiMessageOut])
+def get_user_ai_history(
+    user_id: int,
+    current_user: User = Depends(RoleChecker(["ADMIN"])),
+):
+    """Pobiera historię czatu AI dowolnego użytkownika (tylko ADMIN)."""
+    with Session(engine) as session:
+        # Sprawdź czy user istnieje
+        target_user = session.exec(select(User).where(User.id == user_id)).first()
+        if not target_user:
+            raise HTTPException(404, "Użytkownik nie istnieje")
+
+        msgs = session.exec(
+            select(AiChatMessage)
+            .where(AiChatMessage.user_id == user_id)
+            .order_by(AiChatMessage.timestamp)
+        ).all()
+
+        return [
+            AiMessageOut(
+                id=m.id,
+                user_id=m.user_id,
+                role=m.role,
+                content=m.content,
+                timestamp=m.timestamp,
+            )
+            for m in msgs
+        ]
+
+
+@router.get("/api/chat/ai-users", response_model=list[AiChatUserOut])
+def get_ai_chat_users(
+    current_user: User = Depends(RoleChecker(["ADMIN"])),
+):
+    """Lista użytkowników, którzy mają historię rozmów z AI (tylko ADMIN)."""
+    from sqlalchemy import func
+
+    with Session(engine) as session:
+        # Subquery: policz wiadomości per user_id
+        results = session.exec(
+            select(
+                AiChatMessage.user_id,
+                func.count(AiChatMessage.id).label("message_count"),
+            )
+            .group_by(AiChatMessage.user_id)
+        ).all()
+
+        users_out = []
+        for user_id, msg_count in results:
+            user = session.exec(select(User).where(User.id == user_id)).first()
+            if user:
+                users_out.append(AiChatUserOut(
+                    id=user.id,
+                    username=user.username,
+                    role=user.role,
+                    message_count=msg_count,
+                ))
+
+        return users_out
+
