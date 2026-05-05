@@ -40,12 +40,13 @@ async def websocket_chat_endpoint(websocket: WebSocket):
 
         # 1) Spróbuj z cookie (httponly — ustawiane przez /login)
         token = websocket.cookies.get("access_token") or ""
-        if token.lower().startswith("bearer "):
-            token = token.split(" ", 1)[1]
 
         # 2) Fallback: query param (?token=xxx)
         if not token:
             token = websocket.query_params.get("token") or ""
+
+        if token.lower().startswith("bearer "):
+            token = token.split(" ", 1)[1]
 
         if token:
             payload = jose_jwt.decode(token, _get_secret(), algorithms=[ALGORITHM])

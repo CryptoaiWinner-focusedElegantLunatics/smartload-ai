@@ -1,0 +1,1 @@
+Naprawa błedów, głównie związanych z generowaniem cmr, ale także naprawa stylów w "Moje trasy", zaczątek dodania tras do chat bota.

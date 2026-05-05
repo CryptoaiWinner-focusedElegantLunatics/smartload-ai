@@ -70,15 +70,15 @@ async def _extract_intent(message: str, awaiting_plate: bool, last_action: str =
         context_hint = "WAŻNE: Właśnie złożyłeś ofertę ładunku. Odpowiedzi typu 'pasuje', 'biorę', 'ok', 'może być' to AKCEPTUJE_LADUNEK."
 
     prompt = f"""Jesteś logistycznym systemem AI. Skalasyfikuj wiadomość kierowcy.
-Zwróć WYŁĄCZNIE JSON: {{"intent": "...", "loading_city": "...", "unloading_city": "...", "plate_number": "...", "driver_id": null}}
+Zwróć WYŁĄCZNIE JSON: {{"intent": "...", "loading_city": "...", "unloading_city": "...", "plate_number": "...", "driver_query": null}}
 
 Intencje:
 - SZUKA_LADUNKU: pyta o wolne trasy / podaje lokalizację
 - AKCEPTUJE_LADUNEK: zgadza się na propozycję (synonimy: pasuje mi, biorę to, git, wchodzę w to, ok)
 - PODAJ_REJESTRACJE: podaje numer rejestracyjny
-- PRZYPISZ_TRASE: prosi o przypisanie trasy do kierowcy (zawiera "daj", "przypisz", "kierowca nr", "dla kierowcy") — wyciągnij driver_id jako liczbę
+- PRZYPISZ_TRASE: prosi o przypisanie trasy do kierowcy (zawiera "daj", "przypisz", "kierowca nr", "dla kierowcy") — wyciągnij driver_query jako tekst (np. "kierowca1", "3", "jan kowalski")
 - POKAZ_MOJE_TRASY: pyta o swoje własne, przypisane mu trasy (np. "jakie mam trasy", "moje trasy", "gdzie jadę")
-- SPRAWDZ_TRASY_KIEROWCY: spedytor pyta o trasy przypisane do konkretnego kierowcy (np. "jakie trasy ma kierowca 3", "trasy dla kierowcy nr 5") — wyciągnij driver_id jako liczbę
+- SPRAWDZ_TRASY_KIEROWCY: spedytor pyta o trasy przypisane do konkretnego kierowcy (np. "jakie trasy ma kierowca 1", "trasy dla kierowcy nr 5") — wyciągnij driver_query jako tekst (np. "kierowca1", "5", "jan kowalski")
 - INNE: reszta
 
 Kontekst: {context_hint}
@@ -99,7 +99,7 @@ JSON:"""
             "loading_city": result.get("loading_city"),
             "unloading_city": result.get("unloading_city"),
             "plate_number": result.get("plate_number"),
-            "driver_id": result.get("driver_id"),
+            "driver_query": result.get("driver_query") or result.get("driver_id"),
         }
     except Exception:
         logger.warning(f"⚠️ Nie udało się sparsować intencji: {raw!r}")
@@ -222,9 +222,9 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
     loading_city = parsed.get("loading_city")
     unloading_city = parsed.get("unloading_city")
     plate = parsed.get("plate_number")
-    driver_id_from_llm = parsed.get("driver_id")
+    driver_query = parsed.get("driver_query")
 
-    logger.info(f"🎯 intent={intent} | loading={loading_city} | unloading={unloading_city} | plate={plate} | driver_id={driver_id_from_llm}")
+    logger.info(f"🎯 intent={intent} | loading={loading_city} | unloading={unloading_city} | plate={plate} | driver_query={driver_query}")
 
     # ── PRZYPISZ_TRASE → przypisz ofertę do kierowcy i powiadom ─────
     if intent == "PRZYPISZ_TRASE":
@@ -232,24 +232,28 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
         if not offer:
             return "Nie pamiętam żadnej omawianej oferty. Najpierw powiedz mi skąd szukasz ładunku."
 
-        # Fallback: szukaj driver_id z regex jeśli LLM nie wyciągnął
-        if not driver_id_from_llm:
-            m = re.search(r'(?:kierowca?|driver)[^\d]*(\d+)', message, re.IGNORECASE)
-            driver_id_from_llm = int(m.group(1)) if m else None
+        # Fallback: szukaj driver_query z regex jeśli LLM nie wyciągnął
+        if not driver_query:
+            m = re.search(r'(?:kierowca?|driver)\s*([^\s]+)', message, re.IGNORECASE)
+            driver_query = m.group(1) if m else None
 
-        if not driver_id_from_llm:
-            return "Podaj numer ID kierowcy (np. 'daj tę trasę kierowcy nr 3')."
+        if not driver_query:
+            return "Podaj nazwę lub ID kierowcy (np. 'daj tę trasę kierowcy nr 3' lub 'przypisz do kierowca1')."
 
         try:
             from app.models.user import User, UserRole
             from app.models.assigned_route import AssignedRoute
             from app.core.database import engine
-            from sqlmodel import Session as Sess
+            from sqlmodel import Session as Sess, select, or_
 
             with Sess(engine) as s:
-                driver = s.get(User, int(driver_id_from_llm))
+                conditions = [User.username.ilike(f"%{driver_query}%")]
+                if driver_query.isdigit():
+                    conditions.append(User.id == int(driver_query))
+                
+                driver = s.exec(select(User).where(or_(*conditions))).first()
                 if not driver or driver.role != UserRole.KIEROWCA:
-                    return f"Nie znalazłem kierowcy nr {driver_id_from_llm} w systemie."
+                    return f"Nie znalazłem kierowcy '{driver_query}' w systemie."
 
                 route = AssignedRoute(
                     driver_id=driver.id,
@@ -377,22 +381,26 @@ async def process_driver_message(message: str, db_session: Session, session_id: 
 
     # ── SPRAWDZ_TRASY_KIEROWCY ────────────────────────────────────────
     if intent == "SPRAWDZ_TRASY_KIEROWCY":
-        if not driver_id_from_llm:
-            m = re.search(r'(?:kierowca?|driver)[^\d]*(\d+)', message, re.IGNORECASE)
-            driver_id_from_llm = int(m.group(1)) if m else None
+        if not driver_query:
+            m = re.search(r'(?:kierowca?|driver)\s*([^\s]+)', message, re.IGNORECASE)
+            driver_query = m.group(1) if m else None
 
-        if not driver_id_from_llm:
-            return "Podaj numer ID kierowcy, którego trasy chcesz sprawdzić (np. 'pokaż trasy kierowcy nr 3')."
+        if not driver_query:
+            return "Podaj nazwę lub ID kierowcy, którego trasy chcesz sprawdzić (np. 'pokaż trasy kierowca1' lub 'kierowcy nr 3')."
         try:
             from app.models.user import User
             from app.models.assigned_route import AssignedRoute
             from app.core.database import engine
-            from sqlmodel import Session as Sess, select
+            from sqlmodel import Session as Sess, select, or_
             
             with Sess(engine) as s:
-                driver = s.get(User, int(driver_id_from_llm))
+                conditions = [User.username.ilike(f"%{driver_query}%")]
+                if driver_query.isdigit():
+                    conditions.append(User.id == int(driver_query))
+                
+                driver = s.exec(select(User).where(or_(*conditions))).first()
                 if not driver:
-                    return f"Nie znalazłem kierowcy o ID {driver_id_from_llm} w systemie."
+                    return f"Nie znalazłem kierowcy '{driver_query}' w systemie."
                     
                 routes = s.exec(select(AssignedRoute).where(AssignedRoute.driver_id == driver.id)).all()
                 if not routes:
